@@ -210,11 +210,22 @@
 <div class="section" id="section-act">
   <div class="filtros">
     <div class="filter-row">
+      <div class="filter-label">Semana</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="act-sem-select" onchange="setSemanaAct(this.value)">
+          <option value="todas">Todas las semanas</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
       <div class="filter-label">Asignado</div>
-      <div class="estado-wrap">
-        <button class="est-btn active-todos"   id="act-est-todos"     onclick="setEstadoAct('todos')">Todos</button>
-        <button class="est-btn"                id="act-est-lupita"    onclick="setEstadoAct('Lupita Alferez')">Lupita</button>
-        <button class="est-btn"                id="act-est-marco"     onclick="setEstadoAct('Marco Reyes')">Marco</button>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="act-asignado-select" onchange="setEstadoAct(this.value)">
+          <option value="todos">Todos</option>
+          <option value="Marco Reyes">Marco Reyes</option>
+          <option value="Lupita Alferez">Lupita Alferez</option>
+          <option value="Todos">Asignado a Todos</option>
+        </select>
       </div>
     </div>
     <div class="filter-row">
@@ -352,13 +363,13 @@ function setEstadoOP(est) {
   renderOPs();
 }
 
+let semanaAct = 'todas';
+
 // ── FILTROS ACTIVIDADES ───────────────────────────────────────
+function setSemanaAct(val) { semanaAct = val; renderActividades(); }
+
 function setEstadoAct(val) {
   asignadoAct = val;
-  ['todos','lupita','marco'].forEach(e => document.getElementById('act-est-'+e).className = 'est-btn');
-  if (val === 'todos')          document.getElementById('act-est-todos').classList.add('active-todos');
-  if (val === 'Lupita Alferez') document.getElementById('act-est-lupita').classList.add('active-surtido');
-  if (val === 'Marco Reyes')    document.getElementById('act-est-marco').classList.add('active-surtido');
   renderActividades();
 }
 
@@ -410,16 +421,13 @@ function parsearDetalle(detalle) {
   if (!detalle) return [];
   return detalle.split(',').map(item => {
     const parts = item.trim().split(':');
-    return {
-      codigo:   (parts[0]||'').trim(),
-      cantidad: (parts[1]||'').trim(),
-      lote:     (parts[2]||'').trim(),
-    };
+    return { codigo:(parts[0]||'').trim(), cantidad:(parts[1]||'').trim(), lote:(parts[2]||'').trim() };
   }).filter(p => p.codigo);
 }
 
 function renderActividades() {
   let f = actData;
+  if (semanaAct !== 'todas')   f = f.filter(r => r.semana === semanaAct);
   if (asignadoAct !== 'todos') f = f.filter(r => r.asignado === asignadoAct);
   if (statusAct !== 'todos')   f = f.filter(r => (r.estado||'').toLowerCase() === statusAct.toLowerCase());
 
@@ -594,17 +602,25 @@ async function cargarActividades() {
   const idx = {
     folio:h.indexOf('folio'), fecha:h.indexOf('fecha'), asignado:h.indexOf('asignado'),
     fechaLimite:h.indexOf('fecha límite'), descripcion:h.indexOf('descripción'),
-    detalle:h.indexOf('detalle'), estado:h.indexOf('estado'),
+    detalle:h.indexOf('detalle'), semana:h.indexOf('semana'), estado:h.indexOf('estado'),
     completadoPor:h.indexOf('completado por'), fechaCompletado:h.indexOf('fecha completado'),
     comentario:h.indexOf('comentario'),
   };
   actData = rows.slice(1).map(r => ({
     folio:cl(r[idx.folio]), fecha:cl(r[idx.fecha]), asignado:cl(r[idx.asignado]),
     fechaLimite:cl(r[idx.fechaLimite]), descripcion:cl(r[idx.descripcion]),
-    detalle:cl(r[idx.detalle]), estado:cl(r[idx.estado]),
+    detalle:cl(r[idx.detalle]), semana:cl(r[idx.semana]), estado:cl(r[idx.estado]),
     completadoPor:cl(r[idx.completadoPor]), fechaCompletado:cl(r[idx.fechaCompletado]),
     comentario:cl(r[idx.comentario]),
   })).filter(r => r.folio);
+
+  // Poblar desplegable de semanas
+  const semanas = [...new Set(actData.map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  const sel = document.getElementById('act-sem-select');
+  sel.innerHTML = '<option value="todas">Todas las semanas</option>';
+  semanas.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o); });
+  const ultima = semanas[semanas.length-1];
+  if (ultima) { sel.value = ultima; semanaAct = ultima; }
 }
 
 async function recargar() {
