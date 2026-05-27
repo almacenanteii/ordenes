@@ -190,6 +190,17 @@
       </div>
     </div>
     <div class="filter-row">
+      <div class="filter-label">Surtió</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="surtio-select" onchange="setSurtio(this.value)">
+          <option value="todos">Todos</option>
+          <option value="Lupita Alferez">Lupita Alferez</option>
+          <option value="Marco Reyes">Marco Reyes</option>
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
       <div class="filter-label">Estado</div>
       <div class="estado-wrap">
         <button class="est-btn active-todos"   id="op-est-todos"     onclick="setEstadoOP('todos')">Todos</button>
@@ -290,7 +301,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzhhgS3PhmlMNxRVLZr_TUsGhxh5tgCGiqAL2y_Gc-iYUnBS1DHWlYud92T8moeUA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby15Ve3DTNcxbX7xiWmGCAiVdifgxAi5BgOjUvlSMt9vCn_G_dn6g2WPnLXKscz9zo/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -351,8 +362,11 @@ function switchTab(tab) {
   document.getElementById('section-act').classList.toggle('active', tab === 'act');
 }
 
+let surtioFiltro = 'todos';
+
 // ── FILTROS OPs ──────────────────────────────────────────────
 function setSemana(val) { semanaActual = val; renderOPs(); }
+function setSurtio(val) { surtioFiltro = val; renderOPs(); }
 
 function setEstadoOP(est) {
   estadoOP = est;
@@ -387,6 +401,8 @@ function renderOPs() {
   let f = opsData;
   if (semanaActual !== 'todas') f = f.filter(r => r.semana === semanaActual);
   if (estadoOP !== 'todos')     f = f.filter(r => r.estado === estadoOP);
+  if (surtioFiltro === '')      f = f.filter(r => !r.surtio);
+  else if (surtioFiltro !== 'todos') f = f.filter(r => r.surtio === surtioFiltro);
 
   document.getElementById('op-r-total').textContent    = f.length;
   document.getElementById('op-r-surtido').textContent  = f.filter(r=>r.estado==='Surtido').length;
