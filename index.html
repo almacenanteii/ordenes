@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Órdenes de Trabajo 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap');
+  :root {
+    --orange:#E8671A; --g9:#1A1A1A; --g8:#2C2C2C; --g7:#3D3D3D;
+    --g6:#5A5A5A; --g4:#9A9A9A; --g2:#E8E8E8; --g1:#F5F5F5;
+    --white:#FFFFFF; --green:#2ECC71; --red:#E74C3C; --yellow:#F39C12;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Barlow',sans-serif; background:var(--g1); color:var(--g9); min-height:100vh; max-width:480px; margin:0 auto; }
+
+  /* HEADER */
+  .hdr { background:var(--g9); padding:20px 16px 18px; position:relative; overflow:hidden; }
+  .hdr::before { content:''; position:absolute; top:-30px; right:-30px; width:130px; height:130px; border-radius:50%; background:var(--orange); opacity:.10; }
+  .hdr-lbl { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--orange); margin-bottom:3px; }
+  .hdr-title { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:800; color:var(--white); line-height:1.1; }
+  .hdr-sub { font-size:12px; color:var(--g4); margin-top:3px; }
+
+  /* UPDATED */
+  .upd { text-align:center; padding:5px; font-size:10px; color:var(--g4); background:var(--g8); letter-spacing:.5px; }
+  .upd strong { color:var(--orange); }
+
+  /* FILTROS */
+  .filtros { padding:12px 16px; background:var(--white); border-bottom:1px solid var(--g2); display:flex; flex-direction:column; gap:10px; }
+
+  .filter-row { display:flex; gap:8px; align-items:center; }
+  .filter-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--g4); white-space:nowrap; min-width:52px; }
+
+  .semanas-wrap { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+  .sem-btn { background:var(--g1); border:1.5px solid var(--g2); border-radius:8px; padding:5px 10px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:var(--g6); cursor:pointer; transition:all .15s; }
+  .sem-btn.active { background:var(--orange); border-color:var(--orange); color:var(--white); }
+  .sem-btn:active { opacity:.8; }
+
+  .estado-wrap { display:flex; gap:6px; flex:1; }
+  .est-btn { flex:1; background:var(--g1); border:1.5px solid var(--g2); border-radius:8px; padding:5px 8px; font-size:12px; font-weight:600; color:var(--g6); cursor:pointer; text-align:center; transition:all .15s; }
+  .est-btn.active-surtido { background:#e8f8f0; border-color:var(--green); color:#1a8a50; }
+  .est-btn.active-pendiente { background:#fff3f3; border-color:var(--red); color:var(--red); }
+  .est-btn.active-todos { background:var(--orange); border-color:var(--orange); color:var(--white); }
+
+  /* RESUMEN */
+  .resumen { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:12px 16px; background:var(--white); border-bottom:1px solid var(--g2); }
+  .res-card { text-align:center; padding:8px 4px; border-radius:10px; }
+  .res-card.total { background:var(--g1); }
+  .res-card.surtido { background:#e8f8f0; }
+  .res-card.pendiente { background:#fff3f3; }
+  .res-num { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:800; line-height:1; }
+  .res-card.total .res-num { color:var(--orange); }
+  .res-card.surtido .res-num { color:#1a8a50; }
+  .res-card.pendiente .res-num { color:var(--red); }
+  .res-lbl { font-size:10px; font-weight:600; color:var(--g4); margin-top:3px; text-transform:uppercase; letter-spacing:.5px; }
+
+  /* LISTA */
+  .lista { padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
+
+  .op-card { background:var(--white); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); border-left:4px solid var(--g2); }
+  .op-card.surtido { border-left-color:var(--green); }
+  .op-card.pendiente { border-left-color:var(--red); }
+
+  .op-top { display:flex; justify-content:space-between; align-items:flex-start; padding:11px 14px 6px; }
+  .op-num { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:800; color:var(--g9); }
+  .op-fecha { font-size:10px; color:var(--g4); margin-top:2px; }
+  .op-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+  .op-badge.surtido { background:#e8f8f0; color:#1a8a50; }
+  .op-badge.pendiente { background:#fff3f3; color:var(--red); }
+
+  .op-producto { padding:0 14px 8px; font-size:12px; font-weight:500; color:var(--g7); line-height:1.4; }
+  .op-codigo { font-size:10px; color:var(--orange); font-weight:600; margin-bottom:3px; }
+
+  .op-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid var(--g1); }
+  .op-field { padding:7px 14px; border-right:1px solid var(--g1); border-bottom:1px solid var(--g1); }
+  .op-field:nth-child(even) { border-right:none; }
+  .op-field:nth-last-child(-n+2) { border-bottom:none; }
+  .op-field-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); margin-bottom:2px; }
+  .op-field-val { font-size:12px; font-weight:600; color:var(--g7); }
+  .op-field-val.ok { color:var(--green); }
+  .op-field-val.late { color:var(--red); }
+  .op-field-val.warn { color:var(--yellow); }
+  .op-field-val.em { color:var(--g4); }
+
+  /* EMPTY / LOADING */
+  .loading { text-align:center; padding:40px 20px; color:var(--g4); font-size:13px; }
+  .spinner { width:28px; height:28px; border:3px solid var(--g2); border-top-color:var(--orange); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .empty { text-align:center; padding:30px 20px; color:var(--g4); font-size:13px; }
+  .empty-ico { font-size:32px; margin-bottom:8px; }
+  .err { background:#fff3f3; border:1px solid #fcc; border-radius:10px; padding:14px; margin:16px; font-size:12px; color:var(--red); text-align:center; line-height:1.6; }
+
+  .footer { text-align:center; padding:16px; font-size:10px; color:var(--g4); letter-spacing:.5px; }
+  .footer strong { color:var(--orange); }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-lbl">Almacén SAI · 2026</div>
+  <div class="hdr-title">Órdenes de Trabajo</div>
+  <div class="hdr-sub">Trazabilidad de OPs por semana</div>
+</div>
+
+<div class="upd" id="upd">Cargando datos...</div>
+
+<!-- FILTROS -->
+<div class="filtros">
+  <div class="filter-row">
+    <div class="filter-label">Semana</div>
+    <div class="semanas-wrap" id="semanas-wrap">
+      <!-- Se genera dinámico -->
+    </div>
+  </div>
+  <div class="filter-row">
+    <div class="filter-label">Estado</div>
+    <div class="estado-wrap">
+      <button class="est-btn active-todos" id="est-todos" onclick="setEstado('todos')">Todos</button>
+      <button class="est-btn" id="est-surtido" onclick="setEstado('Surtido')">✓ Surtido</button>
+      <button class="est-btn" id="est-pendiente" onclick="setEstado('Pendiente')">⏳ Pendiente</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESUMEN -->
+<div class="resumen">
+  <div class="res-card total">
+    <div class="res-num" id="r-total">0</div>
+    <div class="res-lbl">Total OPs</div>
+  </div>
+  <div class="res-card surtido">
+    <div class="res-num" id="r-surtido">0</div>
+    <div class="res-lbl">Surtidas</div>
+  </div>
+  <div class="res-card pendiente">
+    <div class="res-num" id="r-pendiente">0</div>
+    <div class="res-lbl">Pendientes</div>
+  </div>
+</div>
+
+<!-- LISTA -->
+<div class="lista" id="lista">
+  <div class="loading"><div class="spinner"></div>Cargando órdenes...</div>
+</div>
+
+<div class="footer">Actualizado por <strong>Almacén SAI</strong> · 2026</div>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
+
+let allData = [];
+let semanaActual = 'todas';
+let estadoActual = 'todos';
+
+function parseCSV(txt) {
+  const rows = [];
+  let row = [], cur = '', q = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (c === '"') { q = !q; }
+    else if (c === ',' && !q) { row.push(cur.trim()); cur = ''; }
+    else if ((c === '\n' || c === '\r') && !q) {
+      if (c === '\r' && txt[i+1] === '\n') i++;
+      row.push(cur.trim()); cur = '';
+      if (row.some(x => x)) rows.push(row);
+      row = [];
+    } else { cur += c; }
+  }
+  if (cur || row.length) { row.push(cur.trim()); if (row.some(x=>x)) rows.push(row); }
+  return rows;
+}
+
+function cl(v) {
+  if (v === undefined || v === null) return '';
+  return String(v).trim().replace(/^nan$/i, '');
+}
+
+function fmtFecha(v) {
+  const s = cl(v);
+  if (!s) return '—';
+  // Formato: 1/4/2026 0:00:00 → 01 abr 2026
+  const match = s.match(/^(\d+)\/(\d+)\/(\d+)/);
+  if (!match) return s;
+  const meses = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const d = match[1].padStart(2,'0');
+  const m = meses[parseInt(match[2])] || match[2];
+  const y = match[3];
+  return `${d} ${m} ${y}`;
+}
+
+function fmtATiempo(v) {
+  const s = cl(v);
+  if (!s) return { txt: '—', cls: 'em' };
+  const n = parseFloat(s);
+  if (isNaN(n)) return { txt: s, cls: '' };
+  if (n <= 0) return { txt: '✓ A tiempo', cls: 'ok' };
+  if (n > 0 && n <= 3) return { txt: `+${Math.round(n)} días`, cls: 'warn' };
+  return { txt: `+${Math.round(n)} días tarde`, cls: 'late' };
+}
+
+function setSemana(sem) {
+  semanaActual = sem;
+  document.querySelectorAll('.sem-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('sem-' + sem);
+  if (btn) btn.classList.add('active');
+  renderLista();
+}
+
+function setEstado(est) {
+  estadoActual = est;
+  document.querySelectorAll('.est-btn').forEach(b => {
+    b.classList.remove('active-todos','active-surtido','active-pendiente');
+  });
+  if (est === 'todos') document.getElementById('est-todos').classList.add('active-todos');
+  if (est === 'Surtido') document.getElementById('est-surtido').classList.add('active-surtido');
+  if (est === 'Pendiente') document.getElementById('est-pendiente').classList.add('active-pendiente');
+  renderLista();
+}
+
+function renderLista() {
+  // Filtrar
+  let filtered = allData;
+  if (semanaActual !== 'todas') {
+    filtered = filtered.filter(r => String(r.semana) === String(semanaActual));
+  }
+  if (estadoActual !== 'todos') {
+    filtered = filtered.filter(r => r.estado === estadoActual);
+  }
+
+  // Resumen
+  const surtidas = filtered.filter(r => r.estado === 'Surtido').length;
+  const pendientes = filtered.filter(r => r.estado === 'Pendiente').length;
+  document.getElementById('r-total').textContent = filtered.length;
+  document.getElementById('r-surtido').textContent = surtidas;
+  document.getElementById('r-pendiente').textContent = pendientes;
+
+  const lista = document.getElementById('lista');
+
+  if (!filtered.length) {
+    lista.innerHTML = `<div class="empty"><div class="empty-ico">📭</div>No hay órdenes para este filtro</div>`;
+    return;
+  }
+
+  lista.innerHTML = filtered.map(r => {
+    const at = fmtATiempo(r.atiempo);
+    const estadoCls = (r.estado || '').toLowerCase() === 'surtido' ? 'surtido' : 'pendiente';
+    const badgeCls  = estadoCls;
+    const badgeTxt  = r.estado === 'Surtido' ? '✓ Surtido' : '⏳ Pendiente';
+
+    return `<div class="op-card ${estadoCls}">
+      <div class="op-top">
+        <div>
+          <div class="op-num">OP ${r.op}</div>
+          <div class="op-fecha">${fmtFecha(r.fecha)}</div>
+        </div>
+        <div class="op-badge ${badgeCls}">${badgeTxt}</div>
+      </div>
+      <div class="op-producto">
+        <div class="op-codigo">${r.codigo || '—'}</div>
+        ${r.producto || '—'}
+      </div>
+      <div class="op-grid">
+        <div class="op-field">
+          <div class="op-field-lbl">Surtió</div>
+          <div class="op-field-val ${r.surtio ? '' : 'em'}">${r.surtio || 'Sin asignar'}</div>
+        </div>
+        <div class="op-field">
+          <div class="op-field-lbl">Semana</div>
+          <div class="op-field-val">${r.semana || '—'}</div>
+        </div>
+        <div class="op-field">
+          <div class="op-field-lbl">Fecha surtido</div>
+          <div class="op-field-val ${r.fechasurtido ? '' : 'em'}">${fmtFecha(r.fechasurtido) || '—'}</div>
+        </div>
+        <div class="op-field">
+          <div class="op-field-lbl">A tiempo</div>
+          <div class="op-field-val ${at.cls}">${at.txt}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function load() {
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('No se pudo conectar');
+    const txt = await res.text();
+    const rows = parseCSV(txt);
+
+    // Headers en fila 0
+    const headers = rows[0].map(h => cl(h).toLowerCase());
+
+    // Índices columnas A-J
+    const idx = {
+      op:          headers.indexOf('op'),
+      fecha:       headers.indexOf('fecha'),
+      codigo:      headers.indexOf('codigo'),
+      producto:    headers.indexOf('producto'),
+      prioridad:   headers.indexOf('prioridad'),
+      surtio:      headers.indexOf('surtio'),
+      estado:      headers.indexOf('estado'),
+      fechasurtido:headers.indexOf('fecha de sutido'),
+      atiempo:     headers.indexOf('a tiempo'),
+      semana:      headers.indexOf('semana'),
+    };
+
+    // Parsear datos
+    allData = rows.slice(1).map(r => ({
+      op:          cl(r[idx.op]),
+      fecha:       cl(r[idx.fecha]),
+      codigo:      cl(r[idx.codigo]),
+      producto:    cl(r[idx.producto]),
+      prioridad:   cl(r[idx.prioridad]),
+      surtio:      cl(r[idx.surtio]),
+      estado:      cl(r[idx.estado]),
+      fechasurtido:cl(r[idx.fechasurtido]),
+      atiempo:     cl(r[idx.atiempo]),
+      semana:      cl(r[idx.semana]),
+    })).filter(r => r.op);
+
+    // Semanas únicas
+    const semanas = [...new Set(allData.map(r => r.semana).filter(s => s))].sort((a,b) => Number(a)-Number(b));
+
+    // Construir botones de semana
+    const wrap = document.getElementById('semanas-wrap');
+    wrap.innerHTML = `<button class="sem-btn active" id="sem-todas" onclick="setSemana('todas')">Todas</button>` +
+      semanas.map(s => `<button class="sem-btn" id="sem-${s}" onclick="setSemana('${s}')">Sem ${s}</button>`).join('');
+
+    // Mostrar semana más reciente por defecto
+    const ultimaSemana = semanas[semanas.length - 1];
+    if (ultimaSemana) setSemana(ultimaSemana);
+    else renderLista();
+
+    const now = new Date();
+    document.getElementById('upd').innerHTML = `Datos al <strong>${now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</strong> · ${now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
+
+  } catch(e) {
+    document.getElementById('lista').innerHTML = `<div class="err">⚠️ Error al cargar datos<br><small>${e.message}</small></div>`;
+    document.getElementById('upd').textContent = 'Error al conectar';
+    console.error(e);
+  }
+}
+
+load();
+</script>
+</body>
+</html>
