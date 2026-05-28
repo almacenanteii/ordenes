@@ -321,7 +321,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXk1aM8-POeWI6leYhaBOn2ao0_9l9xITRd9y5OThuY908vRR-xuZHcfE7LG2KKpU/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzN8SUfzX7OJQmO1xB3vjBenf7o4AWGqMBWClYdEpoRLfrvKtOt6OFoxMirB4SBhjk/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -555,7 +555,7 @@ function renderActividades() {
     let completadoHTML = '';
     if (!esPend) {
       completadoHTML = `<div class="act-completado-info">
-        ✓ Completado por <strong>${r.completadoPor||'—'}</strong> · ${fmtFecha(r.fechaCompletado)}
+        ✓ Completado por <strong>${r.completadoPor||'—'}</strong> · ${fmtFecha(r.fechaCompletado)||'—'}
         ${r.comentario ? `<div class="act-comentario">"${r.comentario}"</div>` : ''}
       </div>`;
     }
@@ -566,7 +566,7 @@ function renderActividades() {
         <div class="act-badge ${cls}">${esPend ? '⏳ Pendiente' : '✓ Completado'}</div>
       </div>
       <div class="act-desc">
-        <div class="act-asignado">👤 ${r.asignado||'Sin asignar'}</div>
+        <div class="act-asignado">👤 Asignado: <strong>${r.asignado||'Sin asignar'}</strong>${r.solicitante ? ` · 📌 Solicitante: <strong>${r.solicitante}</strong>` : ''}</div>
         ${r.descripcion||'—'}
       </div>
       ${productosHTML}
@@ -687,18 +687,32 @@ async function cargarActividades() {
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
   const idx = {
-    folio:h.indexOf('folio'), fecha:h.indexOf('fecha'), asignado:h.indexOf('asignado'),
-    fechaLimite:h.indexOf('fecha límite'), descripcion:h.indexOf('descripción'),
-    detalle:h.indexOf('detalle'), semana:h.indexOf('semana'), estado:h.indexOf('estado'),
-    completadoPor:h.indexOf('completado por'), fechaCompletado:h.indexOf('fecha completado'),
-    comentario:h.indexOf('comentario'),
+    folio:          h.indexOf('folio'),
+    fecha:          h.indexOf('fecha'),
+    asignado:       h.indexOf('asignado'),
+    solicitante:    h.indexOf('solicitante'),
+    fechaLimite:    h.indexOf('fecha límite'),
+    descripcion:    h.indexOf('descripción'),
+    detalle:        h.indexOf('detalle'),
+    semana:         h.indexOf('semana'),
+    estado:         h.indexOf('estado'),
+    completadoPor:  h.indexOf('completado'),
+    fechaCompletado:h.indexOf('fecha completado'),
+    comentario:     h.indexOf('comentario'),
   };
   actData = rows.slice(1).map(r => ({
-    folio:cl(r[idx.folio]), fecha:cl(r[idx.fecha]), asignado:cl(r[idx.asignado]),
-    fechaLimite:cl(r[idx.fechaLimite]), descripcion:cl(r[idx.descripcion]),
-    detalle:cl(r[idx.detalle]), semana:cl(r[idx.semana]), estado:cl(r[idx.estado]),
-    completadoPor:cl(r[idx.completadoPor]), fechaCompletado:cl(r[idx.fechaCompletado]),
-    comentario:cl(r[idx.comentario]),
+    folio:          cl(r[idx.folio]),
+    fecha:          cl(r[idx.fecha]),
+    asignado:       cl(r[idx.asignado]),
+    solicitante:    cl(r[idx.solicitante]),
+    fechaLimite:    cl(r[idx.fechaLimite]),
+    descripcion:    cl(r[idx.descripcion]),
+    detalle:        cl(r[idx.detalle]),
+    semana:         cl(r[idx.semana]),
+    estado:         cl(r[idx.estado]),
+    completadoPor:  cl(r[idx.completadoPor]),
+    fechaCompletado:cl(r[idx.fechaCompletado]),
+    comentario:     cl(r[idx.comentario]),
   })).filter(r => r.folio);
 
   // Poblar desplegable de semanas
