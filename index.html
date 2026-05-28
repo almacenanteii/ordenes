@@ -493,7 +493,6 @@ function renderOPs() {
   if (!f.length) { lista.innerHTML = `<div class="empty"><div class="empty-ico">📭</div>Sin órdenes</div>`; return; }
 
   lista.innerHTML = f.map(r => {
-    const at = fmtATiempo(r.atiempo);
     const esPend = (r.estado||'').toLowerCase() !== 'surtido';
     const cls = esPend ? 'pendiente' : 'surtido';
     return `<div class="op-card ${cls}">
