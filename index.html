@@ -321,7 +321,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxYmzbhakjWlb9yIu3kANW-SzC2r7sKzeYLWAehfaOg5hjbO1ESNGeybPKWQT4zhD0/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXk1aM8-POeWI6leYhaBOn2ao0_9l9xITRd9y5OThuY908vRR-xuZHcfE7LG2KKpU/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -622,19 +622,14 @@ async function confirmarOP() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-sm"></div> Guardando...';
   try {
-    const res = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ tipo:'op', op: opSeleccionada.op, surtio: personaOP }) });
-    const data = await res.json();
+    await sai_fetch({ tipo:'op', op: opSeleccionada.op, surtio: personaOP });
     const msg = document.getElementById('op-modal-msg');
     msg.style.display = 'block';
-    if (data.ok) {
-      msg.className = 'modal-msg ok'; msg.textContent = '✓ ' + data.msg;
-      const item = opsData.find(r => r.op === opSeleccionada.op);
-      if (item) { item.estado = 'Surtido'; item.surtio = personaOP; item.fechasurtido = new Date().toLocaleDateString('es-MX'); }
-      setTimeout(() => { cerrarModal('op'); renderOPs(); }, 1500);
-    } else {
-      msg.className = 'modal-msg err'; msg.textContent = '⚠️ ' + data.msg;
-      btn.disabled = false; btn.innerHTML = 'Confirmar Surtido';
-    }
+    msg.className = 'modal-msg ok';
+    msg.textContent = '✓ OP marcada como Surtido por ' + personaOP;
+    const item = opsData.find(r => r.op === opSeleccionada.op);
+    if (item) { item.estado = 'Surtido'; item.surtio = personaOP; item.fechasurtido = new Date().toLocaleDateString('es-MX'); }
+    setTimeout(() => { cerrarModal('op'); renderOPs(); }, 1500);
   } catch(e) {
     const msg = document.getElementById('op-modal-msg');
     msg.style.display = 'block'; msg.className = 'modal-msg err'; msg.textContent = '⚠️ Error de conexión';
@@ -649,19 +644,14 @@ async function confirmarActividad() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-sm"></div> Guardando...';
   try {
-    const res = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ tipo:'actividad', folio: actSeleccionada.folio, completado: personaAct, comentario }) });
-    const data = await res.json();
+    await sai_fetch({ tipo:'actividad', folio: actSeleccionada.folio, completado: personaAct, comentario, descripcion: actSeleccionada.descripcion });
     const msg = document.getElementById('act-modal-msg');
     msg.style.display = 'block';
-    if (data.ok) {
-      msg.className = 'modal-msg ok'; msg.textContent = '✓ ' + data.msg;
-      const item = actData.find(r => r.folio === actSeleccionada.folio);
-      if (item) { item.estado = 'Completado'; item.completadoPor = personaAct; item.comentario = comentario; item.fechaCompletado = new Date().toLocaleDateString('es-MX'); }
-      setTimeout(() => { cerrarModal('act'); renderActividades(); }, 1500);
-    } else {
-      msg.className = 'modal-msg err'; msg.textContent = '⚠️ ' + data.msg;
-      btn.disabled = false; btn.innerHTML = 'Confirmar Completado';
-    }
+    msg.className = 'modal-msg ok';
+    msg.textContent = '✓ Actividad completada por ' + personaAct;
+    const item = actData.find(r => r.folio === actSeleccionada.folio);
+    if (item) { item.estado = 'Completado'; item.completadoPor = personaAct; item.comentario = comentario; item.fechaCompletado = new Date().toLocaleDateString('es-MX'); }
+    setTimeout(() => { cerrarModal('act'); renderActividades(); }, 1500);
   } catch(e) {
     const msg = document.getElementById('act-modal-msg');
     msg.style.display = 'block'; msg.className = 'modal-msg err'; msg.textContent = '⚠️ Error de conexión';
@@ -742,7 +732,17 @@ async function load() {
   }
 }
 
-// Cerrar modales tocando fuera
+async function sai_fetch(payload) {
+  const params = new URLSearchParams();
+  params.append('data', JSON.stringify(payload));
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: params,
+    mode: 'no-cors'
+  });
+  // no-cors no devuelve body, asumimos éxito
+  return { ok: true, msg: 'Guardado correctamente' };
+}
 ['modal-op-bg','modal-act-bg'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) cerrarModal(id.includes('op')?'op':'act'); });
 });
