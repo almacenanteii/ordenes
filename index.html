@@ -158,6 +158,26 @@
   .err-box { background:#fff3f3; border:1px solid #fcc; border-radius:10px; padding:14px; margin:16px; font-size:12px; color:var(--red); text-align:center; line-height:1.6; }
   .footer { text-align:center; padding:16px; font-size:10px; color:var(--g4); letter-spacing:.5px; }
   .footer strong { color:var(--orange); }
+
+  /* BARRA DE TIEMPO */
+  .time-bar-wrap { padding:8px 14px 10px; border-top:1px solid var(--g1); }
+  .time-bar-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+  .time-bar-txt { font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); }
+  .time-bar-days { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800; }
+  .time-bar-days.c0 { color:var(--green); }
+  .time-bar-days.c1 { color:#27AE60; }
+  .time-bar-days.c2 { color:var(--yellow); }
+  .time-bar-days.c3 { color:var(--orange); }
+  .time-bar-days.c4 { color:var(--red); }
+  .time-bar { height:6px; background:var(--g2); border-radius:4px; overflow:hidden; }
+  .time-bar-fill { height:100%; border-radius:4px; }
+  .time-bar-fill.c0 { background:var(--green); }
+  .time-bar-fill.c1 { background:#27AE60; }
+  .time-bar-fill.c2 { background:var(--yellow); }
+  .time-bar-fill.c3 { background:var(--orange); }
+  .time-bar-fill.c4 { background:var(--red); }
+  .time-surtida { padding:6px 14px 10px; border-top:1px solid var(--g1); font-size:11px; color:var(--g4); }
+  .time-surtida strong { color:var(--green); }
 </style>
 </head>
 <body>
@@ -365,7 +385,68 @@ function switchTab(tab) {
 let surtioFiltro = 'todos';
 
 // ── FILTROS OPs ──────────────────────────────────────────────
-function setSemana(val) { semanaActual = val; renderOPs(); }
+function parseFecha(v) {
+  if (!v) return null;
+  const s = String(v).trim();
+  // Formato dd/mm/yyyy o dd/mm/yyyy hh:mm o dd/mm/yyyy hh:mm:ss
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return new Date(m[3], m[2]-1, m[1]);
+  return new Date(s);
+}
+
+function calcTiempo(fechaLlegada, fechaSurtido, esPendiente) {
+  const llegada = parseFecha(fechaLlegada);
+  if (!llegada || isNaN(llegada)) return null;
+
+  if (esPendiente) {
+    const ahora = new Date();
+    const horas = (ahora - llegada) / (1000 * 60 * 60);
+    const dias  = Math.floor(horas / 24);
+    const hrsResto = Math.floor(horas % 24);
+    // Color: 0-1d=c0, 2d=c1, 3-4d=c2, 5d=c3, >5d=c4
+    let cls = 'c0';
+    if (dias >= 6) cls = 'c4';
+    else if (dias >= 5) cls = 'c3';
+    else if (dias >= 3) cls = 'c2';
+    else if (dias >= 2) cls = 'c1';
+    const pct = Math.min((dias / 7) * 100, 100);
+    const txt = dias === 0
+      ? `${hrsResto} hrs abierta`
+      : dias === 1
+        ? `1 día ${hrsResto} hrs abierta`
+        : `${dias} días abierta`;
+    return { tipo:'pendiente', txt, cls, pct };
+  } else {
+    const surtido = parseFecha(fechaSurtido);
+    if (!surtido || isNaN(surtido)) return null;
+    const horas = (surtido - llegada) / (1000 * 60 * 60);
+    const dias  = Math.floor(horas / 24);
+    const hrsResto = Math.floor(horas % 24);
+    let txt = '';
+    if (dias === 0 && hrsResto === 0) txt = 'Surtida el mismo día';
+    else if (dias === 0) txt = `Surtida en ${hrsResto} hrs`;
+    else if (hrsResto === 0) txt = `Surtida en ${dias} día${dias>1?'s':''}`;
+    else txt = `Surtida en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
+    return { tipo:'surtida', txt };
+  }
+}
+
+function buildTimeBar(r) {
+  const esPend = (r.estado||'').toLowerCase() !== 'surtido';
+  const t = calcTiempo(r.fecha, r.fechasurtido, esPend);
+  if (!t) return '';
+  if (t.tipo === 'pendiente') {
+    return `<div class="time-bar-wrap">
+      <div class="time-bar-label">
+        <span class="time-bar-txt">⏱ Tiempo abierta</span>
+        <span class="time-bar-days ${t.cls}">${t.txt}</span>
+      </div>
+      <div class="time-bar"><div class="time-bar-fill ${t.cls}" style="width:${t.pct}%"></div></div>
+    </div>`;
+  } else {
+    return `<div class="time-surtida">⏱ <strong>${t.txt}</strong></div>`;
+  }
+}
 function setSurtio(val) { surtioFiltro = val; renderOPs(); }
 
 function setEstadoOP(est) {
@@ -425,8 +506,8 @@ function renderOPs() {
         <div class="op-field"><div class="op-field-lbl">Surtió</div><div class="op-field-val ${r.surtio?'':'em'}">${r.surtio||'Sin asignar'}</div></div>
         <div class="op-field"><div class="op-field-lbl">Semana</div><div class="op-field-val">${r.semana||'—'}</div></div>
         <div class="op-field"><div class="op-field-lbl">Fecha surtido</div><div class="op-field-val ${r.fechasurtido?'':'em'}">${fmtFecha(r.fechasurtido)||'—'}</div></div>
-        <div class="op-field"><div class="op-field-lbl">A tiempo</div><div class="op-field-val ${at.cls}">${at.txt}</div></div>
       </div>
+      ${buildTimeBar(r)}
       ${esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` : ''}
     </div>`;
   }).join('');
