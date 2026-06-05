@@ -160,6 +160,32 @@
   .footer { text-align:center; padding:16px; font-size:10px; color:var(--g4); letter-spacing:.5px; }
   .footer strong { color:var(--orange); }
 
+  /* BUSCADOR */
+  .search-wrap { flex:1; position:relative; display:flex; align-items:center; background:var(--g1); border:1.5px solid var(--g2); border-radius:10px; padding:0 12px; }
+  .search-ico { font-size:14px; margin-right:8px; }
+  .search-input { flex:1; border:none; background:none; padding:8px 0; font-size:14px; color:var(--g9); outline:none; font-family:'Barlow',sans-serif; }
+  .search-input::placeholder { color:var(--g4); }
+
+  /* PROMEDIO */
+  .promedio-box { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 16px; background:var(--white); border-bottom:1px solid var(--g2); }
+  .promedio-item { text-align:center; padding:8px 4px; }
+  .promedio-ico { font-size:18px; margin-bottom:4px; }
+  .promedio-val { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800; color:var(--orange); line-height:1; }
+  .promedio-lbl { font-size:9px; font-weight:600; color:var(--g4); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
+
+  /* GRÁFICA */
+  .grafica-box { padding:12px 16px; background:var(--white); border-bottom:1px solid var(--g2); }
+  .grafica-title { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:var(--g6); letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px; }
+  .grafica-wrap { display:flex; align-items:flex-end; gap:6px; height:80px; overflow-x:auto; padding-bottom:4px; }
+  .grafica-col { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:36px; }
+  .grafica-bars { display:flex; gap:2px; align-items:flex-end; }
+  .gbar { width:14px; border-radius:3px 3px 0 0; min-height:2px; }
+  .gbar-in  { background:var(--orange); }
+  .gbar-out { background:var(--green); }
+  .grafica-sem { font-size:9px; color:var(--g4); font-weight:600; margin-top:3px; }
+  .grafica-legend { display:flex; align-items:center; font-size:10px; color:var(--g4); margin-top:6px; }
+  .leg-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
+
   /* BARRA DE TIEMPO */
   .time-bar-wrap { padding:8px 14px 10px; border-top:1px solid var(--g1); }
   .time-bar-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
@@ -202,6 +228,13 @@
 <!-- ═══════════════ SECCIÓN OPs ═══════════════ -->
 <div class="section active" id="section-ops">
   <div class="filtros">
+    <!-- Buscador -->
+    <div class="filter-row">
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input class="search-input" id="op-search" type="text" placeholder="Buscar OP o código..." oninput="renderOPs()">
+      </div>
+    </div>
     <div class="filter-row">
       <div class="filter-label">Semana</div>
       <div class="sem-select-wrap">
@@ -230,11 +263,38 @@
       </div>
     </div>
   </div>
+
+  <!-- Resumen -->
   <div class="resumen">
     <div class="res-card total"><div class="res-num" id="op-r-total">0</div><div class="res-lbl">Total</div></div>
     <div class="res-card verde"><div class="res-num" id="op-r-surtido">0</div><div class="res-lbl">Surtidas</div></div>
     <div class="res-card rojo"><div class="res-num" id="op-r-pendiente">0</div><div class="res-lbl">Pendientes</div></div>
   </div>
+
+  <!-- Promedio de tiempo -->
+  <div class="promedio-box" id="promedio-box">
+    <div class="promedio-item">
+      <div class="promedio-ico">⏱️</div>
+      <div class="promedio-val" id="prom-dias">—</div>
+      <div class="promedio-lbl">Promedio surtido</div>
+    </div>
+    <div class="promedio-item">
+      <div class="promedio-ico">🏆</div>
+      <div class="promedio-val" id="prom-mejor">—</div>
+      <div class="promedio-lbl">Más rápido</div>
+    </div>
+  </div>
+
+  <!-- Gráfica semanal -->
+  <div class="grafica-box" id="grafica-box">
+    <div class="grafica-title">📊 OPs por semana</div>
+    <div class="grafica-wrap" id="grafica-wrap"></div>
+    <div class="grafica-legend">
+      <span class="leg-dot" style="background:var(--orange)"></span> Entradas
+      <span class="leg-dot" style="background:var(--green); margin-left:12px"></span> Surtidas
+    </div>
+  </div>
+
   <div class="lista" id="lista-ops"><div class="loading"><div class="spinner"></div>Cargando órdenes...</div></div>
 </div>
 
@@ -467,6 +527,49 @@ function buildTimeBar(r) {
     return `<div class="time-surtida">⏱ <strong>${t.txt}</strong></div>`;
   }
 }
+function actualizarPromedio(f) {
+  const surtidas = f.filter(r => (r.estado||'').toLowerCase().trim() === 'surtido' && r.fecha && r.fechasurtido);
+  if (!surtidas.length) {
+    document.getElementById('prom-dias').textContent = '—';
+    document.getElementById('prom-mejor').textContent = '—';
+    document.getElementById('prom-top').textContent = '—';
+    return;
+  }
+  const tiempos = surtidas.map(r => {
+    const ini = parseFecha(r.fecha), fin = parseFecha(r.fechasurtido);
+    if (!ini || !fin) return null;
+    return (fin - ini) / (1000 * 60 * 60 * 24);
+  }).filter(t => t !== null && t >= 0);
+
+  if (!tiempos.length) return;
+  const prom = tiempos.reduce((a,b)=>a+b,0) / tiempos.length;
+  const mejor = Math.min(...tiempos);
+  document.getElementById('prom-dias').textContent = prom < 1 ? `${Math.round(prom*24)}h` : `${prom.toFixed(1)}d`;
+  document.getElementById('prom-mejor').textContent = mejor < 1 ? `${Math.round(mejor*24)}h` : `${mejor.toFixed(1)}d`;
+}
+
+function actualizarGrafica() {
+  const semanas = [...new Set(opsData.map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  if (!semanas.length) return;
+  const maxSems = semanas.slice(-8); // últimas 8 semanas
+  const maxVal = Math.max(...maxSems.map(s => opsData.filter(r=>r.semana===s).length), 1);
+
+  const wrap = document.getElementById('grafica-wrap');
+  wrap.innerHTML = maxSems.map(s => {
+    const total   = opsData.filter(r=>r.semana===s).length;
+    const surtidas= opsData.filter(r=>r.semana===s && (r.estado||'').toLowerCase().trim()==='surtido').length;
+    const hTotal  = Math.max(Math.round((total/maxVal)*72), 2);
+    const hSurt   = Math.max(Math.round((surtidas/maxVal)*72), 2);
+    return `<div class="grafica-col">
+      <div class="grafica-bars">
+        <div class="gbar gbar-in"  style="height:${hTotal}px" title="${total} entradas"></div>
+        <div class="gbar gbar-out" style="height:${hSurt}px"  title="${surtidas} surtidas"></div>
+      </div>
+      <div class="grafica-sem">S${s}</div>
+    </div>`;
+  }).join('');
+}
+
 function setSurtio(val) { surtioFiltro = val; renderOPs(); }
 function setSemana(val) { semanaActual = val; renderOPs(); }
 
@@ -500,6 +603,7 @@ function setStatusAct(val) {
 
 // ── RENDER OPs ───────────────────────────────────────────────
 function renderOPs() {
+  const busqueda = (document.getElementById('op-search')?.value || '').toLowerCase().trim();
   let f = opsData;
   if (semanaActual !== 'todas') f = f.filter(r => r.semana === semanaActual);
   if (estadoOP !== 'todos') {
@@ -510,12 +614,19 @@ function renderOPs() {
       return true;
     });
   }
-  if (surtioFiltro === '')      f = f.filter(r => !r.surtio);
+  if (surtioFiltro === '')           f = f.filter(r => !r.surtio);
   else if (surtioFiltro !== 'todos') f = f.filter(r => r.surtio === surtioFiltro);
+  if (busqueda) f = f.filter(r => r.op.toLowerCase().includes(busqueda) || (r.codigo||'').toLowerCase().includes(busqueda) || (r.producto||'').toLowerCase().includes(busqueda));
 
   document.getElementById('op-r-total').textContent    = f.length;
   document.getElementById('op-r-surtido').textContent  = f.filter(r=>(r.estado||'').toLowerCase().trim()==='surtido').length;
   document.getElementById('op-r-pendiente').textContent= f.filter(r=>(r.estado||'').toLowerCase().trim()!=='surtido').length;
+
+  // Promedio de tiempo de surtido
+  actualizarPromedio(f);
+
+  // Gráfica semanal (usa todos los datos sin filtro de semana)
+  actualizarGrafica();
 
   const lista = document.getElementById('lista-ops');
   if (!f.length) { lista.innerHTML = `<div class="empty"><div class="empty-ico">📭</div>Sin órdenes</div>`; return; }
