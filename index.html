@@ -119,6 +119,7 @@
 
   /* BOTONES ACCION */
   .btn-accion { width:calc(100% - 28px); margin:0 14px 12px; border:none; border-radius:10px; padding:10px; font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:background .15s; }
+  .btn-pdf { width:calc(100% - 28px); margin:0 14px 12px; background:var(--g8); color:var(--white); border:none; border-radius:10px; padding:9px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; text-decoration:none; }
   .btn-surtir    { background:var(--orange); color:var(--white); }
   .btn-completar { background:#2ecc71; color:var(--white); }
   .btn-accion:disabled { background:var(--g4); cursor:default; }
@@ -508,6 +509,7 @@ function renderOPs() {
         <div class="op-field"><div class="op-field-lbl">Fecha surtido</div><div class="op-field-val ${r.fechasurtido?'':'em'}">${fmtFecha(r.fechasurtido)||'—'}</div></div>
       </div>
       ${buildTimeBar(r)}
+      ${r.pdf ? `<a href="${r.pdf}" target="_blank" class="btn-accion btn-pdf">📄 Descargar PDF</a>` : ''}
       ${esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` : ''}
     </div>`;
   }).join('');
@@ -665,11 +667,12 @@ async function cargarOPs() {
   const txt = await res.text();
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
-  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana') };
+  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf') };
   opsData = rows.slice(1).map(r => ({
     op: cl(r[idx.op]), fecha: cl(r[idx.fecha]), codigo: cl(r[idx.codigo]),
     producto: cl(r[idx.producto]), surtio: cl(r[idx.surtio]), estado: cl(r[idx.estado]),
     fechasurtido: cl(r[idx.fechasurtido]), atiempo: cl(r[idx.atiempo]), semana: cl(r[idx.semana]),
+    pdf: idx.pdf !== -1 ? cl(r[idx.pdf]) : '',
   })).filter(r => r.op);
 
   // Semanas
