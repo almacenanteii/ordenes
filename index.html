@@ -176,9 +176,10 @@
   /* GRÁFICA */
   .grafica-box { padding:12px 16px; background:var(--white); border-bottom:1px solid var(--g2); }
   .grafica-title { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:var(--g6); letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px; }
-  .grafica-wrap { display:flex; align-items:flex-end; gap:6px; height:80px; overflow-x:auto; padding-bottom:4px; }
-  .grafica-col { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:36px; }
-  .grafica-bars { display:flex; gap:2px; align-items:flex-end; }
+  .grafica-wrap { display:flex; align-items:flex-end; gap:6px; overflow-x:auto; padding-bottom:4px; }
+  .grafica-col { display:flex; flex-direction:column; align-items:center; min-width:40px; }
+  .grafica-nums { display:flex; gap:4px; justify-content:center; font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; margin-bottom:3px; min-height:14px; }
+  .grafica-bars { display:flex; gap:2px; align-items:flex-end; height:72px; }
   .gbar { width:14px; border-radius:3px 3px 0 0; min-height:2px; }
   .gbar-in  { background:var(--orange); }
   .gbar-out { background:var(--green); }
@@ -447,8 +448,8 @@ function parseFecha(v) {
   const s = String(v).trim();
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (!m) return new Date(s);
-  // Sheet guarda mes/día/año: 6/4/2026 = junio 4
-  const mes = parseInt(m[1]), dia = parseInt(m[2]), anio = parseInt(m[3]);
+  // Sheet formato: día/mes/año → 3/6/2026 = 3 de junio
+  const dia = parseInt(m[1]), mes = parseInt(m[2]), anio = parseInt(m[3]);
   return new Date(anio, mes-1, dia);
 }
 
@@ -557,7 +558,7 @@ function actualizarGrafica() {
     const hSurt   = Math.max(Math.round((surtidas/maxVal)*72), 2);
     return `<div class="grafica-col">
       <div class="grafica-nums"><span style="color:var(--orange)">${total}</span><span style="color:var(--green)">${surtidas}</span></div>
-      <div class="grafica-bars" style="height:72px; align-items:flex-end;">
+      <div class="grafica-bars">
         <div class="gbar gbar-in"  style="height:${hTotal}px"></div>
         <div class="gbar gbar-out" style="height:${hSurt}px"></div>
       </div>
