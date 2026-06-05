@@ -502,7 +502,14 @@ function setStatusAct(val) {
 function renderOPs() {
   let f = opsData;
   if (semanaActual !== 'todas') f = f.filter(r => r.semana === semanaActual);
-  if (estadoOP !== 'todos')     f = f.filter(r => r.estado === estadoOP);
+  if (estadoOP !== 'todos') {
+    f = f.filter(r => {
+      const est = (r.estado||'').toLowerCase().trim();
+      if (estadoOP === 'Surtido')   return est === 'surtido';
+      if (estadoOP === 'Pendiente') return est === 'pendiente' || est === '';
+      return true;
+    });
+  }
   if (surtioFiltro === '')      f = f.filter(r => !r.surtio);
   else if (surtioFiltro !== 'todos') f = f.filter(r => r.surtio === surtioFiltro);
 
@@ -514,7 +521,7 @@ function renderOPs() {
   if (!f.length) { lista.innerHTML = `<div class="empty"><div class="empty-ico">📭</div>Sin órdenes</div>`; return; }
 
   lista.innerHTML = f.map(r => {
-    const esPend = (r.estado||'').toLowerCase() !== 'surtido';
+    const esPend = (r.estado||'').toLowerCase().trim() !== 'surtido';
     const cls = esPend ? 'pendiente' : 'surtido';
     return `<div class="op-card ${cls}">
       <div class="op-top">
