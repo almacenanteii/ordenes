@@ -169,7 +169,21 @@
   .footer { text-align:center; padding:16px; font-size:10px; color:var(--g4); letter-spacing:.5px; }
   .footer strong { color:var(--orange); }
 
-  /* BUSCADOR */
+  /* MATERIALES OP */
+  .mat-wrap { margin:0; border-top:1px solid var(--g1); }
+  .mat-header { display:grid; grid-template-columns:1fr 70px 70px; padding:5px 14px; background:var(--g1); }
+  .mat-header-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); }
+  .mat-header-lbl.c { text-align:center; }
+  .mat-row { display:grid; grid-template-columns:1fr 70px 70px; padding:7px 14px; border-bottom:1px solid var(--g1); align-items:center; }
+  .mat-row:nth-child(even) { background:#fafafa; }
+  .mat-row.riesgo { background:#fff3f3; }
+  .mat-cod { font-size:11px; font-weight:600; color:var(--orange); }
+  .mat-lote { font-size:9px; color:var(--g4); margin-top:1px; }
+  .mat-cant { text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:var(--g7); }
+  .mat-stock { text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; }
+  .mat-stock.ok { color:var(--green); }
+  .mat-stock.low { color:var(--red); }
+  .mat-stock.na { color:var(--g4); font-size:11px; }
   .search-wrap { flex:1; position:relative; display:flex; align-items:center; background:var(--g1); border:1.5px solid var(--g2); border-radius:10px; padding:0 12px; }
   .search-ico { font-size:14px; margin-right:8px; }
   .search-input { flex:1; border:none; background:none; padding:8px 0; font-size:14px; color:var(--g9); outline:none; font-family:'Barlow',sans-serif; }
@@ -388,7 +402,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyt1N9tjtyCst0WyHuzUDssDOWEsyGa9ARkAi2_eJfK0QZKI37nrTFma28FmbwKwtw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzq-2YiXIdOHP_m9dW213z6XKTkEXPMC79x9-7uGEBQ8_4OK3sWUXcO3IjufvCAufk/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -596,6 +610,43 @@ function actualizarGrafica() {
   }).join('');
 }
 
+function buildMateriales(materialesStr) {
+  if (!materialesStr) return '';
+  const items = materialesStr.split(',').map(s => s.trim()).filter(s => s);
+  if (!items.length) return '';
+
+  let html = `<div class="mat-wrap">
+    <div class="mat-header">
+      <div class="mat-header-lbl">Material</div>
+      <div class="mat-header-lbl c">Cant. OP</div>
+      <div class="mat-header-lbl c">Stock SAI</div>
+    </div>`;
+
+  items.forEach(item => {
+    const p = item.split(':');
+    const cod  = (p[0]||'').trim();
+    const cant = parseFloat(p[1]) || 0;
+    const lote = (p[2]||'').trim();
+    // Stock from inventario data (pre-loaded)
+    const stock = window._invMap ? (window._invMap[cod.toUpperCase()] || null) : null;
+    const esRiesgo = stock !== null && stock < cant;
+    const stockCls = stock === null ? 'na' : esRiesgo ? 'low' : 'ok';
+    const stockTxt = stock === null ? '—' : stock.toLocaleString();
+
+    html += `<div class="mat-row ${esRiesgo ? 'riesgo' : ''}">
+      <div>
+        <div class="mat-cod">${cod}</div>
+        ${lote ? `<div class="mat-lote">Lote: ${lote}</div>` : ''}
+      </div>
+      <div class="mat-cant">${cant.toLocaleString()}</div>
+      <div class="mat-stock ${stockCls}">${stockTxt}</div>
+    </div>`;
+  });
+
+  html += `</div>`;
+  return html;
+}
+
 function setSurtio(val) { surtioFiltro = val; renderOPs(); }
 function setSemana(val) { semanaActual = val; renderOPs(); }
 
@@ -671,6 +722,7 @@ function renderOPs() {
         <div class="op-field"><div class="op-field-lbl">Semana</div><div class="op-field-val">${r.semana||'—'}</div></div>
         <div class="op-field"><div class="op-field-lbl">Fecha surtido</div><div class="op-field-val ${r.fechasurtido?'':'em'}">${fmtFecha(r.fechasurtido)||'—'}</div></div>
       </div>
+      ${buildMateriales(r.materiales)}
       ${buildTimeBar(r)}
       ${r.pdf ? `<a href="${r.pdf}" target="_blank" class="btn-accion btn-pdf">📄 Ver Orden</a>` : ''}
       ${esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` : ''}
@@ -829,17 +881,38 @@ async function confirmarActividad() {
 }
 
 // ── CARGA DE DATOS ───────────────────────────────────────────
+async function cargarInventario() {
+  try {
+    const CSV_INV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1010346624&single=true&output=csv';
+    const res = await fetch(CSV_INV + '&t=' + Date.now());
+    if (!res.ok) return;
+    const txt = await res.text();
+    const rows = parseCSV(txt);
+    const h = rows[0].map(x => cl(x).toLowerCase());
+    const colClave = h.indexOf('clave');
+    const colExist = h.indexOf('existencia');
+    if (colClave === -1 || colExist === -1) return;
+    window._invMap = {};
+    rows.slice(1).forEach(r => {
+      const clave = cl(r[colClave]).toUpperCase();
+      const exist = parseFloat(cl(r[colExist])) || 0;
+      if (clave) window._invMap[clave] = (window._invMap[clave] || 0) + exist;
+    });
+  } catch(e) { console.log('Inventario no cargado:', e); }
+}
+
 async function cargarOPs() {
   const res = await fetch(CSV_OPS + '&t=' + Date.now());
   const txt = await res.text();
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
-  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf') };
+  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales') };
   opsData = rows.slice(1).map(r => ({
     op: cl(r[idx.op]), fecha: cl(r[idx.fecha]), codigo: cl(r[idx.codigo]),
     producto: cl(r[idx.producto]), surtio: cl(r[idx.surtio]), estado: cl(r[idx.estado]),
     fechasurtido: cl(r[idx.fechasurtido]), atiempo: cl(r[idx.atiempo]), semana: cl(r[idx.semana]),
     pdf: idx.pdf !== -1 ? cl(r[idx.pdf]) : '',
+    materiales: idx.materiales !== -1 ? cl(r[idx.materiales]) : '',
   })).filter(r => r.op);
 
   // Semanas
@@ -907,7 +980,7 @@ async function recargar() {
 
 async function load() {
   try {
-    await Promise.all([cargarOPs(), cargarActividades()]);
+    await Promise.all([cargarOPs(), cargarActividades(), cargarInventario()]);
     renderOPs();
     renderActividades();
     const now = new Date();
