@@ -514,8 +514,8 @@ function renderOPs() {
   else if (surtioFiltro !== 'todos') f = f.filter(r => r.surtio === surtioFiltro);
 
   document.getElementById('op-r-total').textContent    = f.length;
-  document.getElementById('op-r-surtido').textContent  = f.filter(r=>r.estado==='Surtido').length;
-  document.getElementById('op-r-pendiente').textContent= f.filter(r=>r.estado==='Pendiente').length;
+  document.getElementById('op-r-surtido').textContent  = f.filter(r=>(r.estado||'').toLowerCase().trim()==='surtido').length;
+  document.getElementById('op-r-pendiente').textContent= f.filter(r=>(r.estado||'').toLowerCase().trim()!=='surtido').length;
 
   const lista = document.getElementById('lista-ops');
   if (!f.length) { lista.innerHTML = `<div class="empty"><div class="empty-ico">📭</div>Sin órdenes</div>`; return; }
