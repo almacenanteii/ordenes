@@ -167,8 +167,8 @@
   .search-input::placeholder { color:var(--g4); }
 
   /* PROMEDIO */
-  .promedio-box { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 16px; background:var(--white); border-bottom:1px solid var(--g2); }
-  .promedio-item { text-align:center; padding:8px 4px; }
+  .promedio-box { display:flex; justify-content:center; padding:12px 16px; background:var(--white); border-bottom:1px solid var(--g2); }
+  .promedio-item { text-align:center; padding:8px 20px; }
   .promedio-ico { font-size:18px; margin-bottom:4px; }
   .promedio-val { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800; color:var(--orange); line-height:1; }
   .promedio-lbl { font-size:9px; font-weight:600; color:var(--g4); text-transform:uppercase; letter-spacing:.5px; margin-top:3px; }
@@ -278,11 +278,6 @@
       <div class="promedio-ico">⏱️</div>
       <div class="promedio-val" id="prom-dias">—</div>
       <div class="promedio-lbl">Promedio surtido</div>
-    </div>
-    <div class="promedio-item">
-      <div class="promedio-ico">🏆</div>
-      <div class="promedio-val" id="prom-mejor">—</div>
-      <div class="promedio-lbl">Más rápido</div>
     </div>
   </div>
 
@@ -450,16 +445,11 @@ let surtioFiltro = 'todos';
 function parseFecha(v) {
   if (!v) return null;
   const s = String(v).trim();
-  // Formato dd/mm/yyyy o d/m/yyyy con hora opcional
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (m) {
-    const d = parseInt(m[1]), mo = parseInt(m[2]), y = parseInt(m[3]);
-    // Si el primer número > 12 es día/mes, si no asumimos mes/día (formato del Sheet)
-    if (d > 12) return new Date(y, mo-1, d);
-    // mes/día/año (formato Sheet: 1/4/2026 = enero 4)
-    return new Date(y, d-1, mo);
-  }
-  return new Date(s);
+  if (!m) return new Date(s);
+  // Sheet guarda mes/día/año: 6/4/2026 = junio 4
+  const mes = parseInt(m[1]), dia = parseInt(m[2]), anio = parseInt(m[3]);
+  return new Date(anio, mes-1, dia);
 }
 
 function calcTiempo(fechaLlegada, fechaSurtido, esPendiente) {
@@ -550,9 +540,7 @@ function actualizarPromedio(f) {
 
   if (!tiempos.length) return;
   const prom = tiempos.reduce((a,b)=>a+b,0) / tiempos.length;
-  const mejor = Math.min(...tiempos);
   document.getElementById('prom-dias').textContent = prom < 1 ? `${Math.round(prom*24)}h` : `${prom.toFixed(1)}d`;
-  document.getElementById('prom-mejor').textContent = mejor < 1 ? `${Math.round(mejor*24)}h` : `${mejor.toFixed(1)}d`;
 }
 
 function actualizarGrafica() {
@@ -569,9 +557,9 @@ function actualizarGrafica() {
     const hSurt   = Math.max(Math.round((surtidas/maxVal)*72), 2);
     return `<div class="grafica-col">
       <div class="grafica-nums"><span style="color:var(--orange)">${total}</span><span style="color:var(--green)">${surtidas}</span></div>
-      <div class="grafica-bars">
-        <div class="gbar gbar-in"  style="height:${hTotal}px" title="${total} entradas"></div>
-        <div class="gbar gbar-out" style="height:${hSurt}px"  title="${surtidas} surtidas"></div>
+      <div class="grafica-bars" style="height:72px; align-items:flex-end;">
+        <div class="gbar gbar-in"  style="height:${hTotal}px"></div>
+        <div class="gbar gbar-out" style="height:${hSurt}px"></div>
       </div>
       <div class="grafica-sem">S${s}</div>
     </div>`;
