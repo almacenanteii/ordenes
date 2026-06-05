@@ -154,6 +154,10 @@
   .modal-msg.ok  { background:#e8f8f0; color:#1a8a50; }
   .modal-msg.err { background:#fff3f3; color:var(--red); }
 
+  .act-completado-info { padding:10px 14px; border-top:1px solid var(--g1); font-size:12px; color:#1a8a50; background:#e8f8f0; font-family:'Barlow',sans-serif; font-weight:500; }
+  .act-completado-info strong { font-weight:700; }
+  .act-comentario { font-style:italic; color:var(--g6); margin-top:3px; font-size:11px; }
+
   /* MISC */
   .loading { text-align:center; padding:40px 20px; color:var(--g4); font-size:13px; }
   .spinner { width:28px; height:28px; border:3px solid var(--g2); border-top-color:var(--orange); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
@@ -384,7 +388,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzN8SUfzX7OJQmO1xB3vjBenf7o4AWGqMBWClYdEpoRLfrvKtOt6OFoxMirB4SBhjk/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxzHFQKESOX26IN7kb8YQUupgcFXvFEjIwH9ReOEWtTQMqug7uUq4QTudwHFmIEYvo/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -495,22 +499,42 @@ function calcTiempo(fechaLlegada, fechaSurtido, esPendiente) {
   }
 }
 
+function parseFechaAct(v) {
+  // Actividades: el script guarda DD/MM/YYYY HH:MM
+  if (!v) return null;
+  const s = String(v).trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return new Date(s);
+  const dia = parseInt(m[1]), mes = parseInt(m[2]), anio = parseInt(m[3]);
+  return new Date(anio, mes-1, dia);
+}
+
 function buildTimeBarAct(r) {
   const esPend = (r.estado||'').toLowerCase() !== 'completado';
-  const fecha = r.fecha;
-  const fechaFin = esPend ? null : r.fechaCompletado;
-  const t = calcTiempo(fecha, fechaFin, esPend);
-  if (!t) return '';
-  if (t.tipo === 'pendiente') {
+  const ini = parseFechaAct(r.fecha);
+  const fin = esPend ? new Date() : parseFechaAct(r.fechaCompletado);
+  if (!ini || isNaN(ini)) return '';
+  const horas = (fin - ini) / (1000 * 60 * 60);
+  const dias  = Math.floor(horas / 24);
+  const hrsResto = Math.floor(horas % 24);
+  if (esPend) {
+    let cls = 'c0';
+    if (dias >= 6) cls = 'c4';
+    else if (dias >= 5) cls = 'c3';
+    else if (dias >= 3) cls = 'c2';
+    else if (dias >= 2) cls = 'c1';
+    const pct = Math.min((dias / 7) * 100, 100);
+    const txt = dias === 0 ? `${hrsResto} hrs abierta` : dias === 1 ? `1 día ${hrsResto} hrs abierta` : `${dias} días abierta`;
     return `<div class="time-bar-wrap">
       <div class="time-bar-label">
         <span class="time-bar-txt">⏱ Tiempo abierta</span>
-        <span class="time-bar-days ${t.cls}">${t.txt}</span>
+        <span class="time-bar-days ${cls}">${txt}</span>
       </div>
-      <div class="time-bar"><div class="time-bar-fill ${t.cls}" style="width:${t.pct}%"></div></div>
+      <div class="time-bar"><div class="time-bar-fill ${cls}" style="width:${pct}%"></div></div>
     </div>`;
   } else {
-    return `<div class="time-surtida">⏱ <strong>${t.txt}</strong></div>`;
+    const txt = dias === 0 && hrsResto === 0 ? 'Completada el mismo día' : dias === 0 ? `Completada en ${hrsResto} hrs` : `Completada en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
+    return `<div class="time-surtida">⏱ <strong>${txt}</strong></div>`;
   }
 }
 
