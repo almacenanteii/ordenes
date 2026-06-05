@@ -182,6 +182,7 @@
   .gbar { width:14px; border-radius:3px 3px 0 0; min-height:2px; }
   .gbar-in  { background:var(--orange); }
   .gbar-out { background:var(--green); }
+  .grafica-nums { display:flex; gap:4px; justify-content:center; font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; margin-bottom:2px; }
   .grafica-sem { font-size:9px; color:var(--g4); font-weight:600; margin-top:3px; }
   .grafica-legend { display:flex; align-items:center; font-size:10px; color:var(--g4); margin-top:6px; }
   .leg-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
@@ -449,9 +450,15 @@ let surtioFiltro = 'todos';
 function parseFecha(v) {
   if (!v) return null;
   const s = String(v).trim();
-  // Formato dd/mm/yyyy o dd/mm/yyyy hh:mm o dd/mm/yyyy hh:mm:ss
+  // Formato dd/mm/yyyy o d/m/yyyy con hora opcional
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (m) return new Date(m[3], m[2]-1, m[1]);
+  if (m) {
+    const d = parseInt(m[1]), mo = parseInt(m[2]), y = parseInt(m[3]);
+    // Si el primer número > 12 es día/mes, si no asumimos mes/día (formato del Sheet)
+    if (d > 12) return new Date(y, mo-1, d);
+    // mes/día/año (formato Sheet: 1/4/2026 = enero 4)
+    return new Date(y, d-1, mo);
+  }
   return new Date(s);
 }
 
@@ -561,6 +568,7 @@ function actualizarGrafica() {
     const hTotal  = Math.max(Math.round((total/maxVal)*72), 2);
     const hSurt   = Math.max(Math.round((surtidas/maxVal)*72), 2);
     return `<div class="grafica-col">
+      <div class="grafica-nums"><span style="color:var(--orange)">${total}</span><span style="color:var(--green)">${surtidas}</span></div>
       <div class="grafica-bars">
         <div class="gbar gbar-in"  style="height:${hTotal}px" title="${total} entradas"></div>
         <div class="gbar gbar-out" style="height:${hSurt}px"  title="${surtidas} surtidas"></div>
