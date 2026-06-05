@@ -432,7 +432,24 @@ function calcTiempo(fechaLlegada, fechaSurtido, esPendiente) {
   }
 }
 
-function buildTimeBar(r) {
+function buildTimeBarAct(r) {
+  const esPend = (r.estado||'').toLowerCase() !== 'completado';
+  const fecha = r.fecha;
+  const fechaFin = esPend ? null : r.fechaCompletado;
+  const t = calcTiempo(fecha, fechaFin, esPend);
+  if (!t) return '';
+  if (t.tipo === 'pendiente') {
+    return `<div class="time-bar-wrap">
+      <div class="time-bar-label">
+        <span class="time-bar-txt">⏱ Tiempo abierta</span>
+        <span class="time-bar-days ${t.cls}">${t.txt}</span>
+      </div>
+      <div class="time-bar"><div class="time-bar-fill ${t.cls}" style="width:${t.pct}%"></div></div>
+    </div>`;
+  } else {
+    return `<div class="time-surtida">⏱ <strong>${t.txt}</strong></div>`;
+  }
+}
   const esPend = (r.estado||'').toLowerCase() !== 'surtido';
   const t = calcTiempo(r.fecha, r.fechasurtido, esPend);
   if (!t) return '';
@@ -509,7 +526,7 @@ function renderOPs() {
         <div class="op-field"><div class="op-field-lbl">Fecha surtido</div><div class="op-field-val ${r.fechasurtido?'':'em'}">${fmtFecha(r.fechasurtido)||'—'}</div></div>
       </div>
       ${buildTimeBar(r)}
-      ${r.pdf ? `<a href="${r.pdf}" target="_blank" class="btn-accion btn-pdf">📄 Descargar PDF</a>` : ''}
+      ${r.pdf ? `<a href="${r.pdf}" target="_blank" class="btn-accion btn-pdf">📄 Ver Orden</a>` : ''}
       ${esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` : ''}
     </div>`;
   }).join('');
@@ -572,6 +589,7 @@ function renderActividades() {
         ${r.descripcion||'—'}
       </div>
       ${productosHTML}
+      ${buildTimeBarAct(r)}
       ${completadoHTML}
       ${esPend ? `<button class="btn-accion btn-completar" onclick='abrirModalAct(${JSON.stringify(r).replace(/'/g,"&#39;")})'>✅ Marcar como Completada</button>` : ''}
     </div>`;
