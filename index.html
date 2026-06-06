@@ -22,7 +22,7 @@
   .hdr-sub { font-size:12px; color:var(--g4); margin-top:3px; margin-bottom:12px; }
 
   /* TABS */
-  .tabs { display:grid; grid-template-columns:1fr 1fr; border-top:1px solid rgba(255,255,255,.1); }
+  .tabs { display:grid; grid-template-columns:1fr 1fr 1fr; border-top:1px solid rgba(255,255,255,.1); }
   .tab { padding:11px; text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); cursor:pointer; border-bottom:3px solid transparent; transition:all .2s; }
   .tab.active { color:var(--orange); border-bottom-color:var(--orange); }
 
@@ -158,6 +158,34 @@
   .act-completado-info strong { font-weight:700; }
   .act-comentario { font-style:italic; color:var(--g6); margin-top:3px; font-size:11px; }
 
+  /* PUNTOS */
+  .pts-marcador { padding:14px 16px; display:flex; flex-direction:column; gap:14px; }
+  .pts-card { background:var(--white); border-radius:14px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.07); }
+  .pts-card-hdr { padding:12px 16px; display:flex; align-items:center; gap:10px; }
+  .pts-avatar { font-size:28px; }
+  .pts-nombre { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:800; color:var(--g9); }
+  .pts-rol { font-size:11px; color:var(--g4); }
+  .pts-score { margin-left:auto; font-family:'Barlow Condensed',sans-serif; font-size:36px; font-weight:800; color:var(--orange); }
+  .pts-score.meta { color:var(--green); }
+  .pts-bar-wrap { padding:0 16px 12px; }
+  .pts-bar-lbl { display:flex; justify-content:space-between; font-size:10px; color:var(--g4); margin-bottom:5px; font-weight:600; }
+  .pts-bar { height:8px; background:var(--g2); border-radius:4px; overflow:hidden; }
+  .pts-bar-fill { height:100%; border-radius:4px; background:var(--orange); transition:width 1s ease; }
+  .pts-bar-fill.meta { background:var(--green); }
+  .pts-detalle { border-top:1px solid var(--g1); }
+  .pts-det-row { display:flex; justify-content:space-between; align-items:center; padding:7px 16px; border-bottom:1px solid var(--g1); font-size:12px; }
+  .pts-det-row:last-child { border-bottom:none; }
+  .pts-det-txt { color:var(--g7); flex:1; padding-right:8px; }
+  .pts-det-val { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; }
+  .pts-det-val.pos { color:var(--green); }
+  .pts-det-val.neg { color:var(--red); }
+  .pts-det-val.neu { color:var(--g4); }
+  .pts-sep { padding:8px 16px; background:var(--g1); font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); }
+  .pts-total-row { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--g9); }
+  .pts-total-lbl { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:var(--white); text-transform:uppercase; }
+  .pts-total-val { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800; color:var(--orange); }
+  .pts-total-val.meta { color:var(--green); }
+
   /* MISC */
   .loading { text-align:center; padding:40px 20px; color:var(--g4); font-size:13px; }
   .spinner { width:28px; height:28px; border:3px solid var(--g2); border-top-color:var(--orange); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
@@ -241,6 +269,7 @@
   <div class="tabs">
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
+    <div class="tab" id="tab-pts" onclick="switchTab('pts')">🏆 Puntos</div>
   </div>
 </div>
 
@@ -356,6 +385,27 @@
   <div class="lista" id="lista-act"><div class="loading"><div class="spinner"></div>Cargando actividades...</div></div>
 </div>
 
+<!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
+<div class="section" id="section-pts">
+
+  <!-- Selector de mes -->
+  <div class="filtros">
+    <div class="filter-row">
+      <div class="filter-label">Mes</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="pts-mes-select" onchange="renderPuntos()">
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Marcador -->
+  <div class="pts-marcador" id="pts-marcador">
+    <div class="loading"><div class="spinner"></div>Calculando puntos...</div>
+  </div>
+
+</div>
+
 <div class="footer">Actualizado por <strong>Almacén SAI</strong> · 2026</div>
 
 <!-- MODAL OP -->
@@ -456,10 +506,11 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  document.getElementById('tab-ops').classList.toggle('active', tab === 'ops');
-  document.getElementById('tab-act').classList.toggle('active', tab === 'act');
-  document.getElementById('section-ops').classList.toggle('active', tab === 'ops');
-  document.getElementById('section-act').classList.toggle('active', tab === 'act');
+  ['ops','act','pts'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t === tab);
+    document.getElementById('section-'+t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'pts') renderPuntos();
 }
 
 let surtioFiltro = 'todos';
@@ -887,7 +938,174 @@ async function confirmarActividad() {
   }
 }
 
-// ── CARGA DE DATOS ───────────────────────────────────────────
+// ── PUNTOS ───────────────────────────────────────────────────
+const META_PTS = 100;
+const PERSONAS = [
+  { key: 'Lupita Alferez', nombre: 'Lupita Alferez', rol: 'Montacarguista', avatar: '👩' },
+  { key: 'Marco Reyes',    nombre: 'Marco Reyes',    rol: 'Almacenista',    avatar: '👨' },
+];
+
+const MESES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function ptsOP(diasTardanza, esPendiente, diasAbierta) {
+  if (esPendiente) {
+    if (diasAbierta > 7) return -2;
+    return 0;
+  }
+  if (diasTardanza <= 0) return 10;      // mismo día
+  if (diasTardanza <= 2) return 5;       // 1-2 días
+  if (diasTardanza <= 5) return 3;       // 3-5 días
+  return -1;                             // más de 5 días
+}
+
+function ptsActividad(diasTardanza, esPendiente) {
+  if (esPendiente) return 0;
+  if (diasTardanza < 0)  return 8;       // antes de fecha
+  if (diasTardanza === 0) return 5;      // mismo día
+  if (diasTardanza === 1) return 1;      // 1 día tarde
+  if (diasTardanza === 2) return -1;     // 2 días
+  if (diasTardanza <= 4) return -3;      // 3-4 días
+  if (diasTardanza === 5) return -4;     // 5 días
+  return -5;                             // 6+ días
+}
+
+function calcPuntosMes(persona, mes, anio) {
+  const detalles = [];
+  let total = 0;
+
+  // OPs
+  opsData.forEach(r => {
+    const fecha = parseFecha(r.fecha);
+    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
+    if ((r.surtio||'') !== persona.key) return;
+
+    const esPend = (r.estado||'').toLowerCase().trim() !== 'surtido';
+    const diasAbierta = Math.floor((new Date() - fecha) / (1000 * 60 * 60 * 24));
+    let pts = 0;
+    let desc = '';
+
+    if (!esPend && r.fechasurtido) {
+      const surtido = parseFecha(r.fechasurtido);
+      if (surtido) {
+        const dias = Math.floor((surtido - fecha) / (1000 * 60 * 60 * 24));
+        pts = ptsOP(dias, false, 0);
+        const tiempoTxt = dias === 0 ? 'mismo día' : `${dias} día${dias>1?'s':''}`;
+        desc = `OP ${r.op} — surtida en ${tiempoTxt}`;
+      }
+    } else if (esPend && diasAbierta > 7) {
+      pts = -2;
+      desc = `OP ${r.op} — más de 7 días sin surtir`;
+    } else {
+      return;
+    }
+
+    total += pts;
+    detalles.push({ desc, pts, tipo: 'op' });
+  });
+
+  // Actividades
+  actData.forEach(r => {
+    const fecha = parseFechaAct(r.fecha);
+    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
+
+    const asig = (r.asignado||'').trim();
+    const esTodo = asig.toLowerCase() === 'todos';
+    if (asig !== persona.key && !esTodo) return;
+
+    const esPend = (r.estado||'').toLowerCase() !== 'completado';
+    if (esPend) return;
+
+    const fechaLim = parseFechaAct(r.fechaLimite);
+    const fechaComp = parseFechaAct(r.fechaCompletado);
+    if (!fechaLim || !fechaComp) return;
+
+    const diasTard = Math.floor((fechaComp - fechaLim) / (1000 * 60 * 60 * 24));
+    let pts = ptsActividad(diasTard, false);
+    if (esTodo) pts = Math.round(pts / 2); // dividir entre ambos
+
+    const tiempoTxt = diasTard < 0 ? `${Math.abs(diasTard)} día${Math.abs(diasTard)>1?'s':''} antes` :
+                      diasTard === 0 ? 'mismo día' : `${diasTard} día${diasTard>1?'s':''} tarde`;
+    const desc = `${r.folio} — completada ${tiempoTxt}${esTodo ? ' (compartida)' : ''}`;
+
+    total += pts;
+    detalles.push({ desc, pts, tipo: 'act' });
+  });
+
+  return { total, detalles };
+}
+
+function buildPtsCard(persona, mes, anio) {
+  const { total, detalles } = calcPuntosMes(persona, mes, anio);
+  const pct = Math.min(Math.max((total / META_PTS) * 100, 0), 100);
+  const superMeta = total >= META_PTS;
+  const scoreCls = superMeta ? 'meta' : '';
+  const fillCls  = superMeta ? 'meta' : '';
+
+  let rows = '';
+  if (detalles.length === 0) {
+    rows = `<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin actividad registrada este mes</div></div>`;
+  } else {
+    const ops = detalles.filter(d => d.tipo === 'op');
+    const acts = detalles.filter(d => d.tipo === 'act');
+    if (ops.length) {
+      rows += `<div class="pts-sep">📦 Órdenes (${ops.length})</div>`;
+      rows += ops.map(d => `<div class="pts-det-row">
+        <div class="pts-det-txt">${d.desc}</div>
+        <div class="pts-det-val ${d.pts > 0 ? 'pos' : d.pts < 0 ? 'neg' : 'neu'}">${d.pts > 0 ? '+' : ''}${d.pts}</div>
+      </div>`).join('');
+    }
+    if (acts.length) {
+      rows += `<div class="pts-sep">✅ Actividades (${acts.length})</div>`;
+      rows += acts.map(d => `<div class="pts-det-row">
+        <div class="pts-det-txt">${d.desc}</div>
+        <div class="pts-det-val ${d.pts > 0 ? 'pos' : d.pts < 0 ? 'neg' : 'neu'}">${d.pts > 0 ? '+' : ''}${d.pts}</div>
+      </div>`).join('');
+    }
+  }
+
+  return `<div class="pts-card">
+    <div class="pts-card-hdr">
+      <div class="pts-avatar">${persona.avatar}</div>
+      <div><div class="pts-nombre">${persona.nombre}</div><div class="pts-rol">${persona.rol}</div></div>
+      <div class="pts-score ${scoreCls}">${total}</div>
+    </div>
+    <div class="pts-bar-wrap">
+      <div class="pts-bar-lbl"><span>0</span><span>Meta: ${META_PTS} pts</span></div>
+      <div class="pts-bar"><div class="pts-bar-fill ${fillCls}" style="width:${pct}%"></div></div>
+    </div>
+    <div class="pts-detalle">${rows}</div>
+    <div class="pts-total-row">
+      <div class="pts-total-lbl">Total del mes</div>
+      <div class="pts-total-val ${scoreCls}">${total} pts ${superMeta ? '🏆' : ''}</div>
+    </div>
+  </div>`;
+}
+
+function renderPuntos() {
+  const sel = document.getElementById('pts-mes-select');
+  const val = sel.value || '';
+  if (!val) return;
+  const [anio, mes] = val.split('-').map(Number);
+
+  const marc = document.getElementById('pts-marcador');
+  marc.innerHTML = PERSONAS.map(p => buildPtsCard(p, mes, anio)).join('');
+}
+
+function iniciarSelectorMeses() {
+  const sel = document.getElementById('pts-mes-select');
+  const ahora = new Date();
+  const meses = [];
+
+  // Generar últimos 6 meses
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+    const anio = d.getFullYear();
+    const mes  = d.getMonth();
+    meses.push({ val: `${anio}-${mes}`, lbl: `${MESES_NOMBRES[mes]} ${anio}` });
+  }
+
+  sel.innerHTML = meses.map(m => `<option value="${m.val}">${m.lbl}</option>`).join('');
+}
 async function cargarInventario() {
   try {
     const CSV_INV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1010346624&single=true&output=csv';
@@ -988,6 +1206,7 @@ async function recargar() {
 async function load() {
   try {
     await Promise.all([cargarOPs(), cargarActividades(), cargarInventario()]);
+    iniciarSelectorMeses();
     renderOPs();
     renderActividades();
     const now = new Date();
