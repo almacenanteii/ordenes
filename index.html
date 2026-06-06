@@ -170,20 +170,19 @@
   .footer strong { color:var(--orange); }
 
   /* MATERIALES OP */
-  .mat-wrap { margin:0; border-top:1px solid var(--g1); }
-  .mat-header { display:grid; grid-template-columns:1fr 70px 70px; padding:5px 14px; background:var(--g1); }
+  .mat-wrap { border-top:1px solid var(--g1); }
+  .mat-toggle { width:100%; background:var(--g1); border:none; padding:10px 14px; text-align:left; font-size:12px; font-weight:600; color:var(--g6); cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+  .mat-toggle:active { background:var(--g2); }
+  .mat-arrow { font-size:10px; color:var(--orange); transition:transform .2s; }
+  .mat-list { border-top:1px solid var(--g1); }
+  .mat-header { display:grid; grid-template-columns:1fr 80px; padding:5px 14px; background:var(--g1); }
   .mat-header-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); }
   .mat-header-lbl.c { text-align:center; }
-  .mat-row { display:grid; grid-template-columns:1fr 70px 70px; padding:7px 14px; border-bottom:1px solid var(--g1); align-items:center; }
+  .mat-row { display:grid; grid-template-columns:1fr 80px; padding:7px 14px; border-bottom:1px solid var(--g1); align-items:center; }
   .mat-row:nth-child(even) { background:#fafafa; }
-  .mat-row.riesgo { background:#fff3f3; }
   .mat-cod { font-size:11px; font-weight:600; color:var(--orange); }
   .mat-lote { font-size:9px; color:var(--g4); margin-top:1px; }
   .mat-cant { text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:var(--g7); }
-  .mat-stock { text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; }
-  .mat-stock.ok { color:var(--green); }
-  .mat-stock.low { color:var(--red); }
-  .mat-stock.na { color:var(--g4); font-size:11px; }
   .search-wrap { flex:1; position:relative; display:flex; align-items:center; background:var(--g1); border:1.5px solid var(--g2); border-radius:10px; padding:0 12px; }
   .search-ico { font-size:14px; margin-right:8px; }
   .search-input { flex:1; border:none; background:none; padding:8px 0; font-size:14px; color:var(--g9); outline:none; font-family:'Barlow',sans-serif; }
@@ -469,15 +468,12 @@ let surtioFiltro = 'todos';
 function parseFecha(v) {
   if (!v) return null;
   const s = String(v).trim();
-  // Formato: M/D/YYYY H:MM:SS o D/M/YYYY H:MM:SS
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
   if (!m) return new Date(s);
-  const p1 = parseInt(m[1]), p2 = parseInt(m[2]), anio = parseInt(m[3]);
+  // Sheet siempre día/mes/año: 5/6/2026 = 5 de junio
+  const dia = parseInt(m[1]), mes = parseInt(m[2]), anio = parseInt(m[3]);
   const hrs = parseInt(m[4]||0), mins = parseInt(m[5]||0), segs = parseInt(m[6]||0);
-  // Sheet OPs: mes/día/año (6/5/2026 = junio 5)
-  // Si p1 > 12 → es día/mes
-  if (p1 > 12) return new Date(anio, p2-1, p1, hrs, mins, segs);
-  return new Date(anio, p1-1, p2, hrs, mins, segs);
+  return new Date(anio, mes-1, dia, hrs, mins, segs);
 }
 
 function calcTiempo(fechaLlegada, fechaSurtido, esPendiente) {
@@ -619,36 +615,43 @@ function buildMateriales(materialesStr) {
   const items = materialesStr.split(',').map(s => s.trim()).filter(s => s);
   if (!items.length) return '';
 
+  const id = 'mat-' + Math.random().toString(36).substr(2,6);
+
   let html = `<div class="mat-wrap">
-    <div class="mat-header">
-      <div class="mat-header-lbl">Material</div>
-      <div class="mat-header-lbl c">Cant. OP</div>
-      <div class="mat-header-lbl c">Cant. SAI</div>
-    </div>`;
+    <button class="mat-toggle" onclick="toggleMat('${id}')">
+      📋 Ver materiales (${items.length}) <span class="mat-arrow" id="arr-${id}">▼</span>
+    </button>
+    <div class="mat-list" id="${id}" style="display:none">
+      <div class="mat-header">
+        <div class="mat-header-lbl">Material / Lote</div>
+        <div class="mat-header-lbl c">Cant. OP</div>
+      </div>`;
 
   items.forEach(item => {
     const p = item.split(':');
     const cod  = (p[0]||'').trim().toUpperCase();
     const cant = parseFloat(p[1]) || 0;
     const lote = (p[2]||'').trim();
-    const invMap = window._invMap || {};
-    const stock = invMap.hasOwnProperty(cod) ? invMap[cod] : null;
-    const esRiesgo = stock !== null && stock < cant;
-    const stockCls = stock === null ? 'na' : esRiesgo ? 'low' : 'ok';
-    const stockTxt = stock === null ? '—' : stock.toLocaleString();
 
-    html += `<div class="mat-row ${esRiesgo ? 'riesgo' : ''}">
+    html += `<div class="mat-row">
       <div>
         <div class="mat-cod">${cod}</div>
         ${lote ? `<div class="mat-lote">Lote: ${lote}</div>` : ''}
       </div>
       <div class="mat-cant">${cant.toLocaleString()}</div>
-      <div class="mat-stock ${stockCls}">${stockTxt}</div>
     </div>`;
   });
 
-  html += `</div>`;
+  html += `</div></div>`;
   return html;
+}
+
+function toggleMat(id) {
+  const el = document.getElementById(id);
+  const arr = document.getElementById('arr-' + id);
+  const visible = el.style.display !== 'none';
+  el.style.display = visible ? 'none' : 'block';
+  arr.style.transform = visible ? '' : 'rotate(180deg)';
 }
 
 function setSurtio(val) { surtioFiltro = val; renderOPs(); }
