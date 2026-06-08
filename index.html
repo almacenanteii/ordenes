@@ -263,7 +263,7 @@
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-lbl">Almacén SAI · 2026</div>
+  <div class="hdr-lbl">Almacén 2026</div>
   <div class="hdr-title">Órdenes & Actividades</div>
   <div class="hdr-sub">Trazabilidad y seguimiento</div>
   <div class="tabs">
@@ -324,15 +324,6 @@
     <div class="res-card rojo"><div class="res-num" id="op-r-pendiente">0</div><div class="res-lbl">Pendientes</div></div>
   </div>
 
-  <!-- Promedio de tiempo -->
-  <div class="promedio-box" id="promedio-box">
-    <div class="promedio-item">
-      <div class="promedio-ico">⏱️</div>
-      <div class="promedio-val" id="prom-dias">—</div>
-      <div class="promedio-lbl">Promedio surtido</div>
-    </div>
-  </div>
-
   <!-- Gráfica semanal -->
   <div class="grafica-box" id="grafica-box">
     <div class="grafica-title">📊 OPs por semana</div>
@@ -349,6 +340,12 @@
 <!-- ═══════════════ SECCIÓN ACTIVIDADES ═══════════════ -->
 <div class="section" id="section-act">
   <div class="filtros">
+    <div class="filter-row">
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input class="search-input" id="act-search" type="text" placeholder="Buscar folio o descripción..." oninput="renderActividades()">
+      </div>
+    </div>
     <div class="filter-row">
       <div class="filter-label">Semana</div>
       <div class="sem-select-wrap">
@@ -416,10 +413,10 @@
     <label class="modal-label">¿Quién surtió?</label>
     <div class="modal-options">
       <div class="persona-btn" id="op-btn-lupita" onclick="selectPersona('op','Lupita Alferez')">
-        <div class="p-icon">👩</div><div class="p-name">Lupita Alferez</div>
+        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
       </div>
       <div class="persona-btn" id="op-btn-marco" onclick="selectPersona('op','Marco Reyes')">
-        <div class="p-icon">👨</div><div class="p-name">Marco Reyes</div>
+        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
       </div>
     </div>
     <button class="modal-confirm" id="op-modal-confirm" disabled onclick="confirmarOP()">Confirmar Surtido</button>
@@ -436,10 +433,10 @@
     <label class="modal-label">¿Quién completó?</label>
     <div class="modal-options">
       <div class="persona-btn" id="act-btn-lupita" onclick="selectPersona('act','Lupita Alferez')">
-        <div class="p-icon">👩</div><div class="p-name">Lupita Alferez</div>
+        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
       </div>
       <div class="persona-btn" id="act-btn-marco" onclick="selectPersona('act','Marco Reyes')">
-        <div class="p-icon">👨</div><div class="p-name">Marco Reyes</div>
+        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
       </div>
     </div>
     <label class="modal-label">Comentario (opcional)</label>
@@ -710,10 +707,9 @@ function setSemana(val) { semanaActual = val; renderOPs(); }
 
 function setEstadoOP(est) {
   estadoOP = est;
-  ['todos','surtido','pendiente'].forEach(e => document.getElementById('op-est-'+e).className = 'est-btn');
-  if (est === 'todos')     document.getElementById('op-est-todos').classList.add('active-todos');
-  if (est === 'Surtido')   document.getElementById('op-est-surtido').classList.add('active-surtido');
-  if (est === 'Pendiente') document.getElementById('op-est-pendiente').classList.add('active-pendiente');
+  document.getElementById('op-est-todos').className = 'est-btn' + (est==='todos' ? ' active-todos' : '');
+  document.getElementById('op-est-surtido').className = 'est-btn' + (est==='Surtido' ? ' active-surtido' : '');
+  document.getElementById('op-est-pendiente').className = 'est-btn' + (est==='Pendiente' ? ' active-pendiente' : '');
   renderOPs();
 }
 
@@ -751,7 +747,11 @@ function renderOPs() {
   }
   if (surtioFiltro === '')           f = f.filter(r => !r.surtio);
   else if (surtioFiltro !== 'todos') f = f.filter(r => r.surtio === surtioFiltro);
-  if (busqueda) f = f.filter(r => r.op.toLowerCase().includes(busqueda) || (r.codigo||'').toLowerCase().includes(busqueda) || (r.producto||'').toLowerCase().includes(busqueda));
+  if (busqueda) f = f.filter(r =>
+    r.op.toLowerCase().includes(busqueda) ||
+    (r.codigo||'').toLowerCase().includes(busqueda) ||
+    (r.producto||'').toLowerCase().includes(busqueda)
+  );
 
   document.getElementById('op-r-total').textContent    = f.length;
   document.getElementById('op-r-surtido').textContent  = f.filter(r=>(r.estado||'').toLowerCase().trim()==='surtido').length;
@@ -798,10 +798,16 @@ function parsearDetalle(detalle) {
 }
 
 function renderActividades() {
+  const busqueda = (document.getElementById('act-search')?.value || '').toLowerCase().trim();
   let f = actData;
   if (semanaAct !== 'todas')   f = f.filter(r => r.semana === semanaAct);
   if (asignadoAct !== 'todos') f = f.filter(r => r.asignado === asignadoAct);
   if (statusAct !== 'todos')   f = f.filter(r => (r.estado||'').toLowerCase() === statusAct.toLowerCase());
+  if (busqueda) f = f.filter(r =>
+    (r.folio||'').toLowerCase().includes(busqueda) ||
+    (r.descripcion||'').toLowerCase().includes(busqueda) ||
+    (r.asignado||'').toLowerCase().includes(busqueda)
+  );
 
   document.getElementById('act-r-total').textContent     = f.length;
   document.getElementById('act-r-pendiente').textContent = f.filter(r=>(r.estado||'').toLowerCase()==='pendiente').length;
