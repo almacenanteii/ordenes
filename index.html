@@ -757,10 +757,7 @@ function renderOPs() {
   document.getElementById('op-r-surtido').textContent  = f.filter(r=>(r.estado||'').toLowerCase().trim()==='surtido').length;
   document.getElementById('op-r-pendiente').textContent= f.filter(r=>(r.estado||'').toLowerCase().trim()!=='surtido').length;
 
-  // Promedio de tiempo de surtido
-  actualizarPromedio(f);
-
-  // Gráfica semanal (usa todos los datos sin filtro de semana)
+  // Gráfica semanal
   actualizarGrafica();
 
   const lista = document.getElementById('lista-ops');
