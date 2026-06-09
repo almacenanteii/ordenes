@@ -1123,7 +1123,14 @@ function calcStats(persona, mes, anio) {
     if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
     if ((r.surtio||'') !== persona.key) return;
     const esPend = (r.estado||'').toLowerCase().trim() !== 'surtido';
-    if (esPend) { stats.opsMas5++; return; }
+
+    if (esPend) {
+      // OP pendiente — verificar días abierta
+      const diasAbierta = Math.floor((new Date() - fecha) / (1000 * 60 * 60 * 24));
+      if (diasAbierta > 5) stats.opsMas5++;
+      return;
+    }
+
     if (!r.fechasurtido) return;
     const surtido = parseFecha(r.fechasurtido);
     if (!surtido) return;
