@@ -960,7 +960,7 @@ async function confirmarActividad() {
 }
 
 // ── PUNTOS ───────────────────────────────────────────────────
-const META_PTS = 100;
+const META_PTS = 150;
 const PERSONAS = [
   { key: 'Lupita Alferez', nombre: 'Lupita Alferez', rol: 'Montacarguista', iniciales: 'LA' },
   { key: 'Marco Reyes',    nombre: 'Marco Reyes',    rol: 'Almacenista',    iniciales: 'MR' },
@@ -1056,53 +1056,53 @@ function calcPuntosMes(persona, mes, anio) {
 }
 
 // ── MISIONES ─────────────────────────────────────────────────
-const MISIONES = [
+const MISIONES_OP = [
   {
-    id: 'rayo',
+    id: 'turbo',
     emoji: '⚡',
-    titulo: 'Rayo de Almacén',
+    titulo: 'Turbo Surtidor',
     desc: 'Surtir 5 OPs el mismo día que llegan',
     pts: 15,
-    tipo: 'op',
     check: (stats) => ({ actual: stats.opsMismoDia, meta: 5 })
   },
   {
-    id: 'rezagos',
-    emoji: '🏗️',
-    titulo: 'Cero Rezagos',
+    id: 'sinpendientes',
+    emoji: '🔐',
+    titulo: 'Sin Pendientes',
     desc: 'Ninguna OP abierta más de 5 días',
     pts: 10,
-    tipo: 'op',
     check: (stats) => ({ actual: stats.opsMas5 === 0 ? 1 : 0, meta: 1, binaria: true })
   },
   {
-    id: 'punteria',
+    id: 'precision',
     emoji: '🎯',
-    titulo: 'Puntería Perfecta',
+    titulo: 'Precisión Total',
     desc: 'Surtir 10 OPs en ≤2 días',
     pts: 20,
-    tipo: 'op',
     check: (stats) => ({ actual: stats.opsEn2dias, meta: 10 })
   },
+];
+
+const MISIONES_ACT = [
   {
-    id: 'adelantado',
-    emoji: '🚀',
-    titulo: 'Adelante del Juego',
+    id: 'unpasoadelante',
+    emoji: '🌟',
+    titulo: 'Un Paso Adelante',
     desc: 'Completar 3 actividades antes de su fecha',
     pts: 10,
-    tipo: 'act',
     check: (stats) => ({ actual: stats.actsAntes, meta: 3 })
   },
   {
-    id: 'sinfisuras',
+    id: 'impecable',
     emoji: '🔒',
-    titulo: 'Sin Fisuras',
+    titulo: 'Impecable',
     desc: 'Cero actividades entregadas tarde',
     pts: 15,
-    tipo: 'act',
     check: (stats) => ({ actual: stats.actsTarde === 0 ? 1 : 0, meta: 1, binaria: true })
   },
 ];
+
+const MISIONES = [...MISIONES_OP, ...MISIONES_ACT];
 
 const MISION_REY = {
   id: 'rey',
@@ -1152,59 +1152,66 @@ function calcStats(persona, mes, anio) {
   return stats;
 }
 
+function buildMisionRow(m, stats) {
+  const { actual, meta, binaria } = m.check(stats);
+  const completada = actual >= meta;
+  const pct = Math.min((actual / meta) * 100, 100);
+  const barFill = completada ? 'background:var(--green)' : 'background:var(--orange)';
+
+  if (completada) {
+    return { html: `<div class="mision-row completada">
+      <div class="mision-top">
+        <span class="mision-emoji">${m.emoji}</span>
+        <div class="mision-info"><div class="mision-titulo">${m.titulo}</div><div class="mision-desc">${m.desc}</div></div>
+        <div class="mision-pts pos">+${m.pts}</div>
+      </div>
+      <div class="mision-status ok">✅ COMPLETADA</div>
+    </div>`, completada: true };
+  } else {
+    const textoProgreso = binaria
+      ? (actual === 0 ? 'No cumplida aún' : 'En progreso')
+      : `${actual}/${meta}`;
+    return { html: `<div class="mision-row">
+      <div class="mision-top">
+        <span class="mision-emoji">${m.emoji}</span>
+        <div class="mision-info"><div class="mision-titulo">${m.titulo}</div><div class="mision-desc">${m.desc}</div></div>
+        <div class="mision-pts neu">+${m.pts}</div>
+      </div>
+      <div class="mision-prog-wrap">
+        <div class="mision-prog-bar"><div class="mision-prog-fill" style="${barFill};width:${pct}%"></div></div>
+        <div class="mision-prog-txt">${textoProgreso}</div>
+      </div>
+    </div>`, completada: false };
+  }
+}
+
 function buildMisiones(persona, mes, anio) {
   const stats = calcStats(persona, mes, anio);
   let ptsMisiones = 0;
   let misionesCompletadas = 0;
   let misionesFaltantes = [];
 
-  const rows = MISIONES.map(m => {
-    const { actual, meta, binaria } = m.check(stats);
-    const completada = actual >= meta;
+  let htmlOps = `<div class="pts-sep">⚡ MISIONES — ÓRDENES</div>`;
+  MISIONES_OP.forEach(m => {
+    const { html, completada } = buildMisionRow(m, stats);
+    htmlOps += html;
     if (completada) { ptsMisiones += m.pts; misionesCompletadas++; }
     else misionesFaltantes.push(m.titulo);
+  });
 
-    const pct = Math.min((actual / meta) * 100, 100);
-    const barFill = completada ? 'background:var(--green)' : 'background:var(--orange)';
-
-    if (completada) {
-      return `<div class="mision-row completada">
-        <div class="mision-top">
-          <span class="mision-emoji">${m.emoji}</span>
-          <div class="mision-info">
-            <div class="mision-titulo">${m.titulo}</div>
-            <div class="mision-desc">${m.desc}</div>
-          </div>
-          <div class="mision-pts pos">+${m.pts}</div>
-        </div>
-        <div class="mision-status ok">✅ COMPLETADA</div>
-      </div>`;
-    } else {
-      const textoProgreso = binaria
-        ? (actual === 0 ? 'No cumplida aún' : 'En progreso')
-        : `${actual}/${meta}`;
-      return `<div class="mision-row">
-        <div class="mision-top">
-          <span class="mision-emoji">${m.emoji}</span>
-          <div class="mision-info">
-            <div class="mision-titulo">${m.titulo}</div>
-            <div class="mision-desc">${m.desc}</div>
-          </div>
-          <div class="mision-pts neu">+${m.pts}</div>
-        </div>
-        <div class="mision-prog-wrap">
-          <div class="mision-prog-bar"><div class="mision-prog-fill" style="${barFill};width:${pct}%"></div></div>
-          <div class="mision-prog-txt">${textoProgreso}</div>
-        </div>
-      </div>`;
-    }
-  }).join('');
+  let htmlActs = `<div class="pts-sep">🌟 MISIONES — ACTIVIDADES</div>`;
+  MISIONES_ACT.forEach(m => {
+    const { html, completada } = buildMisionRow(m, stats);
+    htmlActs += html;
+    if (completada) { ptsMisiones += m.pts; misionesCompletadas++; }
+    else misionesFaltantes.push(m.titulo);
+  });
 
   // Rey del Almacén
   const reyCompleto = misionesCompletadas === MISIONES.length;
   if (reyCompleto) ptsMisiones += MISION_REY.pts;
   const reyRow = reyCompleto
-    ? `<div class="mision-row completada">
+    ? `<div class="pts-sep">👑 MISIÓN FINAL</div><div class="mision-row completada">
         <div class="mision-top">
           <span class="mision-emoji">${MISION_REY.emoji}</span>
           <div class="mision-info"><div class="mision-titulo">${MISION_REY.titulo}</div><div class="mision-desc">${MISION_REY.desc}</div></div>
@@ -1212,16 +1219,16 @@ function buildMisiones(persona, mes, anio) {
         </div>
         <div class="mision-status ok">✅ COMPLETADA — ¡LOGRO DESBLOQUEADO!</div>
       </div>`
-    : `<div class="mision-row">
+    : `<div class="pts-sep">👑 MISIÓN FINAL</div><div class="mision-row">
         <div class="mision-top">
           <span class="mision-emoji">${MISION_REY.emoji}</span>
           <div class="mision-info"><div class="mision-titulo">${MISION_REY.titulo}</div><div class="mision-desc">${MISION_REY.desc}</div></div>
           <div class="mision-pts neu">+${MISION_REY.pts}</div>
         </div>
-        <div class="mision-prog-txt" style="padding:4px 0;color:var(--g4);font-size:11px">Falta: ${misionesFaltantes.join(', ')}</div>
+        <div class="mision-prog-txt" style="padding:4px 0 0 30px;color:var(--g4);font-size:11px">Falta: ${misionesFaltantes.join(', ')}</div>
       </div>`;
 
-  return { html: `<div class="pts-sep">🎯 MISIONES DEL MES</div>${rows}${reyRow}`, ptsMisiones };
+  return { html: `${htmlOps}${htmlActs}${reyRow}`, ptsMisiones };
 }
 
 function buildPtsCard(persona, mes, anio) {
