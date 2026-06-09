@@ -316,6 +316,14 @@
       </div>
     </div>
     <div class="filter-row">
+      <div class="filter-label">Mes</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="mes-select" onchange="setMes(this.value)">
+          <option value="todos">Todos los meses</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
       <div class="filter-label">Semana</div>
       <div class="sem-select-wrap">
         <select class="sem-select" id="sem-select" onchange="setSemana(this.value)">
@@ -545,6 +553,30 @@ function switchTab(tab) {
 }
 
 let surtioFiltro = 'todos';
+let mesActual = 'todos';
+
+function setMes(val) {
+  mesActual = val;
+  const sel = document.getElementById('sem-select');
+  sel.innerHTML = '<option value="todas">Todas las semanas</option>';
+  let semanas;
+  if (val === 'todos') {
+    semanas = [...new Set(opsData.map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  } else {
+    const [anio, mes] = val.split('-').map(Number);
+    semanas = [...new Set(opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getFullYear() === anio && f.getMonth() === mes;
+    }).map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  }
+  semanas.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o); });
+  semanaActual = 'todas';
+  sel.value = 'todas';
+  renderOPs();
+}
+
+function setSurtio(val) { surtioFiltro = val; renderOPs(); }
+function setSemana(val) { semanaActual = val; renderOPs(); }
 
 // ── FILTROS OPs ──────────────────────────────────────────────
 function parseFecha(v) {
@@ -634,21 +666,41 @@ function buildTimeBarAct(r) {
   }
 }
 
+const ESTADOS_ACTIVOS = ['pendiente', 'parcial'];
+const ESTADOS_TERMINADOS = ['surtido', 'no recolectado', 'pt', 'embarque', 'cancelada'];
+
+function esEstadoActivo(estado) {
+  const e = (estado||'').toLowerCase().trim();
+  return e === 'pendiente' || e === 'parcial' || e === '';
+}
+
+function esEstadoTerminado(estado) {
+  const e = (estado||'').toLowerCase().trim();
+  return !esEstadoActivo(e);
+}
+
 function buildTimeBar(r) {
-  const esPend = (r.estado||'').toLowerCase() !== 'surtido';
-  const t = calcTiempo(r.fecha, r.fechasurtido, esPend);
-  if (!t) return '';
-  if (t.tipo === 'pendiente') {
-    return `<div class="time-bar-wrap">
-      <div class="time-bar-label">
-        <span class="time-bar-txt">⏱ Tiempo abierta</span>
-        <span class="time-bar-days ${t.cls}">${t.txt}</span>
-      </div>
-      <div class="time-bar"><div class="time-bar-fill ${t.cls}" style="width:${t.pct}%"></div></div>
-    </div>`;
-  } else {
-    return `<div class="time-surtida">⏱ <strong>${t.txt}</strong></div>`;
+  const e = (r.estado||'').toLowerCase().trim();
+  // No mostrar barra para estados terminados o cancelados
+  if (!esEstadoActivo(e)) {
+    if (e === 'cancelada') return '';
+    // Para surtido, PT, embarque, no recolectado — mostrar tiempo que tardó
+    if (r.fechasurtido) {
+      const t = calcTiempo(r.fecha, r.fechasurtido, false);
+      if (t) return `<div class="time-surtida">⏱ <strong>${t.txt}</strong></div>`;
+    }
+    return '';
   }
+  // Pendiente o Parcial — mostrar barra de tiempo abierta
+  const t = calcTiempo(r.fecha, null, true);
+  if (!t) return '';
+  return `<div class="time-bar-wrap">
+    <div class="time-bar-label">
+      <span class="time-bar-txt">⏱ Tiempo abierta</span>
+      <span class="time-bar-days ${t.cls}">${t.txt}</span>
+    </div>
+    <div class="time-bar"><div class="time-bar-fill ${t.cls}" style="width:${t.pct}%"></div></div>
+  </div>`;
 }
 function actualizarPromedio(f) {
   const surtidas = f.filter(r => (r.estado||'').toLowerCase().trim() === 'surtido' && r.fecha && r.fechasurtido);
@@ -770,9 +822,6 @@ function estadoBadge(estado) {
   return { cls:'', txt: estado, color:'#f0f0f0', textColor:'#555' };
 }
 
-function setSurtio(val) { surtioFiltro = val; renderOPs(); }
-function setSemana(val) { semanaActual = val; renderOPs(); }
-
 function setEstadoOP(est) {
   estadoOP = est;
   const sel = document.getElementById('op-est-select');
@@ -803,6 +852,10 @@ function setStatusAct(val) {
 function renderOPs() {
   const busqueda = (document.getElementById('op-search')?.value || '').toLowerCase().trim();
   let f = opsData;
+  if (mesActual !== 'todos') {
+    const [anio, mes] = mesActual.split('-').map(Number);
+    f = f.filter(r => { const fd = parseFecha(r.fecha); return fd && fd.getFullYear() === anio && fd.getMonth() === mes; });
+  }
   if (semanaActual !== 'todas') f = f.filter(r => r.semana === semanaActual);
   if (estadoOP !== 'todos') {
     f = f.filter(r => (r.estado||'').toLowerCase().trim() === estadoOP.toLowerCase().trim());
@@ -816,8 +869,8 @@ function renderOPs() {
   );
 
   document.getElementById('op-r-total').textContent    = f.length;
-  document.getElementById('op-r-surtido').textContent  = f.filter(r=>(r.estado||'').toLowerCase().trim()==='surtido').length;
-  document.getElementById('op-r-pendiente').textContent= f.filter(r=>(r.estado||'').toLowerCase().trim()!=='surtido').length;
+  document.getElementById('op-r-surtido').textContent  = f.filter(r=>esEstadoTerminado(r.estado) && (r.estado||'').toLowerCase().trim() !== 'cancelada').length;
+  document.getElementById('op-r-pendiente').textContent= f.filter(r=>esEstadoActivo(r.estado)).length;
 
   // Gráfica semanal
   actualizarGrafica();
@@ -826,7 +879,7 @@ function renderOPs() {
   if (!f.length) { lista.innerHTML = `<div class="empty"><div class="empty-ico">📭</div>Sin órdenes</div>`; return; }
 
   lista.innerHTML = f.map(r => {
-    const esPend = (r.estado||'').toLowerCase().trim() !== 'surtido';
+    const esPend = esEstadoActivo(r.estado);
     const badge = getEstadoBadge(r.estado);
     const borderCls = getCardBorder(r.estado);
     return `<div class="op-card ${borderCls}">
@@ -1048,7 +1101,10 @@ function calcPuntosMes(persona, mes, anio) {
     if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
     if ((r.surtio||'') !== persona.key) return;
 
-    const esPend = (r.estado||'').toLowerCase().trim() !== 'surtido';
+    const e = (r.estado||'').toLowerCase().trim();
+    if (e === 'cancelada') return; // canceladas no dan ni quitan puntos
+
+    const esPend = esEstadoActivo(r.estado);
     const diasAbierta = Math.floor((new Date() - fecha) / (1000 * 60 * 60 * 24));
     let pts = 0;
     let desc = '';
@@ -1170,9 +1226,12 @@ function calcStats(persona, mes, anio) {
     const fecha = parseFecha(r.fecha);
     if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
     if ((r.surtio||'') !== persona.key) return;
-    const esPend = (r.estado||'').toLowerCase().trim() !== 'surtido';
+    const e = (r.estado||'').toLowerCase().trim();
 
-    if (esPend) {
+    // Canceladas no cuentan para nada
+    if (e === 'cancelada') return;
+
+    if (esEstadoActivo(r.estado)) {
       // OP pendiente — verificar días abierta
       const diasAbierta = Math.floor((new Date() - fecha) / (1000 * 60 * 60 * 24));
       if (diasAbierta > 5) stats.opsMas5++;
@@ -1394,6 +1453,24 @@ async function cargarOPs() {
     pdf: idx.pdf !== -1 ? cl(r[idx.pdf]) : '',
     materiales: idx.materiales !== -1 ? cl(r[idx.materiales]) : '',
   })).filter(r => r.op);
+
+  // Meses únicos
+  const mesesSet = new Map();
+  opsData.forEach(r => {
+    const f = parseFecha(r.fecha);
+    if (!f) return;
+    const key = `${f.getFullYear()}-${f.getMonth()}`;
+    if (!mesesSet.has(key)) mesesSet.set(key, `${MESES_NOMBRES[f.getMonth()]} ${f.getFullYear()}`);
+  });
+  const mesSel = document.getElementById('mes-select');
+  mesSel.innerHTML = '<option value="todos">Todos los meses</option>';
+  [...mesesSet.entries()].sort().forEach(([val, lbl]) => {
+    const o = document.createElement('option'); o.value=val; o.textContent=lbl; mesSel.appendChild(o);
+  });
+  // Seleccionar mes actual
+  const ahora = new Date();
+  const mesKey = `${ahora.getFullYear()}-${ahora.getMonth()}`;
+  if (mesesSet.has(mesKey)) { mesSel.value = mesKey; mesActual = mesKey; }
 
   // Semanas
   const semanas = [...new Set(opsData.map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
