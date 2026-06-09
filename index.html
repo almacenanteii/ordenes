@@ -186,6 +186,24 @@
   .pts-total-val { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:800; color:var(--orange); }
   .pts-total-val.meta { color:var(--green); }
 
+  /* MISIONES */
+  .mision-row { padding:10px 16px; border-bottom:1px solid var(--g1); }
+  .mision-row.completada { background:#f0faf4; }
+  .mision-top { display:flex; align-items:flex-start; gap:10px; }
+  .mision-emoji { font-size:20px; flex-shrink:0; margin-top:2px; }
+  .mision-info { flex:1; }
+  .mision-titulo { font-size:13px; font-weight:700; color:var(--g9); }
+  .mision-desc { font-size:11px; color:var(--g4); margin-top:2px; }
+  .mision-pts { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800; flex-shrink:0; }
+  .mision-pts.pos { color:var(--green); }
+  .mision-pts.neu { color:var(--g4); }
+  .mision-status { font-size:11px; font-weight:700; margin-top:5px; padding-left:30px; }
+  .mision-status.ok { color:var(--green); }
+  .mision-prog-wrap { display:flex; align-items:center; gap:8px; margin-top:6px; padding-left:30px; }
+  .mision-prog-bar { flex:1; height:5px; background:var(--g2); border-radius:3px; overflow:hidden; }
+  .mision-prog-fill { height:100%; border-radius:3px; }
+  .mision-prog-txt { font-size:11px; font-weight:700; color:var(--g6); white-space:nowrap; }
+
   /* MISC */
   .loading { text-align:center; padding:40px 20px; color:var(--g4); font-size:13px; }
   .spinner { width:28px; height:28px; border:3px solid var(--g2); border-top-color:var(--orange); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
@@ -1037,8 +1055,179 @@ function calcPuntosMes(persona, mes, anio) {
   return { total, detalles };
 }
 
+// ── MISIONES ─────────────────────────────────────────────────
+const MISIONES = [
+  {
+    id: 'rayo',
+    emoji: '⚡',
+    titulo: 'Rayo de Almacén',
+    desc: 'Surtir 5 OPs el mismo día que llegan',
+    pts: 15,
+    tipo: 'op',
+    check: (stats) => ({ actual: stats.opsMismoDia, meta: 5 })
+  },
+  {
+    id: 'rezagos',
+    emoji: '🏗️',
+    titulo: 'Cero Rezagos',
+    desc: 'Ninguna OP abierta más de 5 días',
+    pts: 10,
+    tipo: 'op',
+    check: (stats) => ({ actual: stats.opsMas5 === 0 ? 1 : 0, meta: 1, binaria: true })
+  },
+  {
+    id: 'punteria',
+    emoji: '🎯',
+    titulo: 'Puntería Perfecta',
+    desc: 'Surtir 10 OPs en ≤2 días',
+    pts: 20,
+    tipo: 'op',
+    check: (stats) => ({ actual: stats.opsEn2dias, meta: 10 })
+  },
+  {
+    id: 'adelantado',
+    emoji: '🚀',
+    titulo: 'Adelante del Juego',
+    desc: 'Completar 3 actividades antes de su fecha',
+    pts: 10,
+    tipo: 'act',
+    check: (stats) => ({ actual: stats.actsAntes, meta: 3 })
+  },
+  {
+    id: 'sinfisuras',
+    emoji: '🔒',
+    titulo: 'Sin Fisuras',
+    desc: 'Cero actividades entregadas tarde',
+    pts: 15,
+    tipo: 'act',
+    check: (stats) => ({ actual: stats.actsTarde === 0 ? 1 : 0, meta: 1, binaria: true })
+  },
+];
+
+const MISION_REY = {
+  id: 'rey',
+  emoji: '📦',
+  titulo: 'Rey del Almacén',
+  desc: 'Completar todas las misiones del mes',
+  pts: 25,
+};
+
+function calcStats(persona, mes, anio) {
+  const stats = {
+    opsMismoDia: 0, opsEn2dias: 0, opsMas5: 0,
+    actsAntes: 0, actsTarde: 0
+  };
+
+  opsData.forEach(r => {
+    const fecha = parseFecha(r.fecha);
+    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
+    if ((r.surtio||'') !== persona.key) return;
+    const esPend = (r.estado||'').toLowerCase().trim() !== 'surtido';
+    if (esPend) { stats.opsMas5++; return; }
+    if (!r.fechasurtido) return;
+    const surtido = parseFecha(r.fechasurtido);
+    if (!surtido) return;
+    const dias = Math.floor((surtido - fecha) / (1000 * 60 * 60 * 24));
+    if (dias === 0) { stats.opsMismoDia++; stats.opsEn2dias++; }
+    else if (dias <= 2) stats.opsEn2dias++;
+    else if (dias > 5) stats.opsMas5++;
+  });
+
+  actData.forEach(r => {
+    const fecha = parseFechaAct(r.fecha);
+    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
+    const asig = (r.asignado||'').trim();
+    const esTodo = asig.toLowerCase() === 'todos';
+    if (asig !== persona.key && !esTodo) return;
+    const esPend = (r.estado||'').toLowerCase() !== 'completado';
+    if (esPend) return;
+    const fechaLim = parseFechaAct(r.fechaLimite);
+    const fechaComp = parseFechaAct(r.fechaCompletado);
+    if (!fechaLim || !fechaComp) return;
+    const diasTard = Math.floor((fechaComp - fechaLim) / (1000 * 60 * 60 * 24));
+    if (diasTard < 0) stats.actsAntes++;
+    else if (diasTard > 0) stats.actsTarde++;
+  });
+
+  return stats;
+}
+
+function buildMisiones(persona, mes, anio) {
+  const stats = calcStats(persona, mes, anio);
+  let ptsMisiones = 0;
+  let misionesCompletadas = 0;
+  let misionesFaltantes = [];
+
+  const rows = MISIONES.map(m => {
+    const { actual, meta, binaria } = m.check(stats);
+    const completada = actual >= meta;
+    if (completada) { ptsMisiones += m.pts; misionesCompletadas++; }
+    else misionesFaltantes.push(m.titulo);
+
+    const pct = Math.min((actual / meta) * 100, 100);
+    const barFill = completada ? 'background:var(--green)' : 'background:var(--orange)';
+
+    if (completada) {
+      return `<div class="mision-row completada">
+        <div class="mision-top">
+          <span class="mision-emoji">${m.emoji}</span>
+          <div class="mision-info">
+            <div class="mision-titulo">${m.titulo}</div>
+            <div class="mision-desc">${m.desc}</div>
+          </div>
+          <div class="mision-pts pos">+${m.pts}</div>
+        </div>
+        <div class="mision-status ok">✅ COMPLETADA</div>
+      </div>`;
+    } else {
+      const textoProgreso = binaria
+        ? (actual === 0 ? 'No cumplida aún' : 'En progreso')
+        : `${actual}/${meta}`;
+      return `<div class="mision-row">
+        <div class="mision-top">
+          <span class="mision-emoji">${m.emoji}</span>
+          <div class="mision-info">
+            <div class="mision-titulo">${m.titulo}</div>
+            <div class="mision-desc">${m.desc}</div>
+          </div>
+          <div class="mision-pts neu">+${m.pts}</div>
+        </div>
+        <div class="mision-prog-wrap">
+          <div class="mision-prog-bar"><div class="mision-prog-fill" style="${barFill};width:${pct}%"></div></div>
+          <div class="mision-prog-txt">${textoProgreso}</div>
+        </div>
+      </div>`;
+    }
+  }).join('');
+
+  // Rey del Almacén
+  const reyCompleto = misionesCompletadas === MISIONES.length;
+  if (reyCompleto) ptsMisiones += MISION_REY.pts;
+  const reyRow = reyCompleto
+    ? `<div class="mision-row completada">
+        <div class="mision-top">
+          <span class="mision-emoji">${MISION_REY.emoji}</span>
+          <div class="mision-info"><div class="mision-titulo">${MISION_REY.titulo}</div><div class="mision-desc">${MISION_REY.desc}</div></div>
+          <div class="mision-pts pos">+${MISION_REY.pts}</div>
+        </div>
+        <div class="mision-status ok">✅ COMPLETADA — ¡LOGRO DESBLOQUEADO!</div>
+      </div>`
+    : `<div class="mision-row">
+        <div class="mision-top">
+          <span class="mision-emoji">${MISION_REY.emoji}</span>
+          <div class="mision-info"><div class="mision-titulo">${MISION_REY.titulo}</div><div class="mision-desc">${MISION_REY.desc}</div></div>
+          <div class="mision-pts neu">+${MISION_REY.pts}</div>
+        </div>
+        <div class="mision-prog-txt" style="padding:4px 0;color:var(--g4);font-size:11px">Falta: ${misionesFaltantes.join(', ')}</div>
+      </div>`;
+
+  return { html: `<div class="pts-sep">🎯 MISIONES DEL MES</div>${rows}${reyRow}`, ptsMisiones };
+}
+
 function buildPtsCard(persona, mes, anio) {
-  const { total, detalles } = calcPuntosMes(persona, mes, anio);
+  const { total: totalBase, detalles } = calcPuntosMes(persona, mes, anio);
+  const { html: misionesHTML, ptsMisiones } = buildMisiones(persona, mes, anio);
+  const total = totalBase + ptsMisiones;
   const pct = Math.min(Math.max((total / META_PTS) * 100, 0), 100);
   const superMeta = total >= META_PTS;
   const scoreCls = superMeta ? 'meta' : '';
@@ -1076,7 +1265,7 @@ function buildPtsCard(persona, mes, anio) {
       <div class="pts-bar-lbl"><span>0</span><span>Meta: ${META_PTS} pts</span></div>
       <div class="pts-bar"><div class="pts-bar-fill ${fillCls}" style="width:${pct}%"></div></div>
     </div>
-    <div class="pts-detalle">${rows}</div>
+    <div class="pts-detalle">${rows}${misionesHTML}</div>
     <div class="pts-total-row">
       <div class="pts-total-lbl">Total del mes</div>
       <div class="pts-total-val ${scoreCls}">${total} pts ${superMeta ? '🏆' : ''}</div>
