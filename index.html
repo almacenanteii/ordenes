@@ -1029,8 +1029,8 @@ async function confirmarOP() {
     msg.className = 'modal-msg ok';
     msg.textContent = '✓ OP marcada como Surtido por ' + personaOP;
     const item = opsData.find(r => r.op === opSeleccionada.op);
-    if (item) { item.estado = 'Surtido'; item.surtio = personaOP; item.fechasurtido = new Date().toLocaleDateString('es-MX'); }
-    setTimeout(() => { cerrarModal('op'); renderOPs(); }, 1500);
+    if (item) { item.estado = 'Surtido'; item.surtio = personaOP; item.fechasurtido = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+    setTimeout(() => { cerrarModal('op'); recargar(); }, 1500);
   } catch(e) {
     const msg = document.getElementById('op-modal-msg');
     msg.style.display = 'block'; msg.className = 'modal-msg err'; msg.textContent = '⚠️ Error de conexión';
