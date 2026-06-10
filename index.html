@@ -490,7 +490,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzq-2YiXIdOHP_m9dW213z6XKTkEXPMC79x9-7uGEBQ8_4OK3sWUXcO3IjufvCAufk/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZ6-Tw4xlxG0cpsckitUbhmFDbxKi1N_uvDfYGxOaSLf619OpXzrd09nrNs_n6_6o/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -1061,7 +1061,7 @@ async function confirmarActividad() {
 }
 
 // ── PUNTOS ───────────────────────────────────────────────────
-const META_PTS = 150;
+const META_PTS = 180;
 const PERSONAS = [
   { key: 'Lupita Alferez', nombre: 'Lupita Alferez', rol: 'Montacarguista', iniciales: 'LA' },
   { key: 'Marco Reyes',    nombre: 'Marco Reyes',    rol: 'Almacenista',    iniciales: 'MR' },
@@ -1185,6 +1185,30 @@ const MISIONES_OP = [
     pts: 20,
     check: (stats) => ({ actual: stats.opsEn2dias, meta: 10 })
   },
+  {
+    id: 'torbellino',
+    emoji: '🌪️',
+    titulo: 'Torbellino',
+    desc: 'Surtir 5 OPs en una misma semana',
+    pts: 12,
+    check: (stats) => ({ actual: stats.opsMaxSemana, meta: 5 })
+  },
+  {
+    id: 'semana_fuego',
+    emoji: '🔥',
+    titulo: 'Semana de Fuego',
+    desc: 'Surtir todas las OPs de una semana sin dejar ninguna pendiente',
+    pts: 18,
+    check: (stats) => ({ actual: stats.semanaLimpia ? 1 : 0, meta: 1, binaria: true })
+  },
+  {
+    id: 'relampago',
+    emoji: '⚡',
+    titulo: 'Relámpago Semanal',
+    desc: 'Surtir 3 OPs el mismo día en una semana',
+    pts: 10,
+    check: (stats) => ({ actual: stats.opsMismoDiaSemana, meta: 3 })
+  },
 ];
 
 const MISIONES_ACT = [
@@ -1219,6 +1243,7 @@ const MISION_REY = {
 function calcStats(persona, mes, anio) {
   const stats = {
     opsMismoDia: 0, opsEn2dias: 0, opsMas5: 0,
+    opsMaxSemana: 0, semanaLimpia: false, opsMismoDiaSemana: 0,
     actsAntes: 0, actsTarde: 0
   };
 
@@ -1245,6 +1270,35 @@ function calcStats(persona, mes, anio) {
     if (dias === 0) { stats.opsMismoDia++; stats.opsEn2dias++; }
     else if (dias <= 2) stats.opsEn2dias++;
     else if (dias > 5) stats.opsMas5++;
+  });
+
+  // Calcular stats por semana
+  const semanas = [...new Set(opsData.filter(r => {
+    const f = parseFecha(r.fecha);
+    return f && f.getMonth() === mes && f.getFullYear() === anio && (r.surtio||'') === persona.key;
+  }).map(r => r.semana).filter(s => s))];
+
+  semanas.forEach(sem => {
+    const opsDelMes = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio && r.semana === sem;
+    });
+    const surtEnSem = opsDelMes.filter(r => (r.surtio||'') === persona.key && !esEstadoActivo(r.estado) && (r.estado||'').toLowerCase() !== 'cancelada');
+
+    // Torbellino: max OPs surtidas en una semana
+    if (surtEnSem.length > stats.opsMaxSemana) stats.opsMaxSemana = surtEnSem.length;
+
+    // Semana de Fuego: todas las OPs de la semana surtidas
+    const pendEnSem = opsDelMes.filter(r => esEstadoActivo(r.estado) && (r.surtio||'') === persona.key);
+    if (surtEnSem.length > 0 && pendEnSem.length === 0) stats.semanaLimpia = true;
+
+    // Relámpago Semanal: 3 OPs mismo día en una semana
+    const mismoDiaEnSem = surtEnSem.filter(r => {
+      if (!r.fechasurtido) return false;
+      const f = parseFecha(r.fecha), s = parseFecha(r.fechasurtido);
+      return f && s && Math.floor((s - f) / (1000 * 60 * 60 * 24)) === 0;
+    }).length;
+    if (mismoDiaEnSem > stats.opsMismoDiaSemana) stats.opsMismoDiaSemana = mismoDiaEnSem;
   });
 
   actData.forEach(r => {
