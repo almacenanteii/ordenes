@@ -1186,28 +1186,12 @@ const MISIONES_OP = [
     check: (stats) => ({ actual: stats.opsEn2dias, meta: 10 })
   },
   {
-    id: 'torbellino',
-    emoji: '🌪️',
-    titulo: 'Torbellino',
-    desc: 'Surtir 5 OPs en una misma semana',
-    pts: 12,
-    check: (stats) => ({ actual: stats.opsMaxSemana, meta: 5 })
-  },
-  {
-    id: 'semana_fuego',
-    emoji: '🔥',
-    titulo: 'Semana de Fuego',
-    desc: 'Surtir todas las OPs de una semana sin dejar ninguna pendiente',
-    pts: 18,
-    check: (stats) => ({ actual: stats.semanaLimpia ? 1 : 0, meta: 1, binaria: true })
-  },
-  {
     id: 'relampago',
     emoji: '⚡',
     titulo: 'Relámpago Semanal',
-    desc: 'Surtir 3 OPs el mismo día en una semana',
+    desc: 'Surtir 12 OPs en una semana',
     pts: 10,
-    check: (stats) => ({ actual: stats.opsMismoDiaSemana, meta: 3 })
+    check: (stats) => ({ actual: stats.opsMaxSemana, meta: 12 })
   },
 ];
 
