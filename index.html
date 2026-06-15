@@ -1523,7 +1523,7 @@ function renderPuntos() {
   if (!val) return;
   const [anio, mes] = val.split('-').map(Number);
 
-  // KPI Incidencias
+  // KPI Incidencias por semana
   const opsMes = opsData.filter(r => {
     const f = parseFecha(r.fecha);
     return f && f.getMonth() === mes && f.getFullYear() === anio &&
@@ -1534,24 +1534,45 @@ function renderPuntos() {
   const sinIncidencia = totalSurtidas - conIncidencia;
   const kpi = totalSurtidas > 0 ? ((sinIncidencia / totalSurtidas) * 100).toFixed(1) : '—';
   const kpiNum = parseFloat(kpi);
-  const kpiCls = kpiNum >= 98 ? 'pos' : kpiNum >= 90 ? 'neu' : 'neg';
   const kpiColor = kpiNum >= 98 ? 'var(--green)' : kpiNum >= 90 ? '#b7770d' : 'var(--red)';
+
+  // Desglose por semana
+  const semanasMap = {};
+  opsMes.forEach(r => {
+    const sem = r.semana || 'S/N';
+    if (!semanasMap[sem]) semanasMap[sem] = { total: 0, inc: 0 };
+    semanasMap[sem].total++;
+    if (String(r.incidencia) === '1') semanasMap[sem].inc++;
+  });
+
+  const semanasRows = Object.keys(semanasMap).sort((a,b) => Number(a)-Number(b)).map(sem => {
+    const { total, inc } = semanasMap[sem];
+    const sin = total - inc;
+    const pct = total > 0 ? ((sin/total)*100).toFixed(1) : '—';
+    const pctNum = parseFloat(pct);
+    const color = pctNum >= 98 ? 'var(--green)' : pctNum >= 90 ? '#b7770d' : 'var(--red)';
+    return `<div class="pts-det-row">
+      <div class="pts-det-txt">Semana ${sem}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--g4)">${sin}/${total}</span>
+        <span class="pts-det-val" style="color:${color}">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
 
   document.getElementById('kpi-incidencias').innerHTML = `
     <div class="pts-card-hdr">
-      <div class="pts-iniciales" style="background:#2980B9">📊</div>
-      <div><div class="pts-nombre">Exactitud en Órdenes</div><div class="pts-rol">KPI · Meta ≥98%</div></div>
+      <div class="pts-iniciales" style="background:#2980B9;font-size:18px">📊</div>
+      <div><div class="pts-nombre">Exactitud en Órdenes</div><div class="pts-rol">KPI · Meta ≥98% por semana</div></div>
       <div class="pts-score" style="color:${kpiColor}">${kpi}%</div>
     </div>
     <div class="pts-bar-wrap">
       <div class="pts-bar-lbl"><span>0%</span><span>Meta: 98%</span></div>
-      <div class="pts-bar"><div class="pts-bar-fill" style="width:${Math.min(kpiNum,100)}%;background:${kpiColor}"></div></div>
+      <div class="pts-bar"><div class="pts-bar-fill" style="width:${Math.min(kpiNum||0,100)}%;background:${kpiColor}"></div></div>
     </div>
     <div class="pts-detalle">
-      <div class="pts-sep">DETALLE DEL MES</div>
-      <div class="pts-det-row"><div class="pts-det-txt">OPs surtidas</div><div class="pts-det-val neu">${totalSurtidas}</div></div>
-      <div class="pts-det-row"><div class="pts-det-txt">Sin incidencias</div><div class="pts-det-val pos">+${sinIncidencia}</div></div>
-      <div class="pts-det-row"><div class="pts-det-txt">Con incidencias</div><div class="pts-det-val ${conIncidencia>0?'neg':'neu'}">${conIncidencia}</div></div>
+      <div class="pts-sep">DESGLOSE POR SEMANA</div>
+      ${semanasRows || '<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin datos este mes</div></div>'}
     </div>
     <div class="pts-total-row">
       <div class="pts-total-lbl">Sin incidencias / Solicitadas</div>
