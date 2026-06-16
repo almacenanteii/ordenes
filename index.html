@@ -653,13 +653,14 @@ function calcTiempo(fechaLlegada, fechaSurtido, esPendiente) {
 }
 
 function parseFechaAct(v) {
-  // Actividades: el script guarda DD/MM/YYYY HH:MM
+  // Actividades: el script guarda DD/MM/YYYY HH:MM o HH:MM:SS
   if (!v) return null;
   const s = String(v).trim();
-  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
   if (!m) return new Date(s);
   const dia = parseInt(m[1]), mes = parseInt(m[2]), anio = parseInt(m[3]);
-  return new Date(anio, mes-1, dia);
+  const hrs = parseInt(m[4]||0), mins = parseInt(m[5]||0), segs = parseInt(m[6]||0);
+  return new Date(anio, mes-1, dia, hrs, mins, segs);
 }
 
 function buildTimeBarAct(r) {
