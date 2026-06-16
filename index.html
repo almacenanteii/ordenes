@@ -1560,6 +1560,35 @@ function renderPuntos() {
     </div>`;
   }).join('');
 
+  // Conteo de TODOS los estados por semana (incluye pendientes, canceladas, etc.)
+  const todasOpsMes = opsData.filter(r => {
+    const f = parseFecha(r.fecha);
+    return f && f.getMonth() === mes && f.getFullYear() === anio;
+  });
+  const estadosPorSemana = {};
+  todasOpsMes.forEach(r => {
+    const sem = r.semana || 'S/N';
+    const est = (r.estado||'').trim() || 'Pendiente';
+    if (!estadosPorSemana[sem]) estadosPorSemana[sem] = {};
+    estadosPorSemana[sem][est] = (estadosPorSemana[sem][est] || 0) + 1;
+  });
+
+  const ESTADO_COLOR = {
+    'Pendiente': '#E74C3C', 'No recolectado': '#b7770d', 'Surtido': '#1a8a50',
+    'Parcial': '#616a6b', 'PT': '#1a5276', 'Embarque': '#2471a3', 'Cancelada': '#922B21'
+  };
+
+  const estadosRows = Object.keys(estadosPorSemana).sort((a,b) => Number(a)-Number(b)).map(sem => {
+    const estados = estadosPorSemana[sem];
+    const chips = Object.keys(estados).map(est =>
+      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:${ESTADO_COLOR[est]||'var(--g6)'};background:${ESTADO_COLOR[est]||'var(--g6)'}1A;padding:2px 7px;border-radius:10px;margin:2px">${est}: ${estados[est]}</span>`
+    ).join('');
+    return `<div class="pts-det-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+      <div class="pts-det-txt" style="font-weight:700">Semana ${sem}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:2px">${chips}</div>
+    </div>`;
+  }).join('');
+
   document.getElementById('kpi-incidencias').innerHTML = `
     <div class="pts-card-hdr">
       <div class="pts-iniciales" style="background:#2980B9;font-size:18px">📊</div>
@@ -1573,6 +1602,8 @@ function renderPuntos() {
     <div class="pts-detalle">
       <div class="pts-sep">DESGLOSE POR SEMANA</div>
       ${semanasRows || '<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin datos este mes</div></div>'}
+      <div class="pts-sep">ESTADOS POR SEMANA</div>
+      ${estadosRows || '<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin datos este mes</div></div>'}
     </div>
     <div class="pts-total-row">
       <div class="pts-total-lbl">Sin incidencias / Solicitadas</div>
