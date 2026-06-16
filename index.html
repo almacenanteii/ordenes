@@ -976,10 +976,10 @@ function renderOPs() {
           <button class="prio-btn ${(!r.prioridad||r.prioridad==='Baja')?'prio-baja-act':''}" onclick="setPrioridad('${r.op}','Baja',this)">🟢 Baja</button>
         </div>
       </div>` : ''}
-      <div class="op-grid">
-        <div class="op-field"><div class="op-field-lbl">Surtió</div><div class="op-field-val ${r.surtio?'':'em'}">${r.surtio||'Sin asignar'}</div></div>
+      <div class="op-grid" style="${esPend ? 'grid-template-columns:1fr' : ''}">
+        ${!esPend ? `<div class="op-field"><div class="op-field-lbl">Surtió</div><div class="op-field-val">${r.surtio||'—'}</div></div>` : ''}
         <div class="op-field"><div class="op-field-lbl">Semana</div><div class="op-field-val">${r.semana||'—'}</div></div>
-        <div class="op-field"><div class="op-field-lbl">Fecha surtido</div><div class="op-field-val ${r.fechasurtido?'':'em'}">${fmtFecha(r.fechasurtido)||'—'}</div></div>
+        ${!esPend ? `<div class="op-field"><div class="op-field-lbl">Fecha surtido</div><div class="op-field-val">${fmtFecha(r.fechasurtido)||'—'}</div></div>` : ''}
       </div>
       ${buildMateriales(r.materiales)}
       ${buildTimeBar(r)}
