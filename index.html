@@ -1657,7 +1657,7 @@ function iniciarSelectorMeses() {
 async function cargarInventario() {
   try {
     const CSV_INV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1010346624&single=true&output=csv';
-    const res = await fetch(CSV_INV + '&t=' + Date.now());
+    const res = await fetchConTimeout(CSV_INV + '&t=' + Date.now());
     if (!res.ok) return;
     const txt = await res.text();
     const rows = parseCSV(txt);
@@ -1674,8 +1674,21 @@ async function cargarInventario() {
   } catch(e) { console.log('Inventario no cargado:', e); }
 }
 
+async function fetchConTimeout(url, ms = 10000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    return res;
+  } catch(e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
 async function cargarOPs() {
-  const res = await fetch(CSV_OPS + '&t=' + Date.now());
+  const res = await fetchConTimeout(CSV_OPS + '&t=' + Date.now());
   const txt = await res.text();
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
@@ -1719,7 +1732,7 @@ async function cargarOPs() {
 }
 
 async function cargarActividades() {
-  const res = await fetch(CSV_ACT + '&t=' + Date.now());
+  const res = await fetchConTimeout(CSV_ACT + '&t=' + Date.now());
   const txt = await res.text();
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
@@ -1774,7 +1787,10 @@ async function recargar() {
 
 async function load() {
   try {
-    await Promise.all([cargarOPs(), cargarActividades(), cargarInventario()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario()]);
+    resultados.forEach((r, i) => {
+      if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
+    });
     iniciarSelectorMeses();
     renderOPs();
     renderActividades();
