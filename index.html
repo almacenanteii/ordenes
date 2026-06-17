@@ -300,9 +300,7 @@
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-lbl">Almacén 2026</div>
-  <div class="hdr-title">Órdenes & Actividades</div>
-  <div class="hdr-sub">Trazabilidad y seguimiento</div>
+  <div class="hdr-title">Órdenes</div>
   <div class="tabs">
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
@@ -376,16 +374,6 @@
     <div class="res-card rojo"><div class="res-num" id="op-r-pendiente">0</div><div class="res-lbl">Pendientes</div></div>
   </div>
 
-  <!-- Gráfica semanal -->
-  <div class="grafica-box" id="grafica-box">
-    <div class="grafica-title">📊 OPs por semana</div>
-    <div class="grafica-wrap" id="grafica-wrap"></div>
-    <div class="grafica-legend">
-      <span class="leg-dot" style="background:var(--orange)"></span> Entradas
-      <span class="leg-dot" style="background:var(--green); margin-left:12px"></span> Surtidas
-    </div>
-  </div>
-
   <div class="lista" id="lista-ops"><div class="loading"><div class="spinner"></div>Cargando órdenes...</div></div>
 </div>
 
@@ -448,6 +436,16 @@
     </div>
   </div>
 
+  <!-- Gráfica semanal -->
+  <div class="grafica-box" id="grafica-box">
+    <div class="grafica-title">📊 OPs por semana</div>
+    <div class="grafica-wrap" id="grafica-wrap"></div>
+    <div class="grafica-legend">
+      <span class="leg-dot" style="background:var(--orange)"></span> Entradas
+      <span class="leg-dot" style="background:var(--green); margin-left:12px"></span> Surtidas
+    </div>
+  </div>
+
   <!-- KPI Incidencias -->
   <div class="pts-card" id="kpi-incidencias">
     <div class="loading"><div class="spinner"></div>Calculando KPI...</div>
@@ -460,7 +458,7 @@
 
 </div>
 
-<div class="footer">Actualizado por <strong>Almacén SAI</strong> · 2026</div>
+<div class="footer">Actualizado por <strong>Almacén</strong> · 2026</div>
 
 <!-- MODAL OP -->
 <div class="modal-bg" id="modal-op-bg">
@@ -927,9 +925,6 @@ function renderOPs() {
   document.getElementById('op-r-total').textContent    = f.length;
   document.getElementById('op-r-surtido').textContent  = f.filter(r=>esEstadoTerminado(r.estado) && (r.estado||'').toLowerCase().trim() !== 'cancelada').length;
   document.getElementById('op-r-pendiente').textContent= f.filter(r=>esEstadoActivo(r.estado)).length;
-
-  // Gráfica semanal
-  actualizarGrafica();
 
   const lista = document.getElementById('lista-ops');
   if (!f.length) { lista.innerHTML = `<div class="empty"><div class="empty-ico">📭</div>Sin órdenes</div>`; return; }
@@ -1546,6 +1541,9 @@ function renderPuntos() {
   const val = sel.value || '';
   if (!val) return;
   const [anio, mes] = val.split('-').map(Number);
+
+  // Gráfica semanal
+  actualizarGrafica();
 
   // KPI Incidencias por semana
   const opsMes = opsData.filter(r => {
