@@ -857,6 +857,16 @@ async function setPrioridad(op, prioridad, btn) {
   }
 }
 
+function convertirLinkPDF(link) {
+  if (!link) return '#';
+  // Si ya es formato /view, dejarlo igual
+  if (link.includes('/view')) return link;
+  // Extraer ID del formato viejo uc?export=download&id=XXX
+  const m = link.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return `https://drive.google.com/file/d/${m[1]}/view`;
+  return link;
+}
+
 function toggleMat(id) {
   const el = document.getElementById(id);
   const arr = document.getElementById('arr-' + id);
@@ -979,7 +989,7 @@ function renderOPs() {
       </div>
       ${buildMateriales(r.materiales)}
       ${buildTimeBar(r)}
-      ${r.pdf ? `<a href="${r.pdf}" target="_blank" class="btn-accion btn-pdf">📄 Ver Orden</a>` : ''}
+      ${r.pdf ? `<a href="${convertirLinkPDF(r.pdf)}" target="_blank" class="btn-accion btn-pdf">📄 Ver Orden</a>` : ''}
       ${esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` : `<button class="btn-accion btn-incidencia" onclick='reportarIncidencia("${r.op}")'>⚠️ Reportar incidencia</button>`}
     </div>`;
   }).join('');
