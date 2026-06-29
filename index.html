@@ -1609,15 +1609,32 @@ function renderPuntos() {
     'Pendiente': '#E74C3C', 'No recolectado': '#b7770d', 'Surtido': '#1a8a50',
     'Parcial': '#616a6b', 'PT': '#1a5276', 'Embarque': '#2471a3', 'Cancelada': '#922B21'
   };
+  const ESTADO_ORDEN = ['Surtido','No recolectado','PT','Embarque','Parcial','Pendiente','Cancelada'];
 
   const estadosRows = Object.keys(estadosPorSemana).sort((a,b) => Number(a)-Number(b)).map(sem => {
     const estados = estadosPorSemana[sem];
-    const chips = Object.keys(estados).map(est =>
-      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:${ESTADO_COLOR[est]||'var(--g6)'};background:${ESTADO_COLOR[est]||'var(--g6)'}1A;padding:2px 7px;border-radius:10px;margin:2px">${est}: ${estados[est]}</span>`
+    const totalSem = Object.values(estados).reduce((s,n) => s+n, 0);
+    const incSem   = (todasOpsMes.filter(r => (r.semana||'S/N') === sem && String(r.incidencia) === '1')).length;
+
+    // Chips ordenados
+    const ordenados = ESTADO_ORDEN.filter(e => estados[e]).concat(
+      Object.keys(estados).filter(e => !ESTADO_ORDEN.includes(e))
+    );
+    const chips = ordenados.map(est =>
+      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:${ESTADO_COLOR[est]||'var(--g6)'};background:${ESTADO_COLOR[est]||'var(--g6)'}1A;padding:2px 7px;border-radius:10px">${est}: ${estados[est]}</span>`
     ).join('');
-    return `<div class="pts-det-row" style="flex-direction:column;align-items:flex-start;gap:4px">
-      <div class="pts-det-txt" style="font-weight:700">Semana ${sem}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:2px">${chips}</div>
+
+    const incChip = incSem > 0
+      ? `<span style="font-size:10px;font-weight:700;color:#E74C3C;background:#E74C3C1A;padding:2px 7px;border-radius:10px">⚠️ Incidencias: ${incSem}</span>`
+      : `<span style="font-size:10px;font-weight:700;color:#1a8a50;background:#1a8a501A;padding:2px 7px;border-radius:10px">✓ Sin incidencias</span>`;
+
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--g2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--g9)">Semana ${sem}</div>
+        <div style="font-size:11px;color:var(--g4);font-weight:600">Total: <strong style="color:var(--g9)">${totalSem}</strong> OPs</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">${chips}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${incChip}</div>
     </div>`;
   }).join('');
 
