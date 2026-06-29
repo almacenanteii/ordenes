@@ -315,6 +315,7 @@ header.h-inv{background:var(--or)} header.h-abc{background:var(--gn)} header.h-q
 <div class="list hidden" id="list-q40"></div>
 <div id="sched-hdr" class="hidden" style="padding:10px 12px 0"></div>
 <div id="sched-tabs" class="hidden" style="padding:0 12px"></div>
+<div id="print-btn-wrap" class="hidden" style="padding:0 12px 8px;display:flex;justify-content:flex-end"></div>
 <div class="list hidden" id="list-cic"><div class="loading-msg hidden" id="cic-loading">⏳ Cargando conteos...</div></div>
 <div class="list hidden" id="list-hist"></div>
 <div class="empty hidden" id="empty-inv"><div class="empty-ico">🔍</div><p>Sin resultados para "<span id="eq-inv"></span>"</p></div>
@@ -379,9 +380,11 @@ function switchTab(t){
   const schedHdrEl=document.getElementById('sched-hdr');
   const schedTabsEl=document.getElementById('sched-tabs');
   const confBlock=document.getElementById('conf-block');
+  const printBtnWrap=document.getElementById('print-btn-wrap');
   if(schedHdrEl) schedHdrEl.classList.toggle('hidden',t!=='cic');
   if(schedTabsEl) schedTabsEl.classList.toggle('hidden',t!=='cic');
   if(confBlock) confBlock.classList.toggle('hidden',t!=='cic');
+  if(printBtnWrap) printBtnWrap.classList.toggle('hidden',t!=='cic');
   document.getElementById('fab').style.background=cols[t]||'var(--or)';
   if(t==='inv')renderInv();
   else if(t==='abc')renderAbc();
@@ -794,10 +797,13 @@ function _renderCicData(){
   const schedHdr=document.getElementById('sched-hdr');
   if(schedHdr){
     schedHdr.classList.remove('hidden');
-    schedHdr.innerHTML=renderSchedHeader(semActual,contadosSet)+
-      '<div style="display:flex;justify-content:flex-end;margin-top:8px">'+
-        '<button class="btn-print no-print" onclick="imprimirSemana('+semActual+')">🖨️ Imprimir semana '+semActual+'</button>'+
-      '</div>';
+    schedHdr.innerHTML=renderSchedHeader(semActual,contadosSet);
+  }
+  // Print button
+  const printBtnEl=document.getElementById('print-btn-wrap');
+  if(printBtnEl){
+    printBtnEl.classList.remove('hidden');
+    printBtnEl.innerHTML='<button class="btn-print" onclick="imprimirSemana('+semActual+')">🖨️ Imprimir semana '+semActual+'</button>';
   }
 
   // Pills
