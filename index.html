@@ -236,7 +236,10 @@ header.h-inv{background:var(--or)} header.h-abc{background:var(--gn)} header.h-q
 </header>
 
 <header class="h-cic hidden" id="hdr-cic">
-  <div class="hdr-top"><h1>📊 Conteos Cíclicos</h1></div>
+  <div class="hdr-top">
+    <h1>📊 Conteos Cíclicos</h1>
+    <button id="btn-imprimir" onclick="imprimirSemanaActual()" style="background:#fff;color:#6A1B9A;border:2px solid #fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>
+  </div>
   <div class="update-bar" id="cic-update-bar">📅 Cargando datos...</div>
   <div class="search-box">
     <svg class="s-icon" width="20" height="20" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
