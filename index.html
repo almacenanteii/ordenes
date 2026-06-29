@@ -299,6 +299,9 @@ header.h-inv{background:var(--or)} header.h-abc{background:var(--gn)} header.h-q
   <div class="kpi"><div class="kpi-lbl">Con diferencia</div><div class="kpi-val rv" id="ci-dif">—</div><div class="kpi-sub">lotes</div></div>
   <div class="kpi"><div class="kpi-lbl">Coinciden</div><div class="kpi-val gv" id="ci-ok">—</div><div class="kpi-sub">lotes</div></div>
 </div>
+<div class="hidden" id="print-btn-wrap" style="background:#fff;padding:8px 16px;display:flex;justify-content:flex-end;border-bottom:1px solid #e2e2e2">
+  <button class="btn-print" id="btn-imprimir" onclick="imprimirSemanaActual()">🖨️ Imprimir semana</button>
+</div>
 <div class="kpis hidden" id="kpis-hist">
   <div class="kpi"><div class="kpi-lbl">Exist. SAI</div><div class="kpi-val bv" id="h-exist">—</div><div class="kpi-sub">dic 2025</div></div>
   <div class="kpi"><div class="kpi-lbl">Conteo</div><div class="kpi-val bv" id="h-conteo">—</div><div class="kpi-sub">físico</div></div>
@@ -315,7 +318,6 @@ header.h-inv{background:var(--or)} header.h-abc{background:var(--gn)} header.h-q
 <div class="list hidden" id="list-q40"></div>
 <div id="sched-hdr" class="hidden" style="padding:10px 12px 0"></div>
 <div id="sched-tabs" class="hidden" style="padding:0 12px"></div>
-<div id="print-btn-wrap" class="hidden" style="padding:0 12px 8px;display:flex;justify-content:flex-end"></div>
 <div class="list hidden" id="list-cic"><div class="loading-msg hidden" id="cic-loading">⏳ Cargando conteos...</div></div>
 <div class="list hidden" id="list-hist"></div>
 <div class="empty hidden" id="empty-inv"><div class="empty-ico">🔍</div><p>Sin resultados para "<span id="eq-inv"></span>"</p></div>
@@ -535,6 +537,14 @@ function parseCicCSV(text){
   return rows;
 }
 
+
+function imprimirSemanaActual(){
+  const semana=fCicSemana===0?getCurrentSemana():fCicSemana;
+  // Update button text
+  const btn=document.getElementById('btn-imprimir');
+  if(btn) btn.textContent='🖨️ Imprimir semana '+semana;
+  imprimirSemana(semana);
+}
 
 function imprimirSemana(semana){
   const items=getSchedForSemana(semana);
@@ -799,12 +809,11 @@ function _renderCicData(){
     schedHdr.classList.remove('hidden');
     schedHdr.innerHTML=renderSchedHeader(semActual,contadosSet);
   }
-  // Print button
+  // Update print button text
   const printBtnEl=document.getElementById('print-btn-wrap');
-  if(printBtnEl){
-    printBtnEl.classList.remove('hidden');
-    printBtnEl.innerHTML='<button class="btn-print" onclick="imprimirSemana('+semActual+')">🖨️ Imprimir semana '+semActual+'</button>';
-  }
+  if(printBtnEl) printBtnEl.classList.remove('hidden');
+  const btnImp=document.getElementById('btn-imprimir');
+  if(btnImp) btnImp.textContent='🖨️ Imprimir semana '+semActual;
 
   // Pills
   const tabsEl=document.getElementById('sched-tabs');
