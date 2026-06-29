@@ -298,10 +298,11 @@ header.h-inv{background:var(--or)} header.h-abc{background:var(--gn)} header.h-q
   <div class="kpi"><div class="kpi-lbl">Contados</div><div class="kpi-val" style="color:var(--pu)" id="ci-contados">—</div><div class="kpi-sub">de <span id="ci-total">—</span> lotes</div></div>
   <div class="kpi"><div class="kpi-lbl">Con diferencia</div><div class="kpi-val rv" id="ci-dif">—</div><div class="kpi-sub">lotes</div></div>
   <div class="kpi"><div class="kpi-lbl">Coinciden</div><div class="kpi-val gv" id="ci-ok">—</div><div class="kpi-sub">lotes</div></div>
+  <div class="kpi" style="display:flex;align-items:center;justify-content:center">
+    <button class="btn-print" id="btn-imprimir" onclick="imprimirSemanaActual()" style="width:100%">🖨️ Imprimir</button>
+  </div>
 </div>
-<div id="print-btn-wrap" style="display:none;background:#fff;padding:8px 16px;justify-content:flex-end;border-bottom:1px solid #e2e2e2">
-  <button class="btn-print" id="btn-imprimir" onclick="imprimirSemanaActual()">🖨️ Imprimir semana</button>
-</div>
+
 <div class="kpis hidden" id="kpis-hist">
   <div class="kpi"><div class="kpi-lbl">Exist. SAI</div><div class="kpi-val bv" id="h-exist">—</div><div class="kpi-sub">dic 2025</div></div>
   <div class="kpi"><div class="kpi-lbl">Conteo</div><div class="kpi-val bv" id="h-conteo">—</div><div class="kpi-sub">físico</div></div>
@@ -382,11 +383,11 @@ function switchTab(t){
   const schedHdrEl=document.getElementById('sched-hdr');
   const schedTabsEl=document.getElementById('sched-tabs');
   const confBlock=document.getElementById('conf-block');
-  const printBtnWrap=document.getElementById('print-btn-wrap');
+
   if(schedHdrEl) schedHdrEl.classList.toggle('hidden',t!=='cic');
   if(schedTabsEl) schedTabsEl.classList.toggle('hidden',t!=='cic');
   if(confBlock) confBlock.classList.toggle('hidden',t!=='cic');
-  if(printBtnWrap){printBtnWrap.style.display=t==='cic'?'flex':'none';}
+
   document.getElementById('fab').style.background=cols[t]||'var(--or)';
   if(t==='inv')renderInv();
   else if(t==='abc')renderAbc();
@@ -810,8 +811,8 @@ function _renderCicData(){
     schedHdr.innerHTML=renderSchedHeader(semActual,contadosSet);
   }
   // Update print button text
-  const printBtnEl=document.getElementById('print-btn-wrap');
-  if(printBtnEl) printBtnEl.style.display='flex';
+  const btnImp=document.getElementById('btn-imprimir');
+  if(btnImp) btnImp.textContent='🖨️ Sem '+semActual;
   const btnImp=document.getElementById('btn-imprimir');
   if(btnImp) btnImp.textContent='🖨️ Imprimir semana '+semActual;
 
