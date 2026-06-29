@@ -1577,22 +1577,7 @@ function renderPuntos() {
     if (String(r.incidencia) === '1') semanasMap[sem].inc++;
   });
 
-  const semanasRows = Object.keys(semanasMap).sort((a,b) => Number(a)-Number(b)).map(sem => {
-    const { total, inc } = semanasMap[sem];
-    const sin = total - inc;
-    const pct = total > 0 ? ((sin/total)*100).toFixed(1) : '—';
-    const pctNum = parseFloat(pct);
-    const color = pctNum >= 98 ? 'var(--green)' : pctNum >= 90 ? '#b7770d' : 'var(--red)';
-    return `<div class="pts-det-row">
-      <div class="pts-det-txt">Semana ${sem}</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:11px;color:var(--g4)">${sin}/${total}</span>
-        <span class="pts-det-val" style="color:${color}">${pct}%</span>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Conteo de TODOS los estados por semana (incluye pendientes, canceladas, etc.)
+  // Conteo de TODOS los estados por semana
   const todasOpsMes = opsData.filter(r => {
     const f = parseFecha(r.fecha);
     return f && f.getMonth() === mes && f.getFullYear() === anio;
@@ -1611,30 +1596,47 @@ function renderPuntos() {
   };
   const ESTADO_ORDEN = ['Surtido','No recolectado','PT','Embarque','Parcial','Pendiente','Cancelada'];
 
-  const estadosRows = Object.keys(estadosPorSemana).sort((a,b) => Number(a)-Number(b)).map(sem => {
-    const estados = estadosPorSemana[sem];
-    const totalSem = Object.values(estados).reduce((s,n) => s+n, 0);
-    const incSem   = (todasOpsMes.filter(r => (r.semana||'S/N') === sem && String(r.incidencia) === '1')).length;
+  // Unir todas las semanas de ambos mapas
+  const todasSemanas = [...new Set([
+    ...Object.keys(semanasMap),
+    ...Object.keys(estadosPorSemana)
+  ])].sort((a,b) => Number(a)-Number(b));
 
-    // Chips ordenados
+  const semanasRows = todasSemanas.map(sem => {
+    // KPI exactitud
+    const kpiSem = semanasMap[sem];
+    let kpiHTML = '';
+    if (kpiSem) {
+      const sin = kpiSem.total - kpiSem.inc;
+      const pct = kpiSem.total > 0 ? ((sin/kpiSem.total)*100).toFixed(1) : '—';
+      const pctNum = parseFloat(pct);
+      const color = pctNum >= 98 ? 'var(--green)' : pctNum >= 90 ? '#b7770d' : 'var(--red)';
+      kpiHTML = `<span style="font-size:11px;color:var(--g4)">${sin}/${kpiSem.total}</span>
+        <span style="font-size:13px;font-weight:700;color:${color}">${pct}%</span>`;
+    }
+
+    // Estados + incidencias
+    const estados = estadosPorSemana[sem] || {};
+    const totalSem = Object.values(estados).reduce((s,n) => s+n, 0);
+    const incSem = todasOpsMes.filter(r => (r.semana||'S/N') === sem && String(r.incidencia) === '1').length;
+
     const ordenados = ESTADO_ORDEN.filter(e => estados[e]).concat(
       Object.keys(estados).filter(e => !ESTADO_ORDEN.includes(e))
     );
     const chips = ordenados.map(est =>
-      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:${ESTADO_COLOR[est]||'var(--g6)'};background:${ESTADO_COLOR[est]||'var(--g6)'}1A;padding:2px 7px;border-radius:10px">${est}: ${estados[est]}</span>`
+      `<span style="font-size:10px;font-weight:700;color:${ESTADO_COLOR[est]||'var(--g6)'};background:${ESTADO_COLOR[est]||'var(--g6)'}1A;padding:2px 7px;border-radius:10px">${est}: ${estados[est]}</span>`
     ).join('');
 
     const incChip = incSem > 0
-      ? `<span style="font-size:10px;font-weight:700;color:#E74C3C;background:#E74C3C1A;padding:2px 7px;border-radius:10px">⚠️ Incidencias: ${incSem}</span>`
-      : `<span style="font-size:10px;font-weight:700;color:#1a8a50;background:#1a8a501A;padding:2px 7px;border-radius:10px">✓ Sin incidencias</span>`;
+      ? `<span style="font-size:10px;font-weight:700;color:#E74C3C;background:#E74C3C1A;padding:2px 7px;border-radius:10px">⚠️ Inc: ${incSem}</span>`
+      : `<span style="font-size:10px;font-weight:700;color:#1a8a50;background:#1a8a501A;padding:2px 7px;border-radius:10px">✓ Sin inc.</span>`;
 
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--g2)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--g9)">Semana ${sem}</div>
-        <div style="font-size:11px;color:var(--g4);font-weight:600">Total: <strong style="color:var(--g9)">${totalSem}</strong> OPs</div>
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--g2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--g9)">Semana ${sem} <span style="font-size:11px;font-weight:400;color:var(--g4)">· ${totalSem} OPs</span></div>
+        <div style="display:flex;gap:6px;align-items:center">${kpiHTML}</div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">${chips}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px">${incChip}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${chips}${incChip}</div>
     </div>`;
   }).join('');
 
@@ -1649,10 +1651,8 @@ function renderPuntos() {
       <div class="pts-bar"><div class="pts-bar-fill" style="width:${Math.min(kpiNum||0,100)}%;background:${kpiColor}"></div></div>
     </div>
     <div class="pts-detalle">
-      <div class="pts-sep">DESGLOSE POR SEMANA</div>
+      <div class="pts-sep">RESUMEN POR SEMANA</div>
       ${semanasRows || '<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin datos este mes</div></div>'}
-      <div class="pts-sep">ESTADOS POR SEMANA</div>
-      ${estadosRows || '<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin datos este mes</div></div>'}
     </div>
     <div class="pts-total-row">
       <div class="pts-total-lbl">Sin incidencias / Solicitadas</div>
