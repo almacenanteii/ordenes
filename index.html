@@ -1757,8 +1757,7 @@ async function cargarOPs() {
   const sel = document.getElementById('sem-select');
   sel.innerHTML = '<option value="todas">Todas las semanas</option>';
   semanas.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o); });
-  const ultima = semanas[semanas.length-1];
-  if (ultima) { sel.value = ultima; semanaActual = ultima; }
+  // Ya no se preselecciona la última semana: arranca en "Todas las semanas"
 }
 
 async function cargarActividades() {
