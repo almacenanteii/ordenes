@@ -354,8 +354,9 @@
       <div class="filter-label">Estado</div>
       <div class="sem-select-wrap">
         <select class="sem-select" id="op-est-select" onchange="setEstadoOP(this.value)">
+          <option value="pendientes" selected>⏳ Pendientes</option>
           <option value="todos">Todos</option>
-          <option value="Pendiente">⏳ Pendiente</option>
+          <option value="Pendiente">⏳ Solo Pendiente</option>
           <option value="No recolectado">📦 No recolectado</option>
           <option value="Surtido">✓ Surtido</option>
           <option value="Parcial">◑ Parcial</option>
@@ -517,7 +518,7 @@ const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
 let opsData = [], actData = [];
-let semanaActual = 'todas', estadoOP = 'todos';
+let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'todos';
 let opSeleccionada = null, actSeleccionada = null;
 let personaOP = null, personaAct = null;
@@ -921,7 +922,9 @@ function renderOPs() {
     f = f.filter(r => { const fd = parseFecha(r.fecha); return fd && fd.getFullYear() === anio && fd.getMonth() === mes; });
   }
   if (semanaActual !== 'todas') f = f.filter(r => r.semana === semanaActual);
-  if (estadoOP !== 'todos') {
+  if (estadoOP === 'pendientes') {
+    f = f.filter(r => esEstadoActivo(r.estado));
+  } else if (estadoOP !== 'todos') {
     f = f.filter(r => (r.estado||'').toLowerCase().trim() === estadoOP.toLowerCase().trim());
   }
   if (surtioFiltro === '')           f = f.filter(r => !r.surtio);
