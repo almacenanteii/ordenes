@@ -409,8 +409,8 @@
     <div class="filter-row">
       <div class="filter-label">Estado</div>
       <div class="estado-wrap">
-        <button class="est-btn active-todos"   id="act-st-todos"      onclick="setStatusAct('todos')">Todos</button>
-        <button class="est-btn"                id="act-st-pendiente"  onclick="setStatusAct('Pendiente')">⏳ Pendiente</button>
+        <button class="est-btn"                id="act-st-todos"      onclick="setStatusAct('todos')">Todos</button>
+        <button class="est-btn active-pendiente" id="act-st-pendiente"  onclick="setStatusAct('Pendiente')">⏳ Pendiente</button>
         <button class="est-btn"                id="act-st-completado" onclick="setStatusAct('Completado')">✓ Completado</button>
       </div>
     </div>
@@ -519,7 +519,7 @@ const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 
 let opsData = [], actData = [];
 let semanaActual = 'todas', estadoOP = 'pendientes';
-let asignadoAct = 'todos', statusAct = 'todos';
+let asignadoAct = 'todos', statusAct = 'Pendiente';
 let opSeleccionada = null, actSeleccionada = null;
 let personaOP = null, personaAct = null;
 let incidenciaOP = 0;
@@ -1628,23 +1628,57 @@ function renderPuntos() {
     const ordenados = ESTADO_ORDEN.filter(e => estados[e]).concat(
       Object.keys(estados).filter(e => !ESTADO_ORDEN.includes(e))
     );
-    const chips = ordenados.map(est =>
-      `<span style="font-size:12px;font-weight:700;color:${ESTADO_COLOR[est]||'var(--g6)'};background:${ESTADO_COLOR[est]||'var(--g6)'}1A;padding:4px 10px;border-radius:10px">${est}: ${estados[est]}</span>`
-    ).join('');
+    // Tarjetas de estado estilo imagen
+    const ESTADO_ICON = {
+      'Surtido': '✅', 'No recolectado': '📦', 'PT': '🏭',
+      'Embarque': '🚛', 'Parcial': '◑', 'Pendiente': '⏳', 'Cancelada': '❌'
+    };
+    const estadoCards = ordenados.map(est => {
+      const bg   = (ESTADO_COLOR[est]||'#888') + '18';
+      const icon = ESTADO_ICON[est] || '📋';
+      return `<div style="background:${bg};border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;flex:1">
+        <div style="font-size:16px;margin-bottom:2px">${icon}</div>
+        <div style="font-size:11px;font-weight:600;color:${ESTADO_COLOR[est]||'var(--g6)'};margin-bottom:4px">${est}</div>
+        <div style="font-size:22px;font-weight:800;color:${ESTADO_COLOR[est]||'var(--g9)'};line-height:1">${estados[est]}</div>
+      </div>`;
+    }).join('');
 
-    const incChip = incSem > 0
-      ? `<span style="font-size:12px;font-weight:700;color:#E74C3C;background:#E74C3C1A;padding:4px 10px;border-radius:10px">⚠️ Incidencias: ${incSem}</span>`
-      : `<span style="font-size:12px;font-weight:700;color:#1a8a50;background:#1a8a501A;padding:4px 10px;border-radius:10px">✓ Sin incidencias</span>`;
+    // Tarjeta de incidencias
+    const incColor = incSem > 0 ? '#E74C3C' : '#1a8a50';
+    const incIcon  = incSem > 0 ? '⚠️' : '🛡️';
+    const incLabel = incSem > 0 ? '' : '<div style="font-size:10px;font-weight:600;color:#1a8a50;margin-top:2px">Sin incidencias</div>';
+    const incCard  = `<div style="background:${incColor}18;border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;flex:1">
+      <div style="font-size:16px;margin-bottom:2px">${incIcon}</div>
+      <div style="font-size:11px;font-weight:600;color:${incColor};margin-bottom:4px">Incidencias</div>
+      <div style="font-size:22px;font-weight:800;color:${incColor};line-height:1">${incSem}</div>
+      ${incLabel}
+    </div>`;
 
-    return `<div style="background:var(--white);border:1.5px solid var(--g2);border-radius:12px;padding:12px 14px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--g9);line-height:1">SEMANA ${sem}</div>
-          <div style="font-size:12px;color:var(--g4);margin-top:1px">Total: <strong style="color:var(--g9)">${totalSem}</strong> órdenes</div>
+    // Bloque KPI derecha
+    const kpiBloque = kpiSem ? (() => {
+      const sin = kpiSem.total - kpiSem.inc;
+      const pct = kpiSem.total > 0 ? ((sin/kpiSem.total)*100).toFixed(1) : '—';
+      const pctNum = parseFloat(pct);
+      const color = pctNum >= 98 ? '#1a8a50' : pctNum >= 90 ? '#b7770d' : '#E74C3C';
+      const barW  = Math.min(pctNum||0, 100);
+      return `<div style="text-align:right;min-width:90px">
+        <div style="font-size:30px;font-weight:800;color:${color};line-height:1">${pct}%</div>
+        <div style="font-size:11px;color:var(--g4);margin:3px 0">${sin} / ${kpiSem.total} sin inc.</div>
+        <div style="height:5px;background:var(--g2);border-radius:3px;margin-top:4px">
+          <div style="height:5px;background:${color};border-radius:3px;width:${barW}%"></div>
         </div>
-        <div style="text-align:right">${kpiHTML}</div>
+      </div>`;
+    })() : '';
+
+    return `<div style="background:var(--white);border:1.5px solid var(--g2);border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--g9);line-height:1">SEMANA ${sem}</div>
+          <div style="font-size:12px;color:var(--g4);margin-top:2px">Total: <strong style="color:var(--g9)">${totalSem}</strong> órdenes</div>
+        </div>
+        ${kpiBloque}
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px">${chips}${incChip}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${incCard}</div>
     </div>`;
   }).join('');
 
@@ -1806,8 +1840,7 @@ async function cargarActividades() {
   const sel = document.getElementById('act-sem-select');
   sel.innerHTML = '<option value="todas">Todas las semanas</option>';
   semanas.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o); });
-  const ultima = semanas[semanas.length-1];
-  if (ultima) { sel.value = ultima; semanaAct = ultima; }
+  // Ya no se preselecciona la última semana: arranca en "Todas las semanas"
 }
 
 async function recargar() {
