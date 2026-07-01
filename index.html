@@ -455,10 +455,7 @@
     </div>
   </div>
 
-  <!-- Sin recolectar -->
-  <div class="pts-card" id="kpi-no-recolectado" style="display:none"></div>
 
-  <!-- KPI Incidencias -->
   <div class="pts-card" id="kpi-incidencias">
     <div class="loading"><div class="spinner"></div>Calculando KPI...</div>
   </div>
@@ -1596,32 +1593,8 @@ function renderPuntos() {
   // Gráfica semanal
   actualizarGrafica();
 
-  // ── Tarjeta Sin Recolectar (siempre todas, sin filtro de mes/semana) ──
+  // OPs sin recolectar (usadas en tarjetas de semana)
   const noRec = opsData.filter(r => (r.estado||'').toLowerCase().trim() === 'no recolectado');
-  const divNoRec = document.getElementById('kpi-no-recolectado');
-  if (noRec.length > 0) {
-    const filasNoRec = noRec.map(r => {
-      const f = parseFecha(r.fecha);
-      const dias = f ? Math.floor((new Date() - f) / (1000*60*60*24)) : '?';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#b7770d10;border-radius:8px;margin-bottom:4px">
-        <span style="font-size:13px">📦</span>
-        <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)">
-          <strong>OP ${r.op}</strong>
-          <span style="color:var(--g4)"> — ${(r.producto||'').substring(0,30)}${(r.producto||'').length>30?'…':''}</span>
-        </div>
-        <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
-      </div>`;
-    }).join('');
-    divNoRec.style.display = '';
-    divNoRec.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <div class="pts-iniciales" style="background:#b7770d;font-size:18px">📦</div>
-        <div><div class="pts-nombre">Sin recolectar por Producción</div><div class="pts-rol">${noRec.length} orden${noRec.length>1?'es':''} esperando recolección</div></div>
-      </div>
-      ${filasNoRec}`;
-  } else {
-    divNoRec.style.display = 'none';
-  }
 
   // KPI Incidencias por semana (respeta filtro)
   const opsMes = opsData.filter(r => {
@@ -1714,7 +1687,7 @@ function renderPuntos() {
     // Tarjeta de incidencias
     const incColor = incSem > 0 ? '#E74C3C' : '#1a8a50';
     const incIcon  = incSem > 0 ? '⚠️' : '🛡️';
-    const incLabel = incSem > 0 ? '' : '<div style="font-size:10px;font-weight:600;color:#1a8a50;margin-top:2px">Sin incidencias</div>';
+    const incLabel = '';
     const incCard  = `<div style="background:${incColor}18;border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;flex:1">
       <div style="font-size:16px;margin-bottom:2px">${incIcon}</div>
       <div style="font-size:11px;font-weight:600;color:${incColor};margin-bottom:4px">Incidencias</div>
@@ -1762,7 +1735,7 @@ function renderPuntos() {
         <div style="font-size:10px;font-weight:700;color:#E74C3C;letter-spacing:0.05em;margin-bottom:4px">⏳ POR SURTIR</div>
         ${opsPendSem.map(r =>
           `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#E74C3C10;border-radius:8px;margin-bottom:3px">
-            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,30)}${(r.producto||'').length>30?'…':''}</span></div>
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,45)}${(r.producto||'').length>45?'…':''}</span></div>
             <span style="font-size:10px;font-weight:700;color:#E74C3C;white-space:nowrap">Sin surtir</span>
           </div>`
         ).join('')}` : '';
@@ -1773,7 +1746,7 @@ function renderPuntos() {
           const f = parseFecha(r.fecha);
           const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
           return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#b7770d10;border-radius:8px;margin-bottom:3px">
-            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,25)}${(r.producto||'').length>25?'…':''}</span></div>
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,40)}${(r.producto||'').length>40?'…':''}</span></div>
             <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
           </div>`;
         }).join('')}` : '';
