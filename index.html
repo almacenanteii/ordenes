@@ -1674,6 +1674,36 @@ function renderPuntos() {
       </div>`;
     })() : '';
 
+    // OPs pendientes y no recolectadas de esta semana
+    const opsPendSem = todasOpsMes.filter(r =>
+      (r.semana||'S/N') === sem && esEstadoActivo(r.estado)
+    );
+    const opsNoRecSem = todasOpsMes.filter(r =>
+      (r.semana||'S/N') === sem && (r.estado||'').toLowerCase().trim() === 'no recolectado'
+    );
+
+    let listaOPs = '';
+    if (opsPendSem.length > 0 || opsNoRecSem.length > 0) {
+      const filasPend = opsPendSem.map(r =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#E74C3C10;border-radius:8px">
+          <span style="font-size:13px">⏳</span>
+          <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,35)}${(r.producto||'').length>35?'…':''}</span></div>
+          <span style="font-size:10px;font-weight:700;color:#E74C3C;background:#E74C3C18;padding:2px 6px;border-radius:4px;white-space:nowrap">Sin surtir</span>
+        </div>`
+      ).join('');
+      const filasNoRec = opsNoRecSem.map(r =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#b7770d10;border-radius:8px">
+          <span style="font-size:13px">📦</span>
+          <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,35)}${(r.producto||'').length>35?'…':''}</span></div>
+          <span style="font-size:10px;font-weight:700;color:#b7770d;background:#b7770d18;padding:2px 6px;border-radius:4px;white-space:nowrap">Sin recolectar</span>
+        </div>`
+      ).join('');
+      listaOPs = `<div style="border-top:1px solid var(--g2);margin-top:10px;padding-top:10px">
+        <div style="font-size:10px;font-weight:700;color:var(--g4);letter-spacing:0.05em;margin-bottom:6px">PENDIENTES POR ATENDER</div>
+        <div style="display:flex;flex-direction:column;gap:4px">${filasPend}${filasNoRec}</div>
+      </div>`;
+    }
+
     return `<div style="background:var(--white);border:1.5px solid var(--g2);border-radius:14px;padding:14px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
@@ -1683,6 +1713,7 @@ function renderPuntos() {
         ${kpiBloque}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${incCard}</div>
+      ${listaOPs}
     </div>`;
   }).join('');
 
