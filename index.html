@@ -426,12 +426,20 @@
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
 <div class="section" id="section-pts">
 
-  <!-- Selector de mes -->
+  <!-- Selector de mes y semana -->
   <div class="filtros">
     <div class="filter-row">
       <div class="filter-label">Mes</div>
       <div class="sem-select-wrap">
         <select class="sem-select" id="pts-mes-select" onchange="renderPuntos()">
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Semana</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="pts-sem-select" onchange="renderPuntos()">
+          <option value="todas">Todas las semanas</option>
         </select>
       </div>
     </div>
@@ -446,6 +454,9 @@
       <span class="leg-dot" style="background:var(--green); margin-left:12px"></span> Surtidas
     </div>
   </div>
+
+  <!-- Sin recolectar -->
+  <div class="pts-card" id="kpi-no-recolectado" style="display:none"></div>
 
   <!-- KPI Incidencias -->
   <div class="pts-card" id="kpi-incidencias">
@@ -1204,7 +1215,7 @@ function ptsActividad(diasTardanza, esPendiente) {
   return -5;                             // 6+ días
 }
 
-function calcPuntosMes(persona, mes, anio) {
+function calcPuntosMes(persona, mes, anio, semFiltro = 'todas') {
   const detalles = [];
   let total = 0;
 
@@ -1212,6 +1223,7 @@ function calcPuntosMes(persona, mes, anio) {
   opsData.forEach(r => {
     const fecha = parseFecha(r.fecha);
     if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
+    if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return;
     if ((r.surtio||'') !== persona.key) return;
 
     const e = (r.estado||'').toLowerCase().trim();
@@ -1503,8 +1515,8 @@ function buildMisiones(persona, mes, anio) {
   return { html: `${htmlOps}${htmlActs}${reyRow}`, ptsMisiones };
 }
 
-function buildPtsCard(persona, mes, anio) {
-  const { total: totalBase, detalles, numOPs } = calcPuntosMes(persona, mes, anio);
+function buildPtsCard(persona, mes, anio, semFiltro = 'todas') {
+  const { total: totalBase, detalles, numOPs } = calcPuntosMes(persona, mes, anio, semFiltro);
   const { html: misionesHTML, ptsMisiones } = buildMisiones(persona, mes, anio);
   const total = totalBase + ptsMisiones;
   const META_PTS = Math.max(numOPs * META_FACTOR, 10); // mínimo 10 pts
@@ -1559,14 +1571,64 @@ function renderPuntos() {
   if (!val) return;
   const [anio, mes] = val.split('-').map(Number);
 
+  // Filtro de semana
+  const semSel = (document.getElementById('pts-sem-select')?.value || 'todas');
+
+  // Poblar semanas disponibles del mes
+  const semanasDelMes = [...new Set(opsData.filter(r => {
+    const f = parseFecha(r.fecha);
+    return f && f.getMonth() === mes && f.getFullYear() === anio && r.semana;
+  }).map(r => r.semana))].sort((a,b) => Number(a)-Number(b));
+
+  const selSem = document.getElementById('pts-sem-select');
+  const currentSem = selSem.value;
+  selSem.innerHTML = '<option value="todas">Todas las semanas</option>';
+  semanasDelMes.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = `Semana ${s}`;
+    selSem.appendChild(o);
+  });
+  // Restaurar selección si sigue disponible
+  if (semanasDelMes.includes(currentSem)) selSem.value = currentSem;
+  else selSem.value = 'todas';
+  const semFiltro = selSem.value;
+
   // Gráfica semanal
   actualizarGrafica();
 
-  // KPI Incidencias por semana
+  // ── Tarjeta Sin Recolectar (siempre todas, sin filtro de mes/semana) ──
+  const noRec = opsData.filter(r => (r.estado||'').toLowerCase().trim() === 'no recolectado');
+  const divNoRec = document.getElementById('kpi-no-recolectado');
+  if (noRec.length > 0) {
+    const filasNoRec = noRec.map(r => {
+      const f = parseFecha(r.fecha);
+      const dias = f ? Math.floor((new Date() - f) / (1000*60*60*24)) : '?';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#b7770d10;border-radius:8px;margin-bottom:4px">
+        <span style="font-size:13px">📦</span>
+        <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)">
+          <strong>OP ${r.op}</strong>
+          <span style="color:var(--g4)"> — ${(r.producto||'').substring(0,30)}${(r.producto||'').length>30?'…':''}</span>
+        </div>
+        <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
+      </div>`;
+    }).join('');
+    divNoRec.style.display = '';
+    divNoRec.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="pts-iniciales" style="background:#b7770d;font-size:18px">📦</div>
+        <div><div class="pts-nombre">Sin recolectar por Producción</div><div class="pts-rol">${noRec.length} orden${noRec.length>1?'es':''} esperando recolección</div></div>
+      </div>
+      ${filasNoRec}`;
+  } else {
+    divNoRec.style.display = 'none';
+  }
+
+  // KPI Incidencias por semana (respeta filtro)
   const opsMes = opsData.filter(r => {
     const f = parseFecha(r.fecha);
-    return f && f.getMonth() === mes && f.getFullYear() === anio &&
-           !esEstadoActivo(r.estado) && (r.estado||'').toLowerCase() !== 'cancelada';
+    if (!f || f.getMonth() !== mes || f.getFullYear() !== anio) return false;
+    if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return false;
+    return !esEstadoActivo(r.estado) && (r.estado||'').toLowerCase() !== 'cancelada';
   });
   const totalSurtidas = opsMes.length;
   const conIncidencia = opsMes.filter(r => String(r.incidencia) === '1').length;
@@ -1584,10 +1646,12 @@ function renderPuntos() {
     if (String(r.incidencia) === '1') semanasMap[sem].inc++;
   });
 
-  // Conteo de TODOS los estados por semana
+  // Conteo de TODOS los estados por semana (respeta filtro)
   const todasOpsMes = opsData.filter(r => {
     const f = parseFecha(r.fecha);
-    return f && f.getMonth() === mes && f.getFullYear() === anio;
+    if (!f || f.getMonth() !== mes || f.getFullYear() !== anio) return false;
+    if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return false;
+    return true;
   });
   const estadosPorSemana = {};
   todasOpsMes.forEach(r => {
@@ -1738,7 +1802,7 @@ function renderPuntos() {
 
   // Marcador empleados
   const marc = document.getElementById('pts-marcador');
-  marc.innerHTML = PERSONAS.map(p => buildPtsCard(p, mes, anio)).join('');
+  marc.innerHTML = PERSONAS.map(p => buildPtsCard(p, mes, anio, semFiltro)).join('');
 }
 
 function iniciarSelectorMeses() {
