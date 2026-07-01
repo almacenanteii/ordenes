@@ -1174,7 +1174,7 @@ async function confirmarActividad() {
 }
 
 // ── PUNTOS ───────────────────────────────────────────────────
-const META_PTS = 180;
+const META_FACTOR = 5; // meta = OPs del mes × factor
 const PERSONAS = [
   { key: 'Lupita Alferez', nombre: 'Lupita Alferez', rol: 'Montacarguista', iniciales: 'LA' },
   { key: 'Marco Reyes',    nombre: 'Marco Reyes',    rol: 'Almacenista',    iniciales: 'MR' },
@@ -1187,10 +1187,10 @@ function ptsOP(diasTardanza, esPendiente, diasAbierta) {
     if (diasAbierta > 7) return -2;
     return 0;
   }
-  if (diasTardanza <= 0) return 10;      // mismo día
-  if (diasTardanza <= 2) return 5;       // 1-2 días
-  if (diasTardanza <= 5) return 3;       // 3-5 días
-  return -1;                             // más de 5 días
+  if (diasTardanza <= 0) return 6;      // mismo día
+  if (diasTardanza <= 2) return 3;      // 1-2 días
+  if (diasTardanza <= 5) return 2;      // 3-5 días
+  return -1;                            // más de 5 días
 }
 
 function ptsActividad(diasTardanza, esPendiente) {
@@ -1269,7 +1269,10 @@ function calcPuntosMes(persona, mes, anio) {
     detalles.push({ desc, pts, tipo: 'act' });
   });
 
-  return { total, detalles };
+  // Contar OPs surtidas del mes para meta dinámica
+  const numOPs = detalles.filter(d => d.tipo === 'op' && d.pts > 0).length;
+
+  return { total, detalles, numOPs };
 }
 
 // ── MISIONES ─────────────────────────────────────────────────
@@ -1501,9 +1504,10 @@ function buildMisiones(persona, mes, anio) {
 }
 
 function buildPtsCard(persona, mes, anio) {
-  const { total: totalBase, detalles } = calcPuntosMes(persona, mes, anio);
+  const { total: totalBase, detalles, numOPs } = calcPuntosMes(persona, mes, anio);
   const { html: misionesHTML, ptsMisiones } = buildMisiones(persona, mes, anio);
   const total = totalBase + ptsMisiones;
+  const META_PTS = Math.max(numOPs * META_FACTOR, 10); // mínimo 10 pts
   const pct = Math.min(Math.max((total / META_PTS) * 100, 0), 100);
   const superMeta = total >= META_PTS;
   const scoreCls = superMeta ? 'meta' : '';
