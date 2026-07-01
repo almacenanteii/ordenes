@@ -1738,33 +1738,49 @@ function renderPuntos() {
       </div>`;
     })() : '';
 
-    // OPs pendientes y no recolectadas de esta semana
+    // OPs pendientes de esta semana
     const opsPendSem = todasOpsMes.filter(r =>
       (r.semana||'S/N') === sem && esEstadoActivo(r.estado)
     );
-    const opsNoRecSem = todasOpsMes.filter(r =>
-      (r.semana||'S/N') === sem && (r.estado||'').toLowerCase().trim() === 'no recolectado'
+    // OPs sin recolectar de TODAS las semanas
+    const opsNoRecTodas = opsData.filter(r =>
+      (r.estado||'').toLowerCase().trim() === 'no recolectado'
     );
+    const totalNoRec = opsNoRecTodas.length;
 
+    // Cuadro Sin recolectar (total global, no de la semana)
+    const noRecCard = totalNoRec > 0 ? `<div style="background:#b7770d18;border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;flex:1">
+      <div style="font-size:16px;margin-bottom:2px">📦</div>
+      <div style="font-size:11px;font-weight:600;color:#b7770d;margin-bottom:4px">Sin recolectar</div>
+      <div style="font-size:22px;font-weight:800;color:#b7770d;line-height:1">${totalNoRec}</div>
+    </div>` : '';
+
+    // Listas de pendientes
     let listaOPs = '';
-    if (opsPendSem.length > 0 || opsNoRecSem.length > 0) {
-      const filasPend = opsPendSem.map(r =>
-        `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#E74C3C10;border-radius:8px">
-          <span style="font-size:13px">⏳</span>
-          <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,35)}${(r.producto||'').length>35?'…':''}</span></div>
-          <span style="font-size:10px;font-weight:700;color:#E74C3C;background:#E74C3C18;padding:2px 6px;border-radius:4px;white-space:nowrap">Sin surtir</span>
-        </div>`
-      ).join('');
-      const filasNoRec = opsNoRecSem.map(r =>
-        `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#b7770d10;border-radius:8px">
-          <span style="font-size:13px">📦</span>
-          <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,35)}${(r.producto||'').length>35?'…':''}</span></div>
-          <span style="font-size:10px;font-weight:700;color:#b7770d;background:#b7770d18;padding:2px 6px;border-radius:4px;white-space:nowrap">Sin recolectar</span>
-        </div>`
-      ).join('');
+    if (opsPendSem.length > 0 || opsNoRecTodas.length > 0) {
+      const filasPend = opsPendSem.length > 0 ? `
+        <div style="font-size:10px;font-weight:700;color:#E74C3C;letter-spacing:0.05em;margin-bottom:4px">⏳ POR SURTIR</div>
+        ${opsPendSem.map(r =>
+          `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#E74C3C10;border-radius:8px;margin-bottom:3px">
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,30)}${(r.producto||'').length>30?'…':''}</span></div>
+            <span style="font-size:10px;font-weight:700;color:#E74C3C;white-space:nowrap">Sin surtir</span>
+          </div>`
+        ).join('')}` : '';
+
+      const filasNoRec = opsNoRecTodas.length > 0 ? `
+        <div style="font-size:10px;font-weight:700;color:#b7770d;letter-spacing:0.05em;margin:${opsPendSem.length>0?'8px':0} 0 4px">📦 POR RECOLECTAR</div>
+        ${opsNoRecTodas.map(r => {
+          const f = parseFecha(r.fecha);
+          const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#b7770d10;border-radius:8px;margin-bottom:3px">
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,25)}${(r.producto||'').length>25?'…':''}</span></div>
+            <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
+          </div>`;
+        }).join('')}` : '';
+
       listaOPs = `<div style="border-top:1px solid var(--g2);margin-top:10px;padding-top:10px">
-        <div style="font-size:10px;font-weight:700;color:var(--g4);letter-spacing:0.05em;margin-bottom:6px">PENDIENTES POR ATENDER</div>
-        <div style="display:flex;flex-direction:column;gap:4px">${filasPend}${filasNoRec}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--g4);letter-spacing:0.05em;margin-bottom:8px">PENDIENTES POR ATENDER</div>
+        ${filasPend}${filasNoRec}
       </div>`;
     }
 
@@ -1776,7 +1792,7 @@ function renderPuntos() {
         </div>
         ${kpiBloque}
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${incCard}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${noRecCard}${incCard}</div>
       ${listaOPs}
     </div>`;
   }).join('');
