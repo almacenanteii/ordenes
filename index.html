@@ -1568,6 +1568,18 @@ function buildKpiTable(persona, mes, anio) {
     return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:var(--g9)">${ops||'—'}</td>`;
   }).join('');
 
+  // Actividades completadas por semana
+  const actsRow = semanasDelMes.map(s => {
+    const acts = actData.filter(r => {
+      const f = parseFechaAct(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        (r.asignado||'') === persona.key &&
+        (r.estado||'').toLowerCase() === 'completado' &&
+        (r.semana||'') === s;
+    }).length;
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:var(--g9)">${acts||'—'}</td>`;
+  }).join('');
+
   return `<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead>
       <tr style="border-bottom:1px solid var(--g2)">
@@ -1582,8 +1594,11 @@ function buildKpiTable(persona, mes, anio) {
       <tr style="border-bottom:1px solid var(--g2)">
         <td style="padding:6px 8px;font-size:11px;color:var(--g6)">Incidencias</td>${incRow}
       </tr>
-      <tr>
+      <tr style="border-bottom:1px solid var(--g2)">
         <td style="padding:6px 8px;font-size:11px;color:var(--g6)">OPs surtidas</td>${opsRow}
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;font-size:11px;color:var(--g6)">Actividades</td>${actsRow}
       </tr>
     </tbody>
   </table>`;
