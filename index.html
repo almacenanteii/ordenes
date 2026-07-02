@@ -1300,7 +1300,7 @@ const MISIONES_OP = [
     titulo: 'Sin Pendientes',
     desc: 'Ninguna OP abierta más de 5 días',
     pts: 10,
-    check: (stats) => ({ actual: stats.opsMas5 === 0 ? 1 : 0, meta: 1, binaria: true })
+    check: (stats) => ({ actual: (stats.opsMas5 === 0 && stats.totalOPs > 0) ? 1 : 0, meta: 1, binaria: true })
   },
   {
     id: 'precision',
@@ -1335,7 +1335,7 @@ const MISIONES_ACT = [
     titulo: 'Impecable',
     desc: 'Cero actividades entregadas tarde',
     pts: 15,
-    check: (stats) => ({ actual: stats.actsTarde === 0 ? 1 : 0, meta: 1, binaria: true })
+    check: (stats) => ({ actual: (stats.actsTarde === 0 && stats.totalActs > 0) ? 1 : 0, meta: 1, binaria: true })
   },
 ];
 
@@ -1353,8 +1353,11 @@ function calcStats(persona, mes, anio) {
   const stats = {
     opsMismoDia: 0, opsEn2dias: 0, opsMas5: 0,
     opsMaxSemana: 0, semanaLimpia: false, opsMismoDiaSemana: 0,
-    actsAntes: 0, actsTarde: 0
+    actsAntes: 0, actsTarde: 0, totalOPs: 0, totalActs: 0
   };
+
+  // Claves de TODAS las personas del equipo (para misiones compartidas)
+  const todasLasClaves = PERSONAS.map(p => p.key);
 
   opsData.forEach(r => {
     const fecha = parseFecha(r.fecha);
@@ -1364,28 +1367,31 @@ function calcStats(persona, mes, anio) {
 
     const asig = (r.surtio||'').trim();
     const esDePersona = asig === persona.key;
+    const esDelEquipo  = todasLasClaves.includes(asig) || asig === '';
     const esSinAsignar = asig === '';
 
-    if (!esDePersona && !esSinAsignar) return;
-
-    if (esEstadoActivo(r.estado)) {
-      const diasAbierta = Math.floor((new Date() - fecha) / (1000 * 60 * 60 * 24));
-      if (diasAbierta > 5) stats.opsMas5++;
-      return;
+    // opsMas5 y totalOPs: cuentan para TODO el equipo (misión compartida)
+    if (esDelEquipo || esSinAsignar) {
+      if (esEstadoActivo(r.estado)) {
+        const diasAbierta = Math.floor((new Date() - fecha) / (1000 * 60 * 60 * 24));
+        if (diasAbierta > 5) stats.opsMas5++;
+      } else {
+        stats.totalOPs++;
+      }
     }
 
-    // Solo contar tiempos de surtido para OPs asignadas a la persona
+    // Puntos individuales: solo OPs de esta persona
     if (!esDePersona) return;
+    if (esEstadoActivo(r.estado)) return;
     if (!r.fechasurtido) return;
     const surtido = parseFecha(r.fechasurtido);
     if (!surtido) return;
     const dias = Math.floor((surtido - fecha) / (1000 * 60 * 60 * 24));
     if (dias === 0) { stats.opsMismoDia++; stats.opsEn2dias++; }
     else if (dias <= 2) stats.opsEn2dias++;
-    else if (dias > 5) stats.opsMas5++;
   });
 
-  // Calcular stats por semana
+  // Calcular stats por semana (individual)
   const semanas = [...new Set(opsData.filter(r => {
     const f = parseFecha(r.fecha);
     return f && f.getMonth() === mes && f.getFullYear() === anio && (r.surtio||'') === persona.key;
@@ -1398,14 +1404,11 @@ function calcStats(persona, mes, anio) {
     });
     const surtEnSem = opsDelMes.filter(r => (r.surtio||'') === persona.key && !esEstadoActivo(r.estado) && (r.estado||'').toLowerCase() !== 'cancelada');
 
-    // Torbellino: max OPs surtidas en una semana
     if (surtEnSem.length > stats.opsMaxSemana) stats.opsMaxSemana = surtEnSem.length;
 
-    // Semana de Fuego: todas las OPs de la semana surtidas
     const pendEnSem = opsDelMes.filter(r => esEstadoActivo(r.estado) && (r.surtio||'') === persona.key);
     if (surtEnSem.length > 0 && pendEnSem.length === 0) stats.semanaLimpia = true;
 
-    // Relámpago Semanal: 3 OPs mismo día en una semana
     const mismoDiaEnSem = surtEnSem.filter(r => {
       if (!r.fechasurtido) return false;
       const f = parseFecha(r.fecha), s = parseFecha(r.fechasurtido);
@@ -1414,6 +1417,7 @@ function calcStats(persona, mes, anio) {
     if (mismoDiaEnSem > stats.opsMismoDiaSemana) stats.opsMismoDiaSemana = mismoDiaEnSem;
   });
 
+  // Actividades: cuentan las asignadas a esta persona O a "todos"
   actData.forEach(r => {
     const fecha = parseFechaAct(r.fecha);
     if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
@@ -1422,6 +1426,7 @@ function calcStats(persona, mes, anio) {
     if (asig !== persona.key && !esTodo) return;
     const esPend = (r.estado||'').toLowerCase() !== 'completado';
     if (esPend) return;
+    stats.totalActs++;
     const fechaLim = parseFechaAct(r.fechaLimite);
     const fechaComp = parseFechaAct(r.fechaCompletado);
     if (!fechaLim || !fechaComp) return;
