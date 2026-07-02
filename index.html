@@ -492,6 +492,15 @@
         <div class="p-icon">⚠️</div><div class="p-name">Hubo faltantes</div>
       </div>
     </div>
+    <label class="modal-label" style="margin-top:10px">¿Se respetó FIFO (PEPS)?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn selected" id="op-fifo-si" onclick="selectFifo(1)">
+        <div class="p-icon">✅</div><div class="p-name">Sí se respetó</div>
+      </div>
+      <div class="persona-btn" id="op-fifo-no" onclick="selectFifo(0)">
+        <div class="p-icon">⚠️</div><div class="p-name">No se respetó</div>
+      </div>
+    </div>
     <button class="modal-confirm" id="op-modal-confirm" disabled onclick="confirmarOP()">Confirmar Surtido</button>
     <button class="modal-cancel" onclick="cerrarModal('op')">Cancelar</button>
     <div class="modal-msg" id="op-modal-msg"></div>
@@ -531,6 +540,7 @@ let asignadoAct = 'todos', statusAct = 'Pendiente';
 let opSeleccionada = null, actSeleccionada = null;
 let personaOP = null, personaAct = null;
 let incidenciaOP = 0;
+let fifoOP = 1;
 let tabActual = 'ops';
 
 // ── UTILS ────────────────────────────────────────────────────
@@ -1095,7 +1105,7 @@ function selectPersona(tipo, nombre) {
 }
 
 function abrirModalOP(op) {
-  opSeleccionada = op; personaOP = null; incidenciaOP = 0;
+  opSeleccionada = op; personaOP = null; incidenciaOP = 0; fifoOP = 1;
   document.getElementById('modal-op-info').textContent = `OP ${op.op} · ${op.producto}`;
   document.getElementById('op-btn-lupita').classList.remove('selected');
   document.getElementById('op-btn-marco').classList.remove('selected');
@@ -1123,6 +1133,12 @@ function selectIncidencia(val) {
   document.getElementById('op-inc-si').classList.toggle('selected', val === 1);
 }
 
+function selectFifo(val) {
+  fifoOP = val;
+  document.getElementById('op-fifo-si').classList.toggle('selected', val === 1);
+  document.getElementById('op-fifo-no').classList.toggle('selected', val === 0);
+}
+
 function abrirModalAct(act) {
   actSeleccionada = act; personaAct = null;
   document.getElementById('modal-act-info').textContent = `${act.folio} · ${act.descripcion}`;
@@ -1144,7 +1160,7 @@ async function confirmarOP() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-sm"></div> Guardando...';
   try {
-    await sai_fetch({ tipo:'op', op: opSeleccionada.op, surtio: personaOP, incidencia: incidenciaOP });
+    await sai_fetch({ tipo:'op', op: opSeleccionada.op, surtio: personaOP, incidencia: incidenciaOP, fifo: fifoOP });
     const msg = document.getElementById('op-modal-msg');
     msg.style.display = 'block';
     msg.className = 'modal-msg ok';
@@ -1568,7 +1584,19 @@ function buildKpiTable(persona, mes, anio) {
     return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:var(--g9)">${ops||'—'}</td>`;
   }).join('');
 
-  // Actividades completadas por semana
+  // FIFO por semana
+  const fifoRow = semanasDelMes.map(s => {
+    const surtidas = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        r.semana === s && (r.surtio||'') === persona.key &&
+        (r.estado||'').toLowerCase() === 'surtido';
+    });
+    const conFifo = surtidas.filter(r => String(r.fifo) === '1').length;
+    const pct = surtidas.length > 0 ? ((conFifo/surtidas.length)*100).toFixed(0) : '—';
+    const color = pct === '—' ? 'var(--g4)' : Number(pct) >= 98 ? '#1a8a50' : Number(pct) >= 90 ? '#b7770d' : '#E74C3C';
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;font-weight:700;color:${color}">${pct}${pct!=='—'?'%':''}</td>`;
+  }).join('');
   const actsRow = semanasDelMes.map(s => {
     const acts = actData.filter(r => {
       const f = parseFechaAct(r.fecha);
@@ -1588,6 +1616,9 @@ function buildKpiTable(persona, mes, anio) {
       </tr>
     </thead>
     <tbody>
+      <tr style="border-bottom:1px solid var(--g2)">
+        <td style="padding:6px 8px;font-size:11px;color:var(--g6)">FIFO (PEPS)</td>${fifoRow}
+      </tr>
       <tr style="border-bottom:1px solid var(--g2)">
         <td style="padding:6px 8px;font-size:11px;color:var(--g6)">Exactitud</td>${exactitudRow}
       </tr>
@@ -1976,7 +2007,7 @@ async function cargarOPs() {
   const txt = await res.text();
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
-  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), lote:h.indexOf('lote'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales'), prioridad:h.indexOf('prioridad'), incidencia:h.indexOf('incidencias') };
+  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), lote:h.indexOf('lote'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales'), prioridad:h.indexOf('prioridad'), incidencia:h.indexOf('incidencias'), fifo:h.indexOf('fifo') };
   opsData = rows.slice(1).map(r => ({
     op: cl(r[idx.op]), fecha: cl(r[idx.fecha]), codigo: cl(r[idx.codigo]),
     producto: cl(r[idx.producto]), lote: idx.lote !== -1 ? cl(r[idx.lote]) : '',
@@ -1986,6 +2017,7 @@ async function cargarOPs() {
     materiales: idx.materiales !== -1 ? cl(r[idx.materiales]) : '',
     prioridad: idx.prioridad !== -1 ? cl(r[idx.prioridad]) : '',
     incidencia: idx.incidencia !== -1 ? cl(r[idx.incidencia]) : '0',
+    fifo: idx.fifo !== -1 ? cl(r[idx.fifo]) : '1',
   })).filter(r => r.op);
 
   // Meses únicos
