@@ -1521,37 +1521,111 @@ function buildMisiones(persona, mes, anio) {
   return { html: `${htmlOps}${htmlActs}${reyRow}`, ptsMisiones };
 }
 
+function buildKpiTable(persona, mes, anio) {
+  // Semanas del mes
+  const semanasDelMes = [...new Set(opsData.filter(r => {
+    const f = parseFecha(r.fecha);
+    return f && f.getMonth() === mes && f.getFullYear() === anio;
+  }).map(r => r.semana).filter(s => s))].sort((a,b) => Number(a)-Number(b));
+
+  if (!semanasDelMes.length) return '<div style="font-size:12px;color:var(--g4);padding:8px">Sin datos este mes</div>';
+
+  const headers = semanasDelMes.map(s => `<th style="padding:6px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--g4)">Sem ${s}</th>`).join('');
+
+  // Exactitud por semana
+  const exactitudRow = semanasDelMes.map(s => {
+    const surtidas = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        r.semana === s && (r.surtio||'') === persona.key &&
+        (r.estado||'').toLowerCase() === 'surtido';
+    });
+    const sinInc = surtidas.filter(r => String(r.incidencia) !== '1').length;
+    const pct = surtidas.length > 0 ? ((sinInc/surtidas.length)*100).toFixed(0) : '—';
+    const color = pct === '—' ? 'var(--g4)' : Number(pct) >= 98 ? '#1a8a50' : Number(pct) >= 90 ? '#b7770d' : '#E74C3C';
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;font-weight:700;color:${color}">${pct}${pct!=='—'?'%':''}</td>`;
+  }).join('');
+
+  // Incidencias por semana
+  const incRow = semanasDelMes.map(s => {
+    const inc = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        r.semana === s && (r.surtio||'') === persona.key && String(r.incidencia) === '1';
+    }).length;
+    const color = inc === 0 ? '#1a8a50' : inc <= 3 ? '#b7770d' : '#E74C3C';
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;font-weight:700;color:${color}">${inc}</td>`;
+  }).join('');
+
+  // OPs surtidas por semana
+  const opsRow = semanasDelMes.map(s => {
+    const ops = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        r.semana === s && (r.surtio||'') === persona.key &&
+        (r.estado||'').toLowerCase() === 'surtido';
+    }).length;
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:var(--g9)">${ops||'—'}</td>`;
+  }).join('');
+
+  return `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead>
+      <tr style="border-bottom:1px solid var(--g2)">
+        <th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--g4)">Indicador</th>
+        ${headers}
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--g2)">
+        <td style="padding:6px 8px;font-size:11px;color:var(--g6)">Exactitud</td>${exactitudRow}
+      </tr>
+      <tr style="border-bottom:1px solid var(--g2)">
+        <td style="padding:6px 8px;font-size:11px;color:var(--g6)">Incidencias</td>${incRow}
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;font-size:11px;color:var(--g6)">OPs surtidas</td>${opsRow}
+      </tr>
+    </tbody>
+  </table>`;
+}
+
 function buildPtsCard(persona, mes, anio, semFiltro = 'todas') {
   const { total: totalBase, detalles, numOPs } = calcPuntosMes(persona, mes, anio, semFiltro);
   const { html: misionesHTML, ptsMisiones } = buildMisiones(persona, mes, anio);
   const total = totalBase + ptsMisiones;
-  const META_PTS = Math.max(numOPs * META_FACTOR, 10); // mínimo 10 pts
+  const META_PTS = Math.max(numOPs * META_FACTOR, 10);
   const pct = Math.min(Math.max((total / META_PTS) * 100, 0), 100);
   const superMeta = total >= META_PTS;
   const scoreCls = superMeta ? 'meta' : '';
   const fillCls  = superMeta ? 'meta' : '';
+  const uid = persona.key.replace(/\s/g,'');
 
-  let rows = '';
+  // Tabla KPI
+  const kpiTable = buildKpiTable(persona, mes, anio);
+
+  // Órdenes y actividades colapsables
+  let opsHTML = '', actsHTML = '';
   if (detalles.length === 0) {
-    rows = `<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin actividad registrada este mes</div></div>`;
+    opsHTML = `<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin actividad registrada este mes</div></div>`;
   } else {
     const ops = detalles.filter(d => d.tipo === 'op');
     const acts = detalles.filter(d => d.tipo === 'act');
     if (ops.length) {
-      rows += `<div class="pts-sep">📦 Órdenes (${ops.length})</div>`;
-      rows += ops.map(d => `<div class="pts-det-row">
+      opsHTML = ops.map(d => `<div class="pts-det-row">
         <div class="pts-det-txt">${d.desc}</div>
         <div class="pts-det-val ${d.pts > 0 ? 'pos' : d.pts < 0 ? 'neg' : 'neu'}">${d.pts > 0 ? '+' : ''}${d.pts}</div>
       </div>`).join('');
     }
     if (acts.length) {
-      rows += `<div class="pts-sep">✅ Actividades (${acts.length})</div>`;
-      rows += acts.map(d => `<div class="pts-det-row">
+      actsHTML = acts.map(d => `<div class="pts-det-row">
         <div class="pts-det-txt">${d.desc}</div>
         <div class="pts-det-val ${d.pts > 0 ? 'pos' : d.pts < 0 ? 'neg' : 'neu'}">${d.pts > 0 ? '+' : ''}${d.pts}</div>
       </div>`).join('');
     }
   }
+
+  const toggleStyle = `cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:8px 0;user-select:none`;
+  const chevron = `<span style="font-size:11px;color:var(--g4)">▼</span>`;
 
   return `<div class="pts-card">
     <div class="pts-card-hdr">
@@ -1563,7 +1637,38 @@ function buildPtsCard(persona, mes, anio, semFiltro = 'todas') {
       <div class="pts-bar-lbl"><span>0</span><span>Meta: ${META_PTS} pts</span></div>
       <div class="pts-bar"><div class="pts-bar-fill ${fillCls}" style="width:${pct}%"></div></div>
     </div>
-    <div class="pts-detalle">${rows}${misionesHTML}</div>
+
+    <!-- KPI colapsable -->
+    <div style="border-top:1px solid var(--g2);margin-top:8px">
+      <div style="${toggleStyle}" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('span').textContent=this.nextElementSibling.style.display==='none'?'▼':'▲'">
+        <span style="font-size:11px;font-weight:700;color:var(--g4);letter-spacing:0.05em">📊 KPIs DEL MES</span>
+        ${chevron}
+      </div>
+      <div style="display:none;padding-bottom:8px">${kpiTable}</div>
+    </div>
+
+    <!-- Órdenes colapsable -->
+    <div style="border-top:1px solid var(--g2)">
+      <div style="${toggleStyle}" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('span').textContent=this.nextElementSibling.style.display==='none'?'▼':'▲'">
+        <span style="font-size:11px;font-weight:700;color:var(--g4);letter-spacing:0.05em">📦 ÓRDENES (${detalles.filter(d=>d.tipo==='op').length})</span>
+        ${chevron}
+      </div>
+      <div style="display:none;padding-bottom:4px">${opsHTML}</div>
+    </div>
+
+    <!-- Actividades colapsable -->
+    <div style="border-top:1px solid var(--g2)">
+      <div style="${toggleStyle}" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('span').textContent=this.nextElementSibling.style.display==='none'?'▼':'▲'">
+        <span style="font-size:11px;font-weight:700;color:var(--g4);letter-spacing:0.05em">✅ ACTIVIDADES (${detalles.filter(d=>d.tipo==='act').length})</span>
+        ${chevron}
+      </div>
+      <div style="display:none;padding-bottom:4px">${actsHTML}</div>
+    </div>
+
+    <div style="border-top:1px solid var(--g2);padding-top:8px">
+      ${misionesHTML}
+    </div>
+
     <div class="pts-total-row">
       <div class="pts-total-lbl">Total del mes</div>
       <div class="pts-total-val ${scoreCls}">${total} pts ${superMeta ? '🏆' : ''}</div>
