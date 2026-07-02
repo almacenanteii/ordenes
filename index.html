@@ -1198,7 +1198,7 @@ async function confirmarActividad() {
 }
 
 // ── PUNTOS ───────────────────────────────────────────────────
-const META_FACTOR = 5; // meta = OPs del mes × factor
+const META_FACTOR = 7; // meta = OPs del mes × factor
 const PERSONAS = [
   { key: 'Lupita Alferez', nombre: 'Lupita Alferez', rol: 'Montacarguista', iniciales: 'LA' },
   { key: 'Marco Reyes',    nombre: 'Marco Reyes',    rol: 'Almacenista',    iniciales: 'MR' },
@@ -1584,7 +1584,23 @@ function buildKpiTable(persona, mes, anio) {
     return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:var(--g9)">${ops||'—'}</td>`;
   }).join('');
 
-  // FIFO por semana
+  // Promedio por semana (FIFO + Exactitud)
+  const promedioRow = semanasDelMes.map(s => {
+    const surtidas = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        r.semana === s && (r.surtio||'') === persona.key &&
+        (r.estado||'').toLowerCase() === 'surtido';
+    });
+    if (!surtidas.length) return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:var(--g4)">—</td>`;
+    const sinInc = surtidas.filter(r => String(r.incidencia) !== '1').length;
+    const exactitud = (sinInc / surtidas.length) * 100;
+    const conFifo = surtidas.filter(r => String(r.fifo) === '1').length;
+    const fifo = (conFifo / surtidas.length) * 100;
+    const prom = ((exactitud + fifo) / 2).toFixed(0);
+    const color = Number(prom) >= 98 ? '#1a8a50' : Number(prom) >= 90 ? '#b7770d' : '#E74C3C';
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;font-weight:800;color:${color}">${prom}%</td>`;
+  }).join('');
   const fifoRow = semanasDelMes.map(s => {
     const surtidas = opsData.filter(r => {
       const f = parseFecha(r.fecha);
@@ -1630,6 +1646,9 @@ function buildKpiTable(persona, mes, anio) {
       </tr>
       <tr>
         <td style="padding:6px 8px;font-size:11px;color:var(--g6)">Actividades</td>${actsRow}
+      </tr>
+      <tr style="border-top:2px solid var(--g2);background:var(--g1)">
+        <td style="padding:6px 8px;font-size:11px;font-weight:700;color:var(--g9)">Promedio</td>${promedioRow}
       </tr>
     </tbody>
   </table>`;
@@ -1711,8 +1730,12 @@ function buildPtsCard(persona, mes, anio, semFiltro = 'todas') {
       <div style="display:none;padding-bottom:4px">${actsHTML}</div>
     </div>
 
-    <div style="border-top:1px solid var(--g2);padding-top:8px">
-      ${misionesHTML}
+    <div style="border-top:1px solid var(--g2);padding-top:0">
+      <div style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:8px 0;user-select:none" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('span').textContent=this.nextElementSibling.style.display==='none'?'▼':'▲'">
+        <span style="font-size:11px;font-weight:700;color:var(--g4);letter-spacing:0.05em">⚡ MISIONES</span>
+        <span style="font-size:11px;color:var(--g4)">▼</span>
+      </div>
+      <div style="display:none">${misionesHTML}</div>
     </div>
 
     <div class="pts-total-row">
