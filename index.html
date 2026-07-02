@@ -1472,20 +1472,24 @@ function buildMisiones(persona, mes, anio) {
   let misionesCompletadas = 0;
   let misionesFaltantes = [];
 
+  // Si no hay OPs ni actividades reales, las misiones no suman puntos
+  const hayActividad = (stats.opsMismoDia + stats.opsEn2dias + stats.opsMaxSemana) > 0 ||
+                       (stats.actsAntes + stats.actsTarde) > 0;
+
   let htmlOps = `<div class="pts-sep">⚡ MISIONES — ÓRDENES</div>`;
   MISIONES_OP.forEach(m => {
     const { html, completada } = buildMisionRow(m, stats);
     htmlOps += html;
-    if (completada) { ptsMisiones += m.pts; misionesCompletadas++; }
-    else misionesFaltantes.push(m.titulo);
+    if (completada && hayActividad) { ptsMisiones += m.pts; misionesCompletadas++; }
+    else if (!completada) misionesFaltantes.push(m.titulo);
   });
 
   let htmlActs = `<div class="pts-sep">🌟 MISIONES — ACTIVIDADES</div>`;
   MISIONES_ACT.forEach(m => {
     const { html, completada } = buildMisionRow(m, stats);
     htmlActs += html;
-    if (completada) { ptsMisiones += m.pts; misionesCompletadas++; }
-    else misionesFaltantes.push(m.titulo);
+    if (completada && hayActividad) { ptsMisiones += m.pts; misionesCompletadas++; }
+    else if (!completada) misionesFaltantes.push(m.titulo);
   });
 
   // Rey del Almacén
