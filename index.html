@@ -375,7 +375,73 @@
     <div class="res-card rojo"><div class="res-num" id="op-r-pendiente">0</div><div class="res-lbl">Pendientes</div></div>
   </div>
 
+  <!-- Botón Explosión -->
+  <div style="padding:0 16px 12px">
+    <button onclick="abrirModalExplosion()" style="width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.05em">
+      💥 + REGISTRAR EXPLOSIÓN
+    </button>
+  </div>
+
   <div class="lista" id="lista-ops"><div class="loading"><div class="spinner"></div>Cargando órdenes...</div></div>
+</div>
+
+<!-- ═══════════════ MODAL EXPLOSIÓN ═══════════════ -->
+<div class="modal-bg" id="modal-exp-bg">
+  <div class="modal-box">
+    <div class="modal-title">💥 Registrar Explosión</div>
+    <div class="modal-subtitle" id="modal-exp-info" style="color:var(--g4);font-size:13px;margin-bottom:8px">Surtido de materiales por explosión</div>
+
+    <label class="modal-label">Buscar producto</label>
+    <div style="position:relative;margin-bottom:4px">
+      <input type="text" id="exp-search" placeholder="Escribe código o nombre..." oninput="filtrarCatalogoExp(this.value)"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none">
+      <div id="exp-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--g2);border-radius:10px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
+    </div>
+    <div id="exp-producto-sel" style="display:none;padding:8px 10px;background:var(--orange)15;border-radius:8px;margin-bottom:8px;font-size:13px">
+      <strong id="exp-codigo-txt"></strong> — <span id="exp-nombre-txt"></span>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">¿Quién surtió?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn" id="exp-btn-lupita" onclick="selectPersonaExp('Lupita Alferez')">
+        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
+      </div>
+      <div class="persona-btn" id="exp-btn-marco" onclick="selectPersonaExp('Marco Reyes')">
+        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">¿Faltó algún SKU?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn selected" id="exp-inc-no" onclick="selectIncidenciaExp(0)">
+        <div class="p-icon">✅</div><div class="p-name">Sin faltantes</div>
+      </div>
+      <div class="persona-btn" id="exp-inc-si" onclick="selectIncidenciaExp(1)">
+        <div class="p-icon">⚠️</div><div class="p-name">Hubo faltantes</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">¿Se respetó FIFO (PEPS)?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn selected" id="exp-fifo-si" onclick="selectFifoExp(1)">
+        <div class="p-icon">✅</div><div class="p-name">Sí se respetó</div>
+      </div>
+      <div class="persona-btn" id="exp-fifo-no" onclick="selectFifoExp(0)">
+        <div class="p-icon">⚠️</div><div class="p-name">No se respetó</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">Foto de la hoja (opcional)</label>
+    <input type="file" id="exp-foto" accept="image/*" capture="environment"
+      style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
+
+    <div id="exp-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="exp-modal-confirm" onclick="confirmarExplosion()" disabled>
+      💥 Registrar Explosión
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('exp')">Cancelar</div>
+  </div>
 </div>
 
 <!-- ═══════════════ SECCIÓN ACTIVIDADES ═══════════════ -->
@@ -541,6 +607,125 @@ let opSeleccionada = null, actSeleccionada = null;
 let personaOP = null, personaAct = null;
 let incidenciaOP = 0;
 let fifoOP = 1;
+
+// Variables explosión
+let expPersona = null, expIncidencia = 0, expFifo = 1, expCodigo = '', expNombre = '';
+
+// Catálogo de productos
+const CATALOGO_PT = [
+  {clave:'MAQ-OMNI-007', desc:'909501145 SUERO FACIAL HPAV 30 ML'},
+  {clave:'MAQ-OMNI-008', desc:'909501145 SUERO FACIAL HPAV 30 ML'},
+  {clave:'MAQ-OMNI-006', desc:'909501157N SUERO CONTORNO OJOS'},
+  {clave:'MAQ-OMNI-003', desc:'909501186 SEYTU GEL-CREMA ESTRIAS 150ML'},
+  {clave:'MAQ-GLE-006', desc:'ACNIPOP JABON LIQ.DERMOLIMPIADOR 200ML'},
+  {clave:'MAQ-PAN-1003', desc:'ALITOPIC CREMA EMOLIENTE 250g'},
+  {clave:'MAQ-PAN-1006', desc:'ALITOPIC DESODORANTE 90 ML'},
+  {clave:'MAQ-PAN-1007', desc:'ALITOPIC GEL DE DUCHA SYNDET 300 ML'},
+  {clave:'MAQ-PAN-1004', desc:'ALITOPIC LECHE EMOLIENTE 500ML'},
+  {clave:'MAQ-PAN-1005', desc:'ALITOPIC SHAMPOO 150 ML'},
+  {clave:'PT-ASH-003', desc:'ASH EXFOLIANTE FACIAL Y CORPORAL'},
+  {clave:'PT-ASH-002', desc:'ASH LOCION FACIAL CONTROL GRASA 200ML'},
+  {clave:'PT-ASH-013', desc:'ASH POLVO FACIAL MATIFICANTE 4 G'},
+  {clave:'PT-ASH-017', desc:'ASH PROTECTOR SOLAR FPS 50ML'},
+  {clave:'PT-ASH-006', desc:'ASH SHAMPOO LIMPIEZA FACIAL 200ML'},
+  {clave:'PT-ASH-019', desc:'ASH SKIP MIX&FIX PROTECTOR FPS50 30G'},
+  {clave:'PT-ASH-018', desc:'ASH SKIP MOUSSE OFF ESPUMA FACIAL 150ML'},
+  {clave:'PT-ASH-020', desc:'ASH SKIP SKIN SOUFFLE CR. NUTRITIVA 50G'},
+  {clave:'PT-ASH-021', desc:'ASH SKIP SUPER SERUM ROSTRO/OJOS 30G'},
+  {clave:'PT-ASH-001', desc:'ASH SUERO FACIAL HIDRATANTE 60ML'},
+  {clave:'PT-ASH-005', desc:'ASH TRATAMIENTO FACIAL CONCENT 30ML'},
+  {clave:'PT-TOR-121', desc:'BALSAMO LAB FPS30 5G TORONGIA'},
+  {clave:'MAQ-MTC-001', desc:'CARIBBEAN PROTECTOR STICK FPS 50'},
+  {clave:'PT-CHI-004', desc:'CHILI & CHILI SAMPOO FORTIFICANTE 500ML'},
+  {clave:'PT-CHI-009', desc:'CHILI & CHILI SH. VIT CON ARGININA 500ML'},
+  {clave:'MAQ-PAN-1027', desc:'CUTIFRESH WASH GEL LIMP FACIAL 20'},
+  {clave:'MAQ-PAN-1026', desc:'CUTIFRESH WASH GEL LIMP FACIAL 240'},
+  {clave:'MAQ-CCF-005', desc:'FARMACOM CREMA CON CONCHA NACAR 110G'},
+  {clave:'MAQ-CCF-003', desc:'FARMACOM EMULSION MENTOLADA 100G'},
+  {clave:'MAQ-CCF-004', desc:'FARMACOM EMULSION MENTOLADA 50G'},
+  {clave:'MAQ-CCF-001', desc:'FARMACOM SPRAY EUCALIPTO 125ML'},
+  {clave:'MAQ-PAN-1024', desc:'FOLIFORT MASK MASCARILLA CAPILAR'},
+  {clave:'PT-TOR-134', desc:'GEL CORP REAFIR CLAS 200G TORONGIA'},
+  {clave:'PT-TOR-066', desc:'GEL CORPORAL POST ENTRENAMIENTO'},
+  {clave:'PT-TMEN-014-KIT', desc:'KIT TORONGIA MEN KIT BARBA'},
+  {clave:'PT-TMEN-013-KIT', desc:'KIT TORONGIA MEN KIT CAPILAR'},
+  {clave:'MAQ-SOR-014', desc:'KIT VITASCOM CJ C /12 PZAS BLISTER PEINE'},
+  {clave:'PT-S.O-127', desc:'LECHE DE CONCHA NACAR'},
+  {clave:'MAQ-RFA-003', desc:'LINEA CEMA PARA MANOS pH5 70G'},
+  {clave:'MAQ-RFA-002', desc:'LINEA D CREMA HUMECTANTE pH5 500G'},
+  {clave:'MAQ-RFA-001', desc:'LINEA D CREMA LIQUIDA pH5 270ML'},
+  {clave:'MAQ-RFA-009', desc:'LINEA D PROTEC. SOLAR FPS 50 POLVO 5G'},
+  {clave:'MAQ-RFA-008', desc:'LINEA D PROTECTOR SOLAR FPS 50 STICK 20G'},
+  {clave:'MAQ-LURA-003', desc:'LURA ESPUMA FACIAL LIMPIADORA 150ML'},
+  {clave:'MAQ-MEDI-004', desc:'MEDIMART CREMA CONCHA NACAR 100G'},
+  {clave:'MAQ-MEDI-011', desc:'MEDIMART EMULSION MENTOLADA 100G'},
+  {clave:'MAQ-MEDI-001', desc:'MEDIMART REPELENTE MOSCOS 200ML'},
+  {clave:'MAQ-MEDI-007', desc:'MEDIMART SPRAY EUCALIPTO 125 ML'},
+  {clave:'MAQ-SOR-034', desc:'NODRIM BICARBONATO DE SODIO 250G (24PZ)'},
+  {clave:'MAQ-SOR-035', desc:'NODRIM BICARBONATODE SODIO 400G (12PZ)'},
+  {clave:'MAQ-SOR-019', desc:'NODRIM SHAMPOO ANTICAIDA 400ML (6PZ)'},
+  {clave:'MAQ-SOR-020', desc:'NODRIM SPRAY EUCALIPTO 125ML (12PZ)'},
+  {clave:'PT-TOR-127', desc:'PACK PROTECTORES SOLARES 3PZS TORON'},
+  {clave:'PT-PKS-038', desc:'POCKET BALSAMO LABIAL CEREZA/MIEL 5G'},
+  {clave:'PT-PKS-037', desc:'POCKET BALSAMO LABIAL FRESA/COCO 5G'},
+  {clave:'PT-PKS-035', desc:'POCKET BALSAMO LABIAL MANGO/MANDARINA 5G'},
+  {clave:'PT-PKS-036', desc:'POCKET BALSAMO LABIAL MENTA 5G'},
+  {clave:'PT-PKS-050', desc:'POCKET REFRESCANTE CITRIC 2.5 ML'},
+  {clave:'PT-PKS-049', desc:'POCKET REFRESCANTE MENTA 2.5 ML'},
+  {clave:'PT-S.O-071', desc:'S.O CREMA CON CONCHA NACAR/ALGAS 160G'},
+  {clave:'PT-S.O-072', desc:'S.O CREMA CON JALEA REAL Y MIEL 160G'},
+  {clave:'PT-S.O-053', desc:'S.O. CR CONCHA NACAR/AC.LACTICO 113G'},
+  {clave:'PT-S.O-054', desc:'S.O.CR JALEA REAL,VIT E,COLAGENO 113G'},
+  {clave:'PT-S.O-055', desc:'S.O.CR VITAMINA E,C,AC. HIALURONICO 113G'},
+  {clave:'MAQ-PC-009', desc:'SK INVITA BALSAMO LABIAL FPS30 5ML'},
+  {clave:'MAQ-PC-036', desc:'SK INVITA GEL CONTORNO OJOS 15 ML'},
+  {clave:'PT-SOP-003', desc:'SOPHARMA CREMA HUMECTANTE 280G'},
+  {clave:'PT-SOP-002', desc:'SOPHARMA CREMA LIQUIDA 270 ML'},
+  {clave:'PT-SOP-009', desc:'SOPHARMA CREMA PARA MANOS'},
+  {clave:'MAQ-REJ-AMP-012', desc:'SVENSON AMPOLLETA LOC COLAGENO 10ML'},
+  {clave:'MAQ-REJ-AMP-005', desc:'SVENSON AMPOLLETA LOC M19 10ML'},
+  {clave:'MAQ-REJ-AMP-010', desc:'SVENSON AMPOLLETA M25'},
+  {clave:'MAQ-REJ-AMP-011', desc:'SVENSON AMPOLLETA PROTEINA 10ML'},
+  {clave:'MAQ-REJ-007', desc:'SVENSON GEL CAPILAR 150ML'},
+  {clave:'MAQ-REJ-001', desc:'SVENSON LOCION CAPILAR DIACHOL 150 ML'},
+  {clave:'MAQ-REJ-003', desc:'SVENSON PRESHAMPOO CEBREX 150ML'},
+  {clave:'MAQ-REJ-004', desc:'SVENSON SHAMPOO CABELLO GRASO 150ML'},
+  {clave:'MAQ-REJ-006', desc:'SVENSON SHAMPOO MENTOLADO/LIPTACOL'},
+  {clave:'MAQ-REJ-002', desc:'SVENSON SHAMPOO NORMAL 150 ML'},
+  {clave:'PT-TOR-105', desc:'THERMOGEL CORPORAL PARA PIEL CON ASPECTO DE NARANJA CON RODILLO'},
+  {clave:'PT-TOR-076', desc:'TORONGIA LIFT GEL REAFIRMANT 200G'},
+  {clave:'PT-TOR-125', desc:'TORONGIA CREMA ANTI FRICCION 70ML'},
+  {clave:'PT-TSC-002', desc:'TORONGIA CREMA FAC TERMOGENICA 60ML'},
+  {clave:'PT-TOR-077', desc:'TORONGIA GEL CORP LCARNITINA 100G'},
+  {clave:'PT-TOR-020', desc:'TORONGIA GEL CORP LCARNITINA 180G'},
+  {clave:'PT-TOR-004', desc:'TORONGIA GEL CORP REAF 475G'},
+  {clave:'PT-TOR-073', desc:'TORONGIA GEL CORP TE VERDE 475G'},
+  {clave:'PT-TOR-128', desc:'TORONGIA GEL REAFIRMANTE GLUTEOS POMP 200 GR'},
+  {clave:'PT-TOR-074', desc:'TORONGIA GYM GEL ENTREN 200G'},
+  {clave:'PT-TMEN-005', desc:'TORONGIA MEN BALSAMO BARBA/BIGOTE 50ML'},
+  {clave:'PT-TMEN-003', desc:'TORONGIA MEN LOCION CAPILAR 125 ML'},
+  {clave:'PT-TMEN-004', desc:'TORONGIA MEN SERUM CONTORNO OJOS 15 ML'},
+  {clave:'PT-TMEN-006', desc:'TORONGIA MEN SERUM FACIAL MATE 50 ML'},
+  {clave:'PT-TMEN-002', desc:'TORONGIA MEN SHAMPOO FORTIFICANTE 370ML'},
+  {clave:'PT-TMEN-001', desc:'TORONGIA MEN SHAMPOO FACIAL ENERG 125 ML'},
+  {clave:'PT-TOR-116', desc:'TORONGIA PROTECTOR SOLAR FPS 50 UV 80ML'},
+  {clave:'PT-TOR-104', desc:'TORONGIA PUCK PROTECTOR SOLAR FPS50 15G'},
+  {clave:'PT-TOR-141', desc:'TORONGIA PUCKIES PROTECTOR SOLAR FPS50 15G'},
+  {clave:'PT-TSC-004', desc:'TORONGIA SHAMPOO FACIAL 200ML'},
+  {clave:'PT-TSC-003', desc:'TORONGIA SUERO FACIAL 60 ML'},
+  {clave:'PT-TOR-072', desc:'TORONGIA THERMO LCARNITINA CLA200G'},
+  {clave:'PT-TOR-007', desc:'TORONGIA THERMOGEL NARANJA 180G'},
+  {clave:'PT-TOR-005', desc:'TORONGIA XTREME GEL CORP 380G'},
+  {clave:'MAQ-GLE-002', desc:'URETIV 10% CREMA 150 ML'},
+  {clave:'MAQ-PC-037', desc:'VITANOIN SUERO DESPIGMENTANTE 30ML'},
+  {clave:'MAQ-SOR-038', desc:'VITASCOM CREMA C/COLAGENO 100G (24PZA)'},
+  {clave:'MAQ-SOR-036', desc:'VITASCOM CREMA C/JALEA REAL 100G (24 PZ)'},
+  {clave:'MAQ-SOR-001', desc:'VITASCOM CREMA CON CONCHA NACAR 100G (24 PZ)'},
+  {clave:'MAQ-SOR-004', desc:'VITASCOM REPELENTE DE MOSQUITOS 120ML (12PZ)'},
+  {clave:'MAQ-SOR-003', desc:'VITASCOM REPELENTE DE MOSQUITOS 200ML (10PZ)'},
+  {clave:'MAQ-SOR-005', desc:'VITASCOM REPELENTE DE MOSQUITOS 60ML (12PZ)'},
+];
+
 let tabActual = 'ops';
 
 // ── UTILS ────────────────────────────────────────────────────
@@ -1137,6 +1322,132 @@ function selectFifo(val) {
   fifoOP = val;
   document.getElementById('op-fifo-si').classList.toggle('selected', val === 1);
   document.getElementById('op-fifo-no').classList.toggle('selected', val === 0);
+}
+
+// ── MODAL EXPLOSIÓN ──────────────────────────────────────────
+function abrirModalExplosion() {
+  expPersona = null; expIncidencia = 0; expFifo = 1; expCodigo = ''; expNombre = '';
+  document.getElementById('exp-search').value = '';
+  document.getElementById('exp-autocomplete').style.display = 'none';
+  document.getElementById('exp-producto-sel').style.display = 'none';
+  document.getElementById('exp-btn-lupita').classList.remove('selected');
+  document.getElementById('exp-btn-marco').classList.remove('selected');
+  document.getElementById('exp-inc-no').classList.add('selected');
+  document.getElementById('exp-inc-si').classList.remove('selected');
+  document.getElementById('exp-fifo-si').classList.add('selected');
+  document.getElementById('exp-fifo-no').classList.remove('selected');
+  document.getElementById('exp-foto').value = '';
+  document.getElementById('exp-modal-msg').style.display = 'none';
+  document.getElementById('exp-modal-confirm').disabled = true;
+  document.getElementById('modal-exp-bg').classList.add('open');
+}
+
+function filtrarCatalogoExp(q) {
+  const ac = document.getElementById('exp-autocomplete');
+  if (!q || q.length < 2) { ac.style.display = 'none'; return; }
+  const termino = q.toLowerCase();
+  const resultados = CATALOGO_PT.filter(p =>
+    p.clave.toLowerCase().includes(termino) || p.desc.toLowerCase().includes(termino)
+  ).slice(0, 8);
+  if (!resultados.length) { ac.style.display = 'none'; return; }
+  ac.innerHTML = resultados.map(p =>
+    `<div onclick="seleccionarProductoExp('${p.clave}','${p.desc.replace(/'/g,"&#39;")}')"
+      style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:13px"
+      onmouseover="this.style.background='var(--g1)'" onmouseout="this.style.background=''">
+      <strong>${p.clave}</strong> — ${p.desc}
+    </div>`
+  ).join('');
+  ac.style.display = 'block';
+}
+
+function seleccionarProductoExp(clave, nombre) {
+  expCodigo = clave; expNombre = nombre;
+  document.getElementById('exp-search').value = clave;
+  document.getElementById('exp-autocomplete').style.display = 'none';
+  document.getElementById('exp-codigo-txt').textContent = clave;
+  document.getElementById('exp-nombre-txt').textContent = nombre;
+  document.getElementById('exp-producto-sel').style.display = 'block';
+  verificarExplosionLista();
+}
+
+function selectPersonaExp(persona) {
+  expPersona = persona;
+  document.getElementById('exp-btn-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
+  document.getElementById('exp-btn-marco').classList.toggle('selected', persona === 'Marco Reyes');
+  verificarExplosionLista();
+}
+
+function selectIncidenciaExp(val) {
+  expIncidencia = val;
+  document.getElementById('exp-inc-no').classList.toggle('selected', val === 0);
+  document.getElementById('exp-inc-si').classList.toggle('selected', val === 1);
+}
+
+function selectFifoExp(val) {
+  expFifo = val;
+  document.getElementById('exp-fifo-si').classList.toggle('selected', val === 1);
+  document.getElementById('exp-fifo-no').classList.toggle('selected', val === 0);
+}
+
+function verificarExplosionLista() {
+  document.getElementById('exp-modal-confirm').disabled = !(expCodigo && expPersona);
+}
+
+async function confirmarExplosion() {
+  if (!expCodigo || !expPersona) return;
+  const btn = document.getElementById('exp-modal-confirm');
+  const msg = document.getElementById('exp-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+
+  // Subir foto si hay
+  let fotoLink = '';
+  const fotoInput = document.getElementById('exp-foto');
+  if (fotoInput.files && fotoInput.files[0]) {
+    try {
+      const file = fotoInput.files[0];
+      const b64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+      const resp = await sai_fetch({
+        tipo: 'subirFoto',
+        nombre: file.name,
+        mime: file.type,
+        base64: b64
+      });
+      if (resp.ok) fotoLink = resp.link || '';
+    } catch(e) { console.log('Error foto:', e); }
+  }
+
+  try {
+    const resp = await sai_fetch({
+      tipo: 'explosion',
+      codigo: expCodigo,
+      producto: expNombre,
+      surtio: expPersona,
+      incidencia: expIncidencia,
+      fifo: expFifo,
+      pdf: fotoLink
+    });
+    if (resp.ok) {
+      msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '✅ Explosión registrada correctamente';
+      setTimeout(() => { cerrarModal('exp'); recargarDatos(); }, 1500);
+    } else {
+      msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '❌ Error: ' + (resp.msg || 'intenta de nuevo');
+      btn.disabled = false;
+      btn.textContent = '💥 Registrar Explosión';
+    }
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error de conexión';
+    btn.disabled = false;
+    btn.textContent = '💥 Registrar Explosión';
+  }
 }
 
 function abrirModalAct(act) {
