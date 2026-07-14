@@ -597,7 +597,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQh_HNva5szxtv444w8E7bC9-m6jX3hOsO-gypWhv56a7CvW-hTJiu2shGLL_Xr-E/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOTealpGHOEG0eJizhOf0lM_IygPX-0yBA0C127JeuBi7xHWdiadQUFvMK9y-5QYY/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -1401,26 +1401,21 @@ async function confirmarExplosion() {
   btn.disabled = true;
   btn.textContent = 'Registrando...';
 
-  // Subir foto si hay
-  let fotoLink = '';
+  // Leer foto como base64 si hay
+  let fotoB64 = '', fotoNombre = '', fotoMime = '';
   const fotoInput = document.getElementById('exp-foto');
   if (fotoInput.files && fotoInput.files[0]) {
     try {
       const file = fotoInput.files[0];
-      const b64 = await new Promise((res, rej) => {
+      fotoNombre = file.name;
+      fotoMime = file.type;
+      fotoB64 = await new Promise((res, rej) => {
         const r = new FileReader();
         r.onload = () => res(r.result.split(',')[1]);
         r.onerror = rej;
         r.readAsDataURL(file);
       });
-      const resp = await sai_fetch({
-        tipo: 'subirFoto',
-        nombre: file.name,
-        mime: file.type,
-        base64: b64
-      });
-      if (resp.ok) fotoLink = resp.link || '';
-    } catch(e) { console.log('Error foto:', e); }
+    } catch(e) { console.log('Error leyendo foto:', e); }
   }
 
   try {
@@ -1431,7 +1426,9 @@ async function confirmarExplosion() {
       surtio: expPersona,
       incidencia: expIncidencia,
       fifo: expFifo,
-      pdf: fotoLink
+      fotoB64,
+      fotoNombre,
+      fotoMime
     });
     if (resp.ok) {
       msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
