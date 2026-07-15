@@ -2213,16 +2213,34 @@ function renderPuntos() {
     );
     const totalNoRec = opsNoRecTodas.length;
 
-    // Cuadro Sin recolectar (total global, no de la semana)
+    // Explosiones sin OP asignada (global)
+    const exploSinOP = opsData.filter(r =>
+      String(r.op||'').trim().toUpperCase() === 'EXPLO' &&
+      !String(r.opref||'').trim()
+    ).length;
+
+    // Cuadro Sin recolectar (total global)
     const noRecCard = totalNoRec > 0 ? `<div style="background:#b7770d18;border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;flex:1">
       <div style="font-size:16px;margin-bottom:2px">📦</div>
       <div style="font-size:11px;font-weight:600;color:#b7770d;margin-bottom:4px">Sin recolectar</div>
       <div style="font-size:22px;font-weight:800;color:#b7770d;line-height:1">${totalNoRec}</div>
     </div>` : '';
 
-    // Listas de pendientes
+    // Cuadro Explosiones sin OP
+    const exploCard = exploSinOP > 0 ? `<div style="background:#8e44ad18;border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;flex:1">
+      <div style="font-size:16px;margin-bottom:2px">💥</div>
+      <div style="font-size:11px;font-weight:600;color:#8e44ad;margin-bottom:4px">Explo sin OP</div>
+      <div style="font-size:22px;font-weight:800;color:#8e44ad;line-height:1">${exploSinOP}</div>
+    </div>` : '';
+
+    // Explosiones sin OP (global, todas las semanas)
+    const exploSinOPLista = opsData.filter(r =>
+      String(r.op||'').trim().toUpperCase() === 'EXPLO' &&
+      !String(r.opref||'').trim()
+    );
+
     let listaOPs = '';
-    if (opsPendSem.length > 0 || opsNoRecTodas.length > 0) {
+    if (opsPendSem.length > 0 || opsNoRecTodas.length > 0 || exploSinOPLista.length > 0) {
       const filasPend = opsPendSem.length > 0 ? `
         <div style="font-size:10px;font-weight:700;color:#E74C3C;letter-spacing:0.05em;margin-bottom:4px">⏳ POR SURTIR</div>
         ${opsPendSem.map(r =>
@@ -2243,9 +2261,20 @@ function renderPuntos() {
           </div>`;
         }).join('')}` : '';
 
+      const filasExplo = exploSinOPLista.length > 0 ? `
+        <div style="font-size:10px;font-weight:700;color:#8e44ad;letter-spacing:0.05em;margin:${(opsPendSem.length>0||opsNoRecTodas.length>0)?'8px':0} 0 4px">💥 EXPLOSIONES SIN OP</div>
+        ${exploSinOPLista.map(r => {
+          const f = parseFecha(r.fecha);
+          const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#8e44ad10;border-radius:8px;margin-bottom:3px">
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>${r.codigo||'EXPLO'}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,40)}${(r.producto||'').length>40?'…':''}</span></div>
+            <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
+          </div>`;
+        }).join('')}` : '';
+
       listaOPs = `<div style="border-top:1px solid var(--g2);margin-top:10px;padding-top:10px">
         <div style="font-size:10px;font-weight:700;color:var(--g4);letter-spacing:0.05em;margin-bottom:8px">PENDIENTES POR ATENDER</div>
-        ${filasPend}${filasNoRec}
+        ${filasPend}${filasNoRec}${filasExplo}
       </div>`;
     }
 
@@ -2257,7 +2286,7 @@ function renderPuntos() {
         </div>
         ${kpiBloque}
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${noRecCard}${incCard}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${noRecCard}${exploCard}${incCard}</div>
       ${listaOPs}
     </div>`;
   }).join('');
@@ -2339,7 +2368,7 @@ async function cargarOPs() {
   const txt = await res.text();
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
-  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), lote:h.indexOf('lote'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales'), prioridad:h.indexOf('prioridad'), incidencia:h.indexOf('incidencias'), fifo:h.indexOf('fifo') };
+  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), lote:h.indexOf('lote'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales'), prioridad:h.indexOf('prioridad'), incidencia:h.indexOf('incidencias'), fifo:h.indexOf('fifo'), opref:h.indexOf('opref') };
   opsData = rows.slice(1).map(r => ({
     op: cl(r[idx.op]), fecha: cl(r[idx.fecha]), codigo: cl(r[idx.codigo]),
     producto: cl(r[idx.producto]), lote: idx.lote !== -1 ? cl(r[idx.lote]) : '',
@@ -2350,6 +2379,7 @@ async function cargarOPs() {
     prioridad: idx.prioridad !== -1 ? cl(r[idx.prioridad]) : '',
     incidencia: idx.incidencia !== -1 ? cl(r[idx.incidencia]) : '0',
     fifo: idx.fifo !== -1 ? cl(r[idx.fifo]) : '1',
+    opref: idx.opref !== -1 ? cl(r[idx.opref]) : '',
   })).filter(r => r.op);
 
   // Meses únicos
