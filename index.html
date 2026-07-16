@@ -386,6 +386,33 @@
   <div class="lista" id="lista-ops"><div class="loading"><div class="spinner"></div>Cargando órdenes...</div></div>
 </div>
 
+<!-- ═══════════════ MODAL INCIDENCIA ═══════════════ -->
+<div class="modal-bg" id="modal-inc-bg">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Reportar Incidencia</div>
+    <div class="modal-subtitle" style="color:var(--g4);font-size:13px;margin-bottom:12px">OP <span id="inc-modal-op" style="color:var(--orange);font-weight:700"></span></div>
+
+    <label class="modal-label">¿Qué tipo de incidencia?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn" id="inc-tipo-sku" onclick="selectTipoIncidencia('sku')">
+        <div class="p-icon">⚠️</div>
+        <div class="p-name">Faltante de SKU</div>
+      </div>
+      <div class="persona-btn" id="inc-tipo-peps" onclick="selectTipoIncidencia('peps')">
+        <div class="p-icon">🔄</div>
+        <div class="p-name">PEPS no respetado</div>
+      </div>
+    </div>
+
+    <div id="inc-modal-msg" style="display:none"></div>
+
+    <button class="modal-confirm" id="inc-modal-confirm" onclick="confirmarIncidencia()" disabled>
+      Confirmar
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('inc')">Cancelar</div>
+  </div>
+</div>
+
 <!-- ═══════════════ MODAL EXPLOSIÓN ═══════════════ -->
 <div class="modal-bg" id="modal-exp-bg">
   <div class="modal-box">
@@ -597,7 +624,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOTealpGHOEG0eJizhOf0lM_IygPX-0yBA0C127JeuBi7xHWdiadQUFvMK9y-5QYY/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxGWqWHZ0TvVfp8iRa2mqZbGPRYyX22LutWojYbf4clU6hbRFpPEVx3qaPuwZqHEg0/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -611,6 +638,9 @@ let fifoOP = 1;
 
 // Variables explosión
 let expPersona = null, expIncidencia = 0, expFifo = 1, expCodigo = '', expNombre = '';
+
+// Variables incidencia modal
+let incOpSeleccionada = null, incTipoSeleccionado = null;
 
 // Catálogo de productos
 const CATALOGO_PT = [
@@ -1302,15 +1332,50 @@ function abrirModalOP(op) {
   document.getElementById('modal-op-bg').classList.add('open');
 }
 
-async function reportarIncidencia(op) {
-  if (!confirm(`¿Confirmar incidencia en OP ${op}?\n\nEsto registrará que faltó al menos un SKU.`)) return;
+function reportarIncidencia(op) {
+  incOpSeleccionada = op;
+  document.getElementById('inc-modal-op').textContent = op;
+  document.getElementById('inc-tipo-sku').classList.remove('selected');
+  document.getElementById('inc-tipo-peps').classList.remove('selected');
+  document.getElementById('inc-modal-confirm').disabled = true;
+  document.getElementById('inc-modal-msg').style.display = 'none';
+  incTipoSeleccionado = null;
+  document.getElementById('modal-inc-bg').classList.add('open');
+}
+
+function selectTipoIncidencia(tipo) {
+  incTipoSeleccionado = tipo;
+  document.getElementById('inc-tipo-sku').classList.toggle('selected', tipo === 'sku');
+  document.getElementById('inc-tipo-peps').classList.toggle('selected', tipo === 'peps');
+  document.getElementById('inc-modal-confirm').disabled = false;
+}
+
+async function confirmarIncidencia() {
+  if (!incOpSeleccionada || !incTipoSeleccionado) return;
+  const btn = document.getElementById('inc-modal-confirm');
+  const msg = document.getElementById('inc-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+
   try {
-    await sai_fetch({ tipo: 'incidencia', op, incidencia: 1 });
-    const item = opsData.find(r => r.op === op);
-    if (item) item.incidencia = '1';
-    alert('✅ Incidencia registrada en OP ' + op);
-    renderOPs();
-  } catch(e) { alert('❌ Error al registrar incidencia'); }
+    if (incTipoSeleccionado === 'sku') {
+      await sai_fetch({ tipo: 'incidencia', op: incOpSeleccionada, incidencia: 1 });
+      const item = opsData.find(r => r.op === incOpSeleccionada);
+      if (item) item.incidencia = '1';
+    } else {
+      await sai_fetch({ tipo: 'peps', op: incOpSeleccionada });
+      const item = opsData.find(r => r.op === incOpSeleccionada);
+      if (item) item.fifo = '0';
+    }
+    msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center;margin-top:10px';
+    msg.textContent = '✅ Incidencia registrada correctamente';
+    setTimeout(() => { cerrarModal('inc'); renderOPs(); }, 1500);
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center;margin-top:10px';
+    msg.textContent = '❌ Error al registrar';
+    btn.disabled = false;
+    btn.textContent = 'Confirmar';
+  }
 }
 
 function selectIncidencia(val) {
