@@ -1918,17 +1918,6 @@ function buildKpiTable(persona, mes, anio) {
     return f && f.getMonth() === mes && f.getFullYear() === anio;
   }).map(r => r.semana).filter(s => s))].sort((a,b) => Number(a)-Number(b));
 
-  // DEBUG: ver qué OPs de esta persona hay en el mes
-  const opsPersonaMes = opsData.filter(r => {
-    const f = parseFecha(r.fecha);
-    return f && f.getMonth() === mes && f.getFullYear() === anio &&
-      (r.surtio||'') === persona.key && (r.estado||'').toLowerCase() === 'surtido';
-  });
-  console.log('KPI DEBUG - persona:', persona.key, 'mes:', mes, 'anio:', anio);
-  console.log('OPs surtidas del mes:', opsPersonaMes.length);
-  console.log('Semanas del mes:', semanasDelMes);
-  opsPersonaMes.forEach(r => console.log('  OP:', r.op, 'sem:', r.semana, 'tipo sem:', typeof r.semana));
-
   if (!semanasDelMes.length) return '<div style="font-size:12px;color:var(--g4);padding:8px">Sin datos este mes</div>';
 
   const headers = semanasDelMes.map(s => `<th style="padding:6px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--g4)">Sem ${s}</th>`).join('');
@@ -2009,6 +1998,30 @@ function buildKpiTable(persona, mes, anio) {
     return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:var(--g9)">${acts||'—'}</td>`;
   }).join('');
 
+  // Explosiones por semana
+  const exploRow = semanasDelMes.map(s => {
+    const explos = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        String(r.semana) === String(s) && (r.surtio||'') === persona.key &&
+        String(r.op||'').trim().toUpperCase().startsWith('EXPLO');
+    }).length;
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:#8e44ad;font-weight:700">${explos||'—'}</td>`;
+  }).join('');
+
+  // Explosiones sin OP por semana
+  const exploSinOPRow = semanasDelMes.map(s => {
+    const sinOP = opsData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio &&
+        String(r.semana) === String(s) && (r.surtio||'') === persona.key &&
+        String(r.op||'').trim().toUpperCase().startsWith('EXPLO') &&
+        !String(r.opref||'').trim();
+    }).length;
+    const color = sinOP === 0 ? '#1a8a50' : '#E74C3C';
+    return `<td style="padding:6px 10px;text-align:center;font-size:12px;color:${color};font-weight:700">${sinOP||'—'}</td>`;
+  }).join('');
+
   return `<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead>
       <tr style="border-bottom:1px solid var(--g2)">
@@ -2031,6 +2044,12 @@ function buildKpiTable(persona, mes, anio) {
       </tr>
       <tr>
         <td style="padding:6px 8px;font-size:11px;color:var(--g6)">Actividades</td>${actsRow}
+      </tr>
+      <tr style="border-bottom:1px solid var(--g2)">
+        <td style="padding:6px 8px;font-size:11px;color:#8e44ad;font-weight:600">💥 Explosiones</td>${exploRow}
+      </tr>
+      <tr style="border-bottom:1px solid var(--g2)">
+        <td style="padding:6px 8px;font-size:11px;color:#8e44ad;font-weight:600">Sin OP</td>${exploSinOPRow}
       </tr>
       <tr style="border-top:2px solid var(--g2);background:var(--g1)">
         <td style="padding:6px 8px;font-size:11px;font-weight:700;color:var(--g9)">Promedio</td>${promedioRow}
@@ -2291,7 +2310,7 @@ function renderPuntos() {
 
     // Explosiones sin OP asignada (global)
     const exploSinOP = opsData.filter(r =>
-      String(r.op||'').trim().toUpperCase() === 'EXPLO' &&
+      String(r.op||'').trim().toUpperCase().startsWith('EXPLO') &&
       !String(r.opref||'').trim()
     ).length;
 
@@ -2311,7 +2330,7 @@ function renderPuntos() {
 
     // Explosiones sin OP (global, todas las semanas)
     const exploSinOPLista = opsData.filter(r =>
-      String(r.op||'').trim().toUpperCase() === 'EXPLO' &&
+      String(r.op||'').trim().toUpperCase().startsWith('EXPLO') &&
       !String(r.opref||'').trim()
     );
 
