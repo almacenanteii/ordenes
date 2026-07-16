@@ -417,7 +417,6 @@
 <div class="modal-bg" id="modal-exp-bg">
   <div class="modal-box">
     <div class="modal-title">💥 Registrar Explosión</div>
-    <div class="modal-subtitle" id="modal-exp-info" style="color:var(--g4);font-size:13px;margin-bottom:8px">Surtido de materiales por explosión</div>
 
     <label class="modal-label">Buscar producto</label>
     <div style="position:relative;margin-bottom:4px">
@@ -429,7 +428,7 @@
       <strong id="exp-codigo-txt"></strong> — <span id="exp-nombre-txt"></span>
     </div>
 
-    <label class="modal-label" style="margin-top:8px">¿Quién surtió?</label>
+    <label class="modal-label" style="margin-top:8px">¿Quién registra?</label>
     <div class="modal-options" style="grid-template-columns:1fr 1fr">
       <div class="persona-btn" id="exp-btn-lupita" onclick="selectPersonaExp('Lupita Alferez')">
         <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
@@ -439,25 +438,9 @@
       </div>
     </div>
 
-    <label class="modal-label" style="margin-top:8px">¿Faltó algún SKU?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr">
-      <div class="persona-btn selected" id="exp-inc-no" onclick="selectIncidenciaExp(0)">
-        <div class="p-icon">✅</div><div class="p-name">Sin faltantes</div>
-      </div>
-      <div class="persona-btn" id="exp-inc-si" onclick="selectIncidenciaExp(1)">
-        <div class="p-icon">⚠️</div><div class="p-name">Hubo faltantes</div>
-      </div>
-    </div>
-
-    <label class="modal-label" style="margin-top:8px">¿Se respetó FIFO (PEPS)?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr">
-      <div class="persona-btn selected" id="exp-fifo-si" onclick="selectFifoExp(1)">
-        <div class="p-icon">✅</div><div class="p-name">Sí se respetó</div>
-      </div>
-      <div class="persona-btn" id="exp-fifo-no" onclick="selectFifoExp(0)">
-        <div class="p-icon">⚠️</div><div class="p-name">No se respetó</div>
-      </div>
-    </div>
+    <label class="modal-label" style="margin-top:8px">Observaciones</label>
+    <textarea id="exp-obs" placeholder="Ej: Se surten 500 pzas de 1000 requeridas..." rows="3"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
 
     <label class="modal-label" style="margin-top:8px">Foto de la hoja (opcional)</label>
     <input type="file" id="exp-foto" accept="image/*" capture="environment"
@@ -469,6 +452,38 @@
       💥 Registrar Explosión
     </button>
     <div class="modal-cancel" onclick="cerrarModal('exp')">Cancelar</div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL ACTUALIZAR EXPLOSIÓN ═══════════════ -->
+<div class="modal-bg" id="modal-expupd-bg">
+  <div class="modal-box">
+    <div class="modal-title">🔄 Actualizar Explosión</div>
+    <div class="modal-subtitle" id="expupd-info" style="color:var(--orange);font-size:13px;font-weight:700;margin-bottom:12px"></div>
+
+    <label class="modal-label">Estado</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="persona-btn" id="expupd-pend" onclick="selectEstadoExpUpd('Pendiente')">
+        <div class="p-icon">⏳</div><div class="p-name">Pendiente</div>
+      </div>
+      <div class="persona-btn" id="expupd-parc" onclick="selectEstadoExpUpd('Parcial')">
+        <div class="p-icon">◑</div><div class="p-name">Parcial</div>
+      </div>
+      <div class="persona-btn" id="expupd-surt" onclick="selectEstadoExpUpd('Surtido')">
+        <div class="p-icon">✅</div><div class="p-name">Surtido</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">Observaciones</label>
+    <textarea id="expupd-obs" placeholder="Actualiza el avance del surtido..." rows="3"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
+
+    <div id="expupd-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="expupd-modal-confirm" onclick="confirmarActualizarExplosion()">
+      Guardar cambios
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('expupd')">Cancelar</div>
   </div>
 </div>
 
@@ -624,7 +639,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJUlltIPw4V0y3IOV8hfVz7mFw_zGSn-3Rl63urGZ6oEjxWdk6ytaJSg24BcXwL-o/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycgLnneTfYAogrOxV8POXkz1VcAh1mP0Sm2h4MZVCxc5zrXheT5rPWkTUfgfDBgyc/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -1192,6 +1207,7 @@ function renderOPs() {
 
   lista.innerHTML = f.map(r => {
     const esPend = esEstadoActivo(r.estado);
+    const esExplo = String(r.op||'').trim().toUpperCase().startsWith('EXPLO');
     const badge = getEstadoBadge(r.estado);
     const borderCls = getCardBorder(r.estado);
     return `<div class="op-card ${borderCls}">
@@ -1226,8 +1242,11 @@ function renderOPs() {
       </div>
       ${buildMateriales(r.materiales)}
       ${buildTimeBar(r)}
+      ${r.observaciones ? `<div style="padding:8px 12px;background:#f8f4ff;border-radius:8px;margin-bottom:8px;font-size:12px;color:#8e44ad"><strong>📋 Obs:</strong> ${r.observaciones}</div>` : ''}
       ${r.pdf ? `<a href="${convertirLinkPDF(r.pdf)}" target="_blank" class="btn-accion btn-pdf">📄 Ver Orden</a>` : ''}
-      ${esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` : `<button class="btn-accion btn-incidencia" onclick='reportarIncidencia("${r.op}")'>⚠️ Reportar incidencia</button>`}
+      ${esExplo ? `<button class="btn-accion btn-surtir" style="background:#8e44ad" onclick='abrirModalActualizarExplosion(${JSON.stringify(r).replace(/'/g,"&#39;")})'>🔄 Actualizar</button>` :
+        esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` :
+        `<button class="btn-accion btn-incidencia" onclick='reportarIncidencia("${r.op}")'>⚠️ Reportar incidencia</button>`}
     </div>`;
   }).join('');
 }
@@ -1398,14 +1417,58 @@ function abrirModalExplosion() {
   document.getElementById('exp-producto-sel').style.display = 'none';
   document.getElementById('exp-btn-lupita').classList.remove('selected');
   document.getElementById('exp-btn-marco').classList.remove('selected');
-  document.getElementById('exp-inc-no').classList.add('selected');
-  document.getElementById('exp-inc-si').classList.remove('selected');
-  document.getElementById('exp-fifo-si').classList.add('selected');
-  document.getElementById('exp-fifo-no').classList.remove('selected');
+  document.getElementById('exp-obs').value = '';
   document.getElementById('exp-foto').value = '';
   document.getElementById('exp-modal-msg').style.display = 'none';
   document.getElementById('exp-modal-confirm').disabled = true;
   document.getElementById('modal-exp-bg').classList.add('open');
+}
+
+// Variables para actualizar explosión
+let expUpdOP = null, expUpdEstado = null;
+
+function abrirModalActualizarExplosion(r) {
+  expUpdOP = r.op;
+  expUpdEstado = r.estado || 'Pendiente';
+  document.getElementById('expupd-info').textContent = `${r.op} · ${r.codigo} — ${(r.producto||'').substring(0,30)}`;
+  document.getElementById('expupd-obs').value = r.observaciones || '';
+  ['expupd-pend','expupd-parc','expupd-surt'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  if (expUpdEstado === 'Pendiente') document.getElementById('expupd-pend').classList.add('selected');
+  else if (expUpdEstado === 'Parcial') document.getElementById('expupd-parc').classList.add('selected');
+  else if (expUpdEstado === 'Surtido') document.getElementById('expupd-surt').classList.add('selected');
+  document.getElementById('expupd-modal-msg').style.display = 'none';
+  document.getElementById('modal-expupd-bg').classList.add('open');
+}
+
+function selectEstadoExpUpd(estado) {
+  expUpdEstado = estado;
+  document.getElementById('expupd-pend').classList.toggle('selected', estado === 'Pendiente');
+  document.getElementById('expupd-parc').classList.toggle('selected', estado === 'Parcial');
+  document.getElementById('expupd-surt').classList.toggle('selected', estado === 'Surtido');
+}
+
+async function confirmarActualizarExplosion() {
+  if (!expUpdOP) return;
+  const btn = document.getElementById('expupd-modal-confirm');
+  const msg = document.getElementById('expupd-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  try {
+    await sai_fetch({
+      tipo: 'actualizarExplosion',
+      op: expUpdOP,
+      estado: expUpdEstado,
+      observaciones: document.getElementById('expupd-obs').value
+    });
+    msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '✅ Actualizado correctamente';
+    setTimeout(() => { cerrarModal('expupd'); recargarDatos(); }, 1500);
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error al actualizar';
+    btn.disabled = false;
+    btn.textContent = 'Guardar cambios';
+  }
 }
 
 function filtrarCatalogoExp(q) {
@@ -1489,8 +1552,7 @@ async function confirmarExplosion() {
       codigo: expCodigo,
       producto: expNombre,
       surtio: expPersona,
-      incidencia: expIncidencia,
-      fifo: expFifo,
+      observaciones: document.getElementById('exp-obs').value,
       fotoB64,
       fotoNombre,
       fotoMime
@@ -2463,7 +2525,7 @@ async function cargarOPs() {
   const txt = await res.text();
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
-  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), lote:h.indexOf('lote'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales'), prioridad:h.indexOf('prioridad'), incidencia:h.indexOf('incidencias'), fifo:h.indexOf('fifo'), opref:h.indexOf('opref') };
+  const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), lote:h.indexOf('lote'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales'), prioridad:h.indexOf('prioridad'), incidencia:h.indexOf('incidencias'), fifo:h.indexOf('fifo'), opref:h.indexOf('opref'), observaciones:h.indexOf('observaciones') };
   opsData = rows.slice(1).map(r => ({
     op: cl(r[idx.op]), fecha: cl(r[idx.fecha]), codigo: cl(r[idx.codigo]),
     producto: cl(r[idx.producto]), lote: idx.lote !== -1 ? cl(r[idx.lote]) : '',
@@ -2475,6 +2537,7 @@ async function cargarOPs() {
     incidencia: idx.incidencia !== -1 ? cl(r[idx.incidencia]) : '0',
     fifo: idx.fifo !== -1 ? cl(r[idx.fifo]) : '1',
     opref: idx.opref !== -1 ? cl(r[idx.opref]) : '',
+    observaciones: idx.observaciones !== -1 ? cl(r[idx.observaciones]) : '',
   })).filter(r => r.op);
 
   // Meses únicos
