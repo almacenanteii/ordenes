@@ -1918,6 +1918,17 @@ function buildKpiTable(persona, mes, anio) {
     return f && f.getMonth() === mes && f.getFullYear() === anio;
   }).map(r => r.semana).filter(s => s))].sort((a,b) => Number(a)-Number(b));
 
+  // DEBUG: ver qué OPs de esta persona hay en el mes
+  const opsPersonaMes = opsData.filter(r => {
+    const f = parseFecha(r.fecha);
+    return f && f.getMonth() === mes && f.getFullYear() === anio &&
+      (r.surtio||'') === persona.key && (r.estado||'').toLowerCase() === 'surtido';
+  });
+  console.log('KPI DEBUG - persona:', persona.key, 'mes:', mes, 'anio:', anio);
+  console.log('OPs surtidas del mes:', opsPersonaMes.length);
+  console.log('Semanas del mes:', semanasDelMes);
+  opsPersonaMes.forEach(r => console.log('  OP:', r.op, 'sem:', r.semana, 'tipo sem:', typeof r.semana));
+
   if (!semanasDelMes.length) return '<div style="font-size:12px;color:var(--g4);padding:8px">Sin datos este mes</div>';
 
   const headers = semanasDelMes.map(s => `<th style="padding:6px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--g4)">Sem ${s}</th>`).join('');
