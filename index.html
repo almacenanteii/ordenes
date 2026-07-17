@@ -529,7 +529,55 @@
     <div class="res-card rojo"><div class="res-num" id="act-r-pendiente">0</div><div class="res-lbl">Pendientes</div></div>
     <div class="res-card verde"><div class="res-num" id="act-r-completado">0</div><div class="res-lbl">Completadas</div></div>
   </div>
+  <div style="padding:0 16px 12px">
+    <button onclick="abrirModalNuevaActividad()" style="width:100%;padding:12px;background:#1a8a50;color:#fff;border:none;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.05em">
+      ✅ + NUEVA ACTIVIDAD
+    </button>
+  </div>
   <div class="lista" id="lista-act"><div class="loading"><div class="spinner"></div>Cargando actividades...</div></div>
+</div>
+
+<!-- ═══════════════ MODAL NUEVA ACTIVIDAD ═══════════════ -->
+<div class="modal-bg" id="modal-newact-bg">
+  <div class="modal-box">
+    <div class="modal-title">✅ Nueva Actividad</div>
+
+    <label class="modal-label">Descripción</label>
+    <input type="text" id="newact-desc" placeholder="¿Qué hay que hacer?" maxlength="100"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none;margin-bottom:4px" oninput="verificarNuevaActLista()">
+
+    <label class="modal-label" style="margin-top:8px">Asignado a</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="persona-btn" id="newact-lupita" onclick="selectAsignadoAct('Lupita Alferez')">
+        <div class="p-icon">👤</div><div class="p-name">Lupita</div>
+      </div>
+      <div class="persona-btn" id="newact-marco" onclick="selectAsignadoAct('Marco Reyes')">
+        <div class="p-icon">👤</div><div class="p-name">Marco</div>
+      </div>
+      <div class="persona-btn" id="newact-todos" onclick="selectAsignadoAct('Todos')">
+        <div class="p-icon">👥</div><div class="p-name">Todos</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">Solicitante</label>
+    <input type="text" id="newact-sol" placeholder="¿Quién lo solicita? (opcional)"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:8px">Fecha límite (opcional)</label>
+    <input type="date" id="newact-limite"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:8px">Detalle / Notas (opcional)</label>
+    <textarea id="newact-detalle" placeholder="Información adicional, materiales, etc." rows="2"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
+
+    <div id="newact-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="newact-modal-confirm" onclick="confirmarNuevaActividad()" disabled>
+      ✅ Crear Actividad
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('newact')">Cancelar</div>
+  </div>
 </div>
 
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
@@ -639,7 +687,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycgLnneTfYAogrOxV8POXkz1VcAh1mP0Sm2h4MZVCxc5zrXheT5rPWkTUfgfDBgyc/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIA7KwKaI-gRYnj33ZpafLEGLNGR0Z9dFgnfAkdOgVBKwbc6b9iiFmVNMqMcerVQ/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -1409,7 +1457,65 @@ function selectFifo(val) {
   document.getElementById('op-fifo-no').classList.toggle('selected', val === 0);
 }
 
-// ── MODAL EXPLOSIÓN ──────────────────────────────────────────
+// ── NUEVA ACTIVIDAD ──────────────────────────────────────────
+let newActAsignado = null;
+
+function abrirModalNuevaActividad() {
+  newActAsignado = null;
+  document.getElementById('newact-desc').value = '';
+  document.getElementById('newact-sol').value = '';
+  document.getElementById('newact-limite').value = '';
+  document.getElementById('newact-detalle').value = '';
+  ['newact-lupita','newact-marco','newact-todos'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  document.getElementById('newact-modal-msg').style.display = 'none';
+  document.getElementById('newact-modal-confirm').disabled = true;
+  document.getElementById('modal-newact-bg').classList.add('open');
+}
+
+function selectAsignadoAct(persona) {
+  newActAsignado = persona;
+  document.getElementById('newact-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
+  document.getElementById('newact-marco').classList.toggle('selected', persona === 'Marco Reyes');
+  document.getElementById('newact-todos').classList.toggle('selected', persona === 'Todos');
+  verificarNuevaActLista();
+}
+
+function verificarNuevaActLista() {
+  const desc = document.getElementById('newact-desc').value.trim();
+  document.getElementById('newact-modal-confirm').disabled = !(desc && newActAsignado);
+}
+
+async function confirmarNuevaActividad() {
+  const desc    = document.getElementById('newact-desc').value.trim();
+  const sol     = document.getElementById('newact-sol').value.trim();
+  const limite  = document.getElementById('newact-limite').value;
+  const detalle = document.getElementById('newact-detalle').value.trim();
+  if (!desc || !newActAsignado) return;
+
+  const btn = document.getElementById('newact-modal-confirm');
+  const msg = document.getElementById('newact-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Creando...';
+
+  try {
+    await sai_fetch({
+      tipo: 'nuevaActividad',
+      descripcion: desc,
+      asignado: newActAsignado,
+      solicitante: sol,
+      fechaLimite: limite,
+      detalle
+    });
+    msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '✅ Actividad creada correctamente';
+    setTimeout(() => { cerrarModal('newact'); recargarDatos(); }, 1500);
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error al crear actividad';
+    btn.disabled = false;
+    btn.textContent = '✅ Crear Actividad';
+  }
+}
 function abrirModalExplosion() {
   expPersona = null; expIncidencia = 0; expFifo = 1; expCodigo = ''; expNombre = '';
   document.getElementById('exp-search').value = '';
