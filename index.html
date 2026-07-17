@@ -640,9 +640,18 @@
         <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
       </div>
     </div>
+    <label class="modal-label" style="margin-top:10px">¿Se surtió completo?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn selected" id="op-comp-si" onclick="selectCompletoOP(1)">
+        <div class="p-icon">✅</div><div class="p-name">Completo</div>
+      </div>
+      <div class="persona-btn" id="op-comp-no" onclick="selectCompletoOP(0)">
+        <div class="p-icon">◑</div><div class="p-name">Parcial</div>
+      </div>
+    </div>
     <label class="modal-label" style="margin-top:10px">¿Faltó algún SKU?</label>
     <div class="modal-options" style="grid-template-columns:1fr 1fr">
-      <div class="persona-btn" id="op-inc-no" onclick="selectIncidencia(0)">
+      <div class="persona-btn selected" id="op-inc-no" onclick="selectIncidencia(0)">
         <div class="p-icon">✅</div><div class="p-name">Sin faltantes</div>
       </div>
       <div class="persona-btn" id="op-inc-si" onclick="selectIncidencia(1)">
@@ -658,6 +667,8 @@
         <div class="p-icon">⚠️</div><div class="p-name">No se respetó</div>
       </div>
     </div>
+    <label class="modal-label" style="margin-top:10px">Observaciones (opcional)</label>
+    <textarea class="modal-textarea" id="op-observaciones" placeholder="Ej: Faltan 200 pzas, se surte mañana..."></textarea>
     <button class="modal-confirm" id="op-modal-confirm" disabled onclick="confirmarOP()">Confirmar Surtido</button>
     <button class="modal-cancel" onclick="cerrarModal('op')">Cancelar</button>
     <div class="modal-msg" id="op-modal-msg"></div>
@@ -687,7 +698,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwIA7KwKaI-gRYnj33ZpafLEGLNGR0Z9dFgnfAkdOgVBKwbc6b9iiFmVNMqMcerVQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTTlO4jh1C4v9FnralxhJh7YVLn0P0_dIRIklc5Jlz07ottKOPJGLrBD4BwgQwOjE/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -698,6 +709,7 @@ let opSeleccionada = null, actSeleccionada = null;
 let personaOP = null, personaAct = null;
 let incidenciaOP = 0;
 let fifoOP = 1;
+let completoOP = 1; // 1=Surtido completo, 0=Parcial
 
 // Variables explosión
 let expPersona = null, expIncidencia = 0, expFifo = 1, expCodigo = '', expNombre = '';
@@ -1388,12 +1400,17 @@ function selectPersona(tipo, nombre) {
 }
 
 function abrirModalOP(op) {
-  opSeleccionada = op; personaOP = null; incidenciaOP = 0; fifoOP = 1;
+  opSeleccionada = op; personaOP = null; incidenciaOP = 0; fifoOP = 1; completoOP = 1;
   document.getElementById('modal-op-info').textContent = `OP ${op.op} · ${op.producto}`;
   document.getElementById('op-btn-lupita').classList.remove('selected');
   document.getElementById('op-btn-marco').classList.remove('selected');
+  document.getElementById('op-comp-si').classList.add('selected');
+  document.getElementById('op-comp-no').classList.remove('selected');
   document.getElementById('op-inc-no').classList.add('selected');
   document.getElementById('op-inc-si').classList.remove('selected');
+  document.getElementById('op-fifo-si').classList.add('selected');
+  document.getElementById('op-fifo-no').classList.remove('selected');
+  document.getElementById('op-observaciones').value = '';
   document.getElementById('op-modal-confirm').disabled = true;
   document.getElementById('op-modal-msg').style.display = 'none';
   document.getElementById('modal-op-bg').classList.add('open');
@@ -1451,7 +1468,11 @@ function selectIncidencia(val) {
   document.getElementById('op-inc-si').classList.toggle('selected', val === 1);
 }
 
-function selectFifo(val) {
+function selectCompletoOP(val) {
+  completoOP = val;
+  document.getElementById('op-comp-si').classList.toggle('selected', val === 1);
+  document.getElementById('op-comp-no').classList.toggle('selected', val === 0);
+}
   fifoOP = val;
   document.getElementById('op-fifo-si').classList.toggle('selected', val === 1);
   document.getElementById('op-fifo-no').classList.toggle('selected', val === 0);
@@ -1702,7 +1723,7 @@ async function confirmarOP() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-sm"></div> Guardando...';
   try {
-    await sai_fetch({ tipo:'op', op: opSeleccionada.op, surtio: personaOP, incidencia: incidenciaOP, fifo: fifoOP });
+    await sai_fetch({ tipo:'op', op: opSeleccionada.op, surtio: personaOP, incidencia: incidenciaOP, fifo: fifoOP, completo: completoOP, observaciones: document.getElementById('op-observaciones').value });
     const msg = document.getElementById('op-modal-msg');
     msg.style.display = 'block';
     msg.className = 'modal-msg ok';
