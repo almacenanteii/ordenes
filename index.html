@@ -2502,42 +2502,73 @@ function renderPuntos() {
       !String(r.opref||'').trim()
     );
 
+    // OPs pendientes (sin explosiones)
+    const opsPendSemPuras = opsPendSem.filter(r => !String(r.op||'').trim().toUpperCase().startsWith('EXPLO'));
+    // Explosiones pendientes de esta semana
+    const explosPendSem = opsPendSem.filter(r => String(r.op||'').trim().toUpperCase().startsWith('EXPLO'));
+    // OPs parciales de esta semana
+    const opsParcSem = todasOpsMes.filter(r =>
+      (r.semana||'S/N') === sem && (r.estado||'').toLowerCase().trim() === 'parcial'
+    );
+    // OPs canceladas de esta semana
+    const opsCancSem = todasOpsMes.filter(r =>
+      (r.semana||'S/N') === sem && (r.estado||'').toLowerCase().trim() === 'cancelada'
+    );
+
     let listaOPs = '';
-    if (opsPendSem.length > 0 || opsNoRecTodas.length > 0 || exploSinOPLista.length > 0) {
-      const filasPend = opsPendSem.length > 0 ? `
-        <div style="font-size:10px;font-weight:700;color:#E74C3C;letter-spacing:0.05em;margin-bottom:4px">⏳ POR SURTIR</div>
-        ${opsPendSem.map(r =>
-          `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#E74C3C10;border-radius:8px;margin-bottom:3px">
-            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,45)}${(r.producto||'').length>45?'…':''}</span></div>
-            <span style="font-size:10px;font-weight:700;color:#E74C3C;white-space:nowrap">Sin surtir</span>
-          </div>`
-        ).join('')}` : '';
+    if (opsPendSemPuras.length > 0 || explosPendSem.length > 0 || opsParcSem.length > 0 || opsCancSem.length > 0 || opsNoRecTodas.length > 0 || exploSinOPLista.length > 0) {
 
-      const filasNoRec = opsNoRecTodas.length > 0 ? `
-        <div style="font-size:10px;font-weight:700;color:#b7770d;letter-spacing:0.05em;margin:${opsPendSem.length>0?'8px':0} 0 4px">📦 POR RECOLECTAR</div>
-        ${opsNoRecTodas.map(r => {
-          const f = parseFecha(r.fecha);
-          const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
+      const fmtFila = (r, color, etiqueta) => {
+        const f = parseFecha(r.fecha);
+        const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:${color}10;border-radius:8px;margin-bottom:3px">
+          <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)">
+            <strong>${r.op}</strong>
+            <span style="color:var(--g5);font-size:10px"> ${fmtFecha(r.fecha)||''}</span>
+            <span style="color:var(--g4)"> ${(r.producto||'').substring(0,35)}${(r.producto||'').length>35?'…':''}</span>
+          </div>
+          ${etiqueta}
+        </div>`;
+      };
+
+      const seccion = (titulo, color, filas) => filas.length > 0 ? `
+        <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.05em;margin:6px 0 4px">${titulo}</div>
+        ${filas}` : '';
+
+      const filasPend    = seccion('⏳ POR SURTIR', '#E74C3C',
+        opsPendSemPuras.map(r => fmtFila(r, '#E74C3C', `<span style="font-size:10px;font-weight:700;color:#E74C3C;white-space:nowrap">Sin surtir</span>`)).join(''));
+
+      const filasParc    = seccion('◑ PARCIAL', '#616a6b',
+        opsParcSem.map(r => fmtFila(r, '#616a6b', `<span style="font-size:10px;color:var(--g4);white-space:nowrap">Parcial</span>`)).join(''));
+
+      const filasCanc    = seccion('❌ CANCELADA', '#922B21',
+        opsCancSem.map(r => fmtFila(r, '#922B21', `<span style="font-size:10px;color:#922B21;white-space:nowrap">Cancelada</span>`)).join(''));
+
+      const filasNoRec   = seccion('📦 POR RECOLECTAR', '#b7770d',
+        opsNoRecTodas.map(r => {
+          const f = parseFecha(r.fecha); const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
           return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#b7770d10;border-radius:8px;margin-bottom:3px">
-            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,40)}${(r.producto||'').length>40?'…':''}</span></div>
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>OP ${r.op}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,35)}${(r.producto||'').length>35?'…':''}</span></div>
             <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
           </div>`;
-        }).join('')}` : '';
+        }).join(''));
 
-      const filasExplo = exploSinOPLista.length > 0 ? `
-        <div style="font-size:10px;font-weight:700;color:#8e44ad;letter-spacing:0.05em;margin:${(opsPendSem.length>0||opsNoRecTodas.length>0)?'8px':0} 0 4px">💥 EXPLOSIONES SIN OP</div>
-        ${exploSinOPLista.map(r => {
-          const f = parseFecha(r.fecha);
-          const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
+      const filasExplo   = seccion('💥 EXPLOSIONES SIN OP', '#8e44ad',
+        exploSinOPLista.map(r => {
+          const f = parseFecha(r.fecha); const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
           return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#8e44ad10;border-radius:8px;margin-bottom:3px">
-            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)"><strong>${r.codigo||'EXPLO'}</strong> <span style="color:var(--g4)">${(r.producto||'').substring(0,40)}${(r.producto||'').length>40?'…':''}</span></div>
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)">
+              <strong>${r.op}</strong>
+              <span style="color:var(--g5);font-size:10px"> ${fmtFecha(r.fecha)||''}</span>
+              <span style="color:var(--g4)"> ${r.codigo||''} — ${(r.producto||'').substring(0,25)}${(r.producto||'').length>25?'…':''}</span>
+            </div>
             <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
           </div>`;
-        }).join('')}` : '';
+        }).join(''));
 
       listaOPs = `<div style="border-top:1px solid var(--g2);margin-top:10px;padding-top:10px">
-        <div style="font-size:10px;font-weight:700;color:var(--g4);letter-spacing:0.05em;margin-bottom:8px">PENDIENTES POR ATENDER</div>
-        ${filasPend}${filasNoRec}${filasExplo}
+        <div style="font-size:10px;font-weight:700;color:var(--g4);letter-spacing:0.05em;margin-bottom:6px">PENDIENTES POR ATENDER</div>
+        ${filasPend}${filasParc}${filasCanc}${filasNoRec}${filasExplo}
       </div>`;
     }
 
