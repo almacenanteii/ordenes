@@ -658,6 +658,9 @@
         <div class="p-icon">⚠️</div><div class="p-name">Hubo faltantes</div>
       </div>
     </div>
+    <div id="op-motivo-inc-wrap" style="display:none;margin-top:6px">
+      <textarea class="modal-textarea" id="op-motivo-inc" placeholder="¿Por qué faltó el SKU? Ej: No había en inventario, lote agotado..."></textarea>
+    </div>
     <label class="modal-label" style="margin-top:10px">¿Se respetó FIFO (PEPS)?</label>
     <div class="modal-options" style="grid-template-columns:1fr 1fr">
       <div class="persona-btn selected" id="op-fifo-si" onclick="selectFifo(1)">
@@ -666,6 +669,9 @@
       <div class="persona-btn" id="op-fifo-no" onclick="selectFifo(0)">
         <div class="p-icon">⚠️</div><div class="p-name">No se respetó</div>
       </div>
+    </div>
+    <div id="op-motivo-fifo-wrap" style="display:none;margin-top:6px">
+      <textarea class="modal-textarea" id="op-motivo-fifo" placeholder="¿Por qué no se respetó PEPS? Ej: Lote más nuevo estaba más accesible..."></textarea>
     </div>
     <label class="modal-label" style="margin-top:10px">Observaciones (opcional)</label>
     <textarea class="modal-textarea" id="op-observaciones" placeholder="Ej: Faltan 200 pzas, se surte mañana..."></textarea>
@@ -698,7 +704,7 @@
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTTlO4jh1C4v9FnralxhJh7YVLn0P0_dIRIklc5Jlz07ottKOPJGLrBD4BwgQwOjE/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSRg1ZLxBjfUoibNuDWKZAEXvBxKorj-3Qs3_I5bwYc4gP5ix7Rg8TmOQv0oXAWhE/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 
@@ -1410,6 +1416,10 @@ function abrirModalOP(op) {
   document.getElementById('op-inc-si').classList.remove('selected');
   document.getElementById('op-fifo-si').classList.add('selected');
   document.getElementById('op-fifo-no').classList.remove('selected');
+  document.getElementById('op-motivo-inc-wrap').style.display = 'none';
+  document.getElementById('op-motivo-fifo-wrap').style.display = 'none';
+  document.getElementById('op-motivo-inc').value = '';
+  document.getElementById('op-motivo-fifo').value = '';
   document.getElementById('op-observaciones').value = '';
   document.getElementById('op-modal-confirm').disabled = true;
   document.getElementById('op-modal-msg').style.display = 'none';
@@ -1466,6 +1476,8 @@ function selectIncidencia(val) {
   incidenciaOP = val;
   document.getElementById('op-inc-no').classList.toggle('selected', val === 0);
   document.getElementById('op-inc-si').classList.toggle('selected', val === 1);
+  document.getElementById('op-motivo-inc-wrap').style.display = val === 1 ? 'block' : 'none';
+  if (val === 0) document.getElementById('op-motivo-inc').value = '';
 }
 
 function selectCompletoOP(val) {
@@ -1478,6 +1490,8 @@ function selectFifo(val) {
   fifoOP = val;
   document.getElementById('op-fifo-si').classList.toggle('selected', val === 1);
   document.getElementById('op-fifo-no').classList.toggle('selected', val === 0);
+  document.getElementById('op-motivo-fifo-wrap').style.display = val === 0 ? 'block' : 'none';
+  if (val === 1) document.getElementById('op-motivo-fifo').value = '';
 }
 
 // ── NUEVA ACTIVIDAD ──────────────────────────────────────────
@@ -1725,7 +1739,7 @@ async function confirmarOP() {
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner-sm"></div> Guardando...';
   try {
-    await sai_fetch({ tipo:'op', op: opSeleccionada.op, surtio: personaOP, incidencia: incidenciaOP, fifo: fifoOP, completo: completoOP, observaciones: document.getElementById('op-observaciones').value });
+    await sai_fetch({ tipo:'op', op: opSeleccionada.op, surtio: personaOP, incidencia: incidenciaOP, fifo: fifoOP, completo: completoOP, observaciones: document.getElementById('op-observaciones').value, motivoIncidencia: document.getElementById('op-motivo-inc').value, motivoFifo: document.getElementById('op-motivo-fifo').value });
     const msg = document.getElementById('op-modal-msg');
     msg.style.display = 'block';
     msg.className = 'modal-msg ok';
@@ -2603,7 +2617,7 @@ function renderPuntos() {
         </div>
         ${kpiBloque}
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${noRecCard}${exploCard}${incCard}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${exploCard}${incCard}</div>
       ${listaOPs}
     </div>`;
   }).join('');
