@@ -3230,7 +3230,7 @@ function buildTimeBarDev(primera) {
   const txt = dias === 0 ? `${hrsResto} hrs abierta` : `${dias} día${dias>1?'s':''} ${hrsResto} hrs abierta`;
   return `<div class="time-bar-wrap">
     <div class="time-bar-label">
-      <span class="time-bar-txt">⏱ Tiempo sin ubicar (meta 48h)</span>
+      <span class="time-bar-txt">⏱ Tiempo abierta</span>
       <span class="time-bar-days ${cls}">${txt}</span>
     </div>
     <div class="time-bar"><div class="time-bar-fill ${cls}" style="width:${pct}%"></div></div>
@@ -3260,13 +3260,16 @@ function renderDevoluciones() {
     const lineas = folios[folio];
     const primera = lineas[0];
     const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
-    const materiales = lineas.filter(l => l.codigo).map(l => {
-      const cant = l.cantidad ? ` · ${l.cantidad} ${l.unidad || ''}` : '';
-      return `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:13px">
-        <div><strong>${l.codigo}</strong>${l.producto ? ' — ' + l.producto : ''}</div>
-        <span style="color:var(--g4)">Lote: <strong>${l.lote || 's/lote'}</strong>${cant}</span>
-      </div>`;
-    }).join('');
+    const conCodigo = lineas.filter(l => l.codigo);
+    const materiales = conCodigo.length
+      ? conCodigo.map(l => {
+          const cant = l.cantidad ? ` · ${l.cantidad} ${l.unidad || ''}` : '';
+          return `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:13px">
+            <div><strong>${l.codigo}</strong>${l.producto ? ' — ' + l.producto : ''}</div>
+            <span style="color:var(--g4)">Lote: <strong>${l.lote || 's/lote'}</strong>${cant}</span>
+          </div>`;
+        }).join('')
+      : `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:12px;color:var(--g4);font-style:italic">⚠️ Sin código de producto capturado en este registro</div>`;
     return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:11px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <strong>Folio ${folio}</strong>
