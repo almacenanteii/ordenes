@@ -1943,14 +1943,27 @@ async function confirmarDevolucion() {
     } catch(e) { console.log('Error leyendo foto:', e); }
   }
 
+  // Respaldo: si nunca se tocó una sugerencia del buscador (devCodigo vacío) pero sí
+  // se escribió algo en el campo, se usa ese texto tal cual — o el match exacto del
+  // catálogo si el texto coincide con una clave — para no perder el dato capturado.
+  let codigoFinal = devCodigo, productoFinal = devNombre;
+  if (!codigoFinal) {
+    const texto = document.getElementById('dev-buscar-codigo').value.trim();
+    if (texto) {
+      const match = catalogoConfiPT.find(p => p.clave.toLowerCase() === texto.toLowerCase());
+      if (match) { codigoFinal = match.clave; productoFinal = match.desc; }
+      else { codigoFinal = texto; }
+    }
+  }
+
   try {
     const resp = await sai_fetch({
       tipo: 'devolucion',
       folio,
       registro: devRegistro,
       tipoDevolucion: devTipo,
-      codigo: devCodigo,
-      producto: devNombre,
+      codigo: codigoFinal,
+      producto: productoFinal,
       lote,
       observaciones: document.getElementById('dev-obs').value,
       fotoB64,
@@ -3260,16 +3273,16 @@ function renderDevoluciones() {
     const lineas = folios[folio];
     const primera = lineas[0];
     const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
-    const conCodigo = lineas.filter(l => l.codigo);
-    const materiales = conCodigo.length
-      ? conCodigo.map(l => {
+    const conDatos = lineas.filter(l => l.codigo || l.producto || l.lote);
+    const materiales = conDatos.length
+      ? conDatos.map(l => {
           const cant = l.cantidad ? ` · ${l.cantidad} ${l.unidad || ''}` : '';
           return `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:13px">
-            <div><strong>${l.codigo}</strong>${l.producto ? ' — ' + l.producto : ''}</div>
+            <div><strong>${l.codigo || 'Sin código'}</strong>${l.producto ? ' — ' + l.producto : ''}</div>
             <span style="color:var(--g4)">Lote: <strong>${l.lote || 's/lote'}</strong>${cant}</span>
           </div>`;
         }).join('')
-      : `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:12px;color:var(--g4);font-style:italic">⚠️ Sin código de producto capturado en este registro</div>`;
+      : `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:12px;color:var(--g4);font-style:italic">⚠️ Sin datos de producto capturados en este registro</div>`;
     return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:11px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <strong>Folio ${folio}</strong>
