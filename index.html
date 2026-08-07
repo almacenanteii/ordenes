@@ -305,7 +305,7 @@
   <div class="tabs">
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
-    <div class="tab" id="tab-dev" onclick="switchTab('dev')">DEVO</div>
+    <div class="tab" id="tab-dev" onclick="switchTab('dev')">↩️ DEVO</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -627,7 +627,7 @@
 
     <label class="modal-label" style="margin-top:8px">Buscar código o producto</label>
     <div style="position:relative;margin-bottom:4px">
-      <input type="text" id="dev-search" placeholder="Escribe código o nombre..." oninput="filtrarCatalogoDev(this.value)"
+      <input type="text" id="dev-buscar-codigo" placeholder="Escribe código o nombre..." oninput="filtrarCatalogoDev(this.value)"
         style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none">
       <div id="dev-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--g2);border-radius:10px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
     </div>
@@ -1812,7 +1812,7 @@ let devTipo = '', devRegistro = null, devCodigo = '', devNombre = '';
 
 function abrirModalDevolucion() {
   document.getElementById('dev-folio').value = '';
-  document.getElementById('dev-search').value = '';
+  document.getElementById('dev-buscar-codigo').value = '';
   document.getElementById('dev-autocomplete').style.display = 'none';
   document.getElementById('dev-producto-sel').style.display = 'none';
   document.getElementById('dev-lote').value = '';
@@ -1863,7 +1863,7 @@ function filtrarCatalogoDev(q) {
 
 function seleccionarProductoDev(clave, nombre) {
   devCodigo = clave; devNombre = nombre;
-  document.getElementById('dev-search').value = clave;
+  document.getElementById('dev-buscar-codigo').value = clave;
   document.getElementById('dev-autocomplete').style.display = 'none';
   document.getElementById('dev-codigo-txt').textContent = clave;
   document.getElementById('dev-nombre-txt').textContent = nombre;
