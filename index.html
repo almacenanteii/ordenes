@@ -666,6 +666,38 @@
   </div>
 </div>
 
+<!-- ═══════════════ MODAL MARCAR DEVOLUCIÓN COMO UBICADA ═══════════════ -->
+<div class="modal-bg" id="modal-devubic-bg">
+  <div class="modal-box">
+    <div class="modal-title">📍 Marcar como ubicada</div>
+    <div class="modal-subtitle" style="color:var(--g4);font-size:13px;margin-bottom:12px">Folio <span id="devubic-folio-txt" style="color:#1a8a50;font-weight:700"></span></div>
+
+    <label class="modal-label">¿Quién la ubicó?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="persona-btn" id="devubic-marco" onclick="selectPersonaUbicarDev('Marco Reyes')">
+        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
+      </div>
+      <div class="persona-btn" id="devubic-lupita" onclick="selectPersonaUbicarDev('Guadalupe Alferez')">
+        <div class="p-icon">👤</div><div class="p-name">Guadalupe Alferez</div>
+      </div>
+      <div class="persona-btn" id="devubic-eduardo" onclick="selectPersonaUbicarDev('Eduardo de Loera')">
+        <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">Observaciones (opcional)</label>
+    <textarea id="devubic-obs" placeholder="Ej: Se ubicó en anaquel B3..." rows="2"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
+
+    <div id="devubic-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="devubic-modal-confirm" onclick="confirmarUbicarDevolucion()">
+      📍 Marcar como ubicada
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('devubic')">Cancelar</div>
+  </div>
+</div>
+
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
 <div class="section" id="section-pts">
 
@@ -1939,6 +1971,59 @@ async function confirmarDevolucion() {
   }
 }
 
+// ── MARCAR DEVOLUCIÓN COMO UBICADA ────────────────────────────
+let devUbicFolio = null, devUbicPersona = null;
+
+function abrirModalUbicarDevolucion(folio) {
+  devUbicFolio = folio;
+  devUbicPersona = null;
+  document.getElementById('devubic-folio-txt').textContent = folio;
+  document.getElementById('devubic-obs').value = '';
+  document.getElementById('devubic-modal-msg').style.display = 'none';
+  document.getElementById('devubic-marco').classList.remove('selected');
+  document.getElementById('devubic-lupita').classList.remove('selected');
+  document.getElementById('devubic-eduardo').classList.remove('selected');
+  document.getElementById('modal-devubic-bg').classList.add('open');
+}
+
+function selectPersonaUbicarDev(persona) {
+  devUbicPersona = persona;
+  document.getElementById('devubic-marco').classList.toggle('selected', persona === 'Marco Reyes');
+  document.getElementById('devubic-lupita').classList.toggle('selected', persona === 'Guadalupe Alferez');
+  document.getElementById('devubic-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
+}
+
+async function confirmarUbicarDevolucion() {
+  if (!devUbicFolio) return;
+  const btn = document.getElementById('devubic-modal-confirm');
+  const msg = document.getElementById('devubic-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  try {
+    const resp = await sai_fetch({
+      tipo: 'ubicarDevolucion',
+      folio: devUbicFolio,
+      ubicoPor: devUbicPersona || '',
+      observacionUbicacion: document.getElementById('devubic-obs').value
+    });
+    if (resp.ok) {
+      msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '✅ Marcada como ubicada';
+      setTimeout(() => { cerrarModal('devubic'); recargar(); }, 1500);
+    } else {
+      msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '❌ Error: ' + (resp.msg || 'intenta de nuevo');
+      btn.disabled = false;
+      btn.textContent = '📍 Marcar como ubicada';
+    }
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error de conexión';
+    btn.disabled = false;
+    btn.textContent = '📍 Marcar como ubicada';
+  }
+}
+
 function abrirModalAct(act) {
   actSeleccionada = act; personaAct = null;
   document.getElementById('modal-act-info').textContent = `${act.folio} · ${act.descripcion}`;
@@ -3036,6 +3121,10 @@ async function cargarDevoluciones() {
     registro:  h.indexOf('registró') !== -1 ? h.indexOf('registró') : h.indexOf('registro'),
     foto:      h.indexOf('foto'),
     observaciones: h.indexOf('observaciones'),
+    estado:    h.indexOf('estado'),
+    ubico:     h.indexOf('ubicó') !== -1 ? h.indexOf('ubicó') : h.indexOf('ubico'),
+    fechaUbicada: h.indexOf('fecha ubicada'),
+    obsUbicacion: h.indexOf('obs ubicación') !== -1 ? h.indexOf('obs ubicación') : h.indexOf('obs ubicacion'),
   };
   devData = rows.slice(1).map(r => ({
     folio:     cl(r[idx.folio]),
@@ -3049,7 +3138,42 @@ async function cargarDevoluciones() {
     registro:  idx.registro !== -1 ? cl(r[idx.registro]) : '',
     foto:      idx.foto !== -1 ? cl(r[idx.foto]) : '',
     observaciones: idx.observaciones !== -1 ? cl(r[idx.observaciones]) : '',
+    estado:    idx.estado !== -1 ? cl(r[idx.estado]) : '',
+    ubico:     idx.ubico !== -1 ? cl(r[idx.ubico]) : '',
+    fechaUbicada: idx.fechaUbicada !== -1 ? cl(r[idx.fechaUbicada]) : '',
+    obsUbicacion: idx.obsUbicacion !== -1 ? cl(r[idx.obsUbicacion]) : '',
   })).filter(r => r.folio);
+}
+
+function buildTimeBarDev(primera) {
+  const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
+  const ini = parseFecha(primera.fecha);
+  if (!ini || isNaN(ini)) return '';
+
+  if (ubicada) {
+    const fin = parseFecha(primera.fechaUbicada) || new Date();
+    const horas = Math.max(0, (fin - ini) / (1000 * 60 * 60));
+    const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
+    const txt = dias === 0 ? `Ubicada en ${hrsResto} hrs` : `Ubicada en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
+    return `<div class="time-surtida">📍 <strong>${txt}</strong>${primera.ubico ? ' por ' + primera.ubico : ''}${primera.obsUbicacion ? `<br>📋 ${primera.obsUbicacion}` : ''}</div>`;
+  }
+
+  const horas = (new Date() - ini) / (1000 * 60 * 60);
+  const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
+  let cls = 'c0';
+  if (horas >= 48) cls = 'c4';
+  else if (horas >= 36) cls = 'c3';
+  else if (horas >= 24) cls = 'c2';
+  else if (horas >= 12) cls = 'c1';
+  const pct = Math.min((horas / 48) * 100, 100);
+  const txt = dias === 0 ? `${hrsResto} hrs abierta` : `${dias} día${dias>1?'s':''} ${hrsResto} hrs abierta`;
+  return `<div class="time-bar-wrap">
+    <div class="time-bar-label">
+      <span class="time-bar-txt">⏱ Tiempo sin ubicar (meta 48h)</span>
+      <span class="time-bar-days ${cls}">${txt}</span>
+    </div>
+    <div class="time-bar"><div class="time-bar-fill ${cls}" style="width:${pct}%"></div></div>
+  </div>`;
 }
 
 function renderDevoluciones() {
@@ -3074,14 +3198,15 @@ function renderDevoluciones() {
   cont.innerHTML = folioKeys.map(folio => {
     const lineas = folios[folio];
     const primera = lineas[0];
+    const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
     const materiales = lineas.filter(l => l.codigo).map(l => {
       const cant = l.cantidad ? ` · ${l.cantidad} ${l.unidad || ''}` : '';
-      return `<div style="padding:6px 0;border-top:1px solid var(--g1);font-size:13px">
-        <strong>${l.codigo}</strong>${l.producto ? ' — ' + l.producto : ''}<br>
-        <span style="color:var(--g4)">Lote ${l.lote || 's/lote'}${cant}</span>
+      return `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:13px">
+        <div><strong>${l.codigo}</strong>${l.producto ? ' — ' + l.producto : ''}</div>
+        <span style="color:var(--g4)">Lote: <strong>${l.lote || 's/lote'}</strong>${cant}</span>
       </div>`;
     }).join('');
-    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #c0392b;padding:11px 14px">
+    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:11px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <strong>Folio ${folio}</strong>
         <span style="color:var(--g4);font-size:12px">${primera.fecha}</span>
@@ -3089,7 +3214,9 @@ function renderDevoluciones() {
       <div style="color:var(--g4);font-size:12px;margin-top:2px">👤 ${primera.registro || 'Sin capturar'} · ${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>
       ${materiales}
       ${primera.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${primera.observaciones}</div>` : ''}
-      ${primera.foto ? `<a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a>` : ''}
+      ${primera.foto ? `<div style="margin-top:4px"><a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
+      ${buildTimeBarDev(primera)}
+      ${!ubicada ? `<button onclick="abrirModalUbicarDevolucion('${folio.replace(/'/g,"&#39;")}')" style="width:100%;margin-top:8px;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box">📍 Marcar como ubicada</button>` : ''}
     </div>`;
   }).join('');
 }
