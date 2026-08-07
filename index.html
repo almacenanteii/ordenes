@@ -305,7 +305,7 @@
   <div class="tabs">
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
-    <div class="tab" id="tab-dev" onclick="switchTab('dev')">↩️ Devoluciones</div>
+    <div class="tab" id="tab-dev" onclick="switchTab('dev')">DEVO</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -659,7 +659,7 @@
 
     <div id="dev-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
 
-    <button class="modal-confirm" id="dev-modal-confirm" onclick="confirmarDevolucion()" disabled>
+    <button class="modal-confirm" id="dev-modal-confirm" onclick="confirmarDevolucion()">
       ↩️ Registrar Devolución
     </button>
     <div class="modal-cancel" onclick="cerrarModal('dev')">Cancelar</div>
@@ -1819,7 +1819,7 @@ function abrirModalDevolucion() {
   document.getElementById('dev-foto').value = '';
   document.getElementById('dev-obs').value = '';
   document.getElementById('dev-modal-msg').style.display = 'none';
-  document.getElementById('dev-modal-confirm').disabled = true;
+  document.getElementById('dev-modal-confirm').disabled = false;
   devTipo = '';
   devRegistro = null;
   devCodigo = '';
@@ -1879,15 +1879,13 @@ function seleccionarTipoDev(tipo) {
 }
 
 function verificarDevolucionLista() {
-  const folio = document.getElementById('dev-folio').value.trim();
-  const lote = document.getElementById('dev-lote').value.trim();
-  document.getElementById('dev-modal-confirm').disabled = !(folio && devRegistro && devTipo && devCodigo && lote);
+  // Sin campos obligatorios: el botón siempre queda habilitado.
+  document.getElementById('dev-modal-confirm').disabled = false;
 }
 
 async function confirmarDevolucion() {
   const folio = document.getElementById('dev-folio').value.trim();
   const lote = document.getElementById('dev-lote').value.trim();
-  if (!folio || !devRegistro || !devTipo || !devCodigo || !lote) return;
   const btn = document.getElementById('dev-modal-confirm');
   const msg = document.getElementById('dev-modal-msg');
   btn.disabled = true;
