@@ -735,6 +735,10 @@
     <div class="loading"><div class="spinner"></div>Calculando KPI...</div>
   </div>
 
+  <div class="pts-card" id="pts-devoluciones" style="margin-top:10px">
+    <div class="loading"><div class="spinner"></div>Calculando devoluciones...</div>
+  </div>
+
   <!-- Marcador empleados -->
   <div id="pts-marcador">
     <div class="loading"><div class="spinner"></div>Calculando puntos...</div>
@@ -2947,9 +2951,64 @@ function renderPuntos() {
       <div class="pts-total-val" style="color:${kpiColor}">${sinIncidencia} / ${totalSurtidas}</div>
     </div>`;
 
+  // Devoluciones por semana (mismo filtro de mes/semana que las OPs)
+  renderDevolucionesPorSemana(mes, anio, semFiltro);
+
   // Marcador empleados
   const marc = document.getElementById('pts-marcador');
   marc.innerHTML = PERSONAS.map(p => buildPtsCard(p, mes, anio, semFiltro)).join('');
+}
+
+function renderDevolucionesPorSemana(mes, anio, semFiltro) {
+  const cont = document.getElementById('pts-devoluciones');
+  if (!cont) return;
+
+  const devMes = devData.filter(r => {
+    const f = parseFecha(r.fecha);
+    if (!f || f.getMonth() !== mes || f.getFullYear() !== anio) return false;
+    if (semFiltro !== 'todas' && (r.semana || '') !== semFiltro) return false;
+    return true;
+  });
+
+  const totalMes = devMes.length;
+  const pendMes  = devMes.filter(r => (r.estado||'').toLowerCase() !== 'ubicada').length;
+  const ubicMes  = totalMes - pendMes;
+  const pendColor = pendMes > 0 ? 'var(--red)' : 'var(--green)';
+
+  // Agrupar por semana
+  const porSemana = {};
+  devMes.forEach(r => {
+    const sem = r.semana || 'S/N';
+    if (!porSemana[sem]) porSemana[sem] = { total: 0, pend: 0, ubic: 0 };
+    porSemana[sem].total++;
+    if ((r.estado||'').toLowerCase() === 'ubicada') porSemana[sem].ubic++;
+    else porSemana[sem].pend++;
+  });
+  const semanas = Object.keys(porSemana).sort((a,b) => Number(a)-Number(b));
+
+  const filas = semanas.map(sem => {
+    const d = porSemana[sem];
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:1px solid var(--g1)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--g9)">SEMANA ${sem}</div>
+      <div style="display:flex;gap:14px;font-size:12px">
+        <span style="color:var(--g4)">Total: <strong style="color:var(--g9)">${d.total}</strong></span>
+        <span style="color:var(--red)">Pendientes: <strong>${d.pend}</strong></span>
+        <span style="color:var(--green)">Ubicadas: <strong>${d.ubic}</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <div class="pts-card-hdr">
+      <div class="pts-iniciales" style="background:#c0392b;font-size:18px">↩️</div>
+      <div><div class="pts-nombre">Devoluciones</div><div class="pts-rol">Pendientes de ubicar por almacén</div></div>
+      <div class="pts-score" style="color:${pendColor}">${pendMes}</div>
+    </div>
+    ${filas || '<div class="pts-det-row" style="padding:10px 14px"><div class="pts-det-txt" style="color:var(--g4)">Sin devoluciones este mes</div></div>'}
+    <div class="pts-total-row">
+      <div class="pts-total-lbl">Ubicadas / Total</div>
+      <div class="pts-total-val" style="color:var(--green)">${ubicMes} / ${totalMes}</div>
+    </div>`;
 }
 
 function iniciarSelectorMeses() {
@@ -3125,6 +3184,7 @@ async function cargarDevoluciones() {
     ubico:     h.indexOf('ubicó') !== -1 ? h.indexOf('ubicó') : h.indexOf('ubico'),
     fechaUbicada: h.indexOf('fecha ubicada'),
     obsUbicacion: h.indexOf('obs ubicación') !== -1 ? h.indexOf('obs ubicación') : h.indexOf('obs ubicacion'),
+    semana:    h.indexOf('semana'),
   };
   devData = rows.slice(1).map(r => ({
     folio:     cl(r[idx.folio]),
@@ -3142,6 +3202,7 @@ async function cargarDevoluciones() {
     ubico:     idx.ubico !== -1 ? cl(r[idx.ubico]) : '',
     fechaUbicada: idx.fechaUbicada !== -1 ? cl(r[idx.fechaUbicada]) : '',
     obsUbicacion: idx.obsUbicacion !== -1 ? cl(r[idx.obsUbicacion]) : '',
+    semana:    idx.semana !== -1 ? cl(r[idx.semana]) : '',
   })).filter(r => r.folio);
 }
 
