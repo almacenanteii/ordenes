@@ -590,6 +590,44 @@
         <input class="search-input" id="dev-search" type="text" placeholder="Buscar folio o código..." oninput="renderDevoluciones()">
       </div>
     </div>
+    <div class="filter-row">
+      <div class="filter-label">Mes</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="dev-mes-select" onchange="setMesDev(this.value)">
+          <option value="todos">Todos los meses</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Semana</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="dev-sem-select" onchange="setSemanaDev(this.value)">
+          <option value="todas">Todas las semanas</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Ubicó</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="dev-ubico-select" onchange="setUbicoDev(this.value)">
+          <option value="todos">Todos</option>
+          <option value="Marco Reyes">Marco Reyes</option>
+          <option value="Guadalupe Alferez">Guadalupe Alferez</option>
+          <option value="Eduardo de Loera">Eduardo de Loera</option>
+          <option value="">Sin ubicar</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Estado</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="dev-estado-select" onchange="setEstadoDev(this.value)">
+          <option value="todos">Todos</option>
+          <option value="Pendiente">⏳ Pendiente</option>
+          <option value="Ubicada">📍 Ubicada</option>
+        </select>
+      </div>
+    </div>
   </div>
   <div class="resumen">
     <div class="res-card total"><div class="res-num" id="dev-r-total">0</div><div class="res-lbl">Folios</div></div>
@@ -835,6 +873,7 @@ const CSV_CONFIPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kX
 let opsData = [], actData = [], devData = [], catalogoConfiPT = [];
 let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'Pendiente';
+let mesDevActual = 'todos', semanaDevActual = 'todas', ubicoDevFiltro = 'todos', estadoDevFiltro = 'todos';
 let opSeleccionada = null, actSeleccionada = null;
 let personaOP = null, personaAct = null;
 let incidenciaOP = 0;
@@ -1041,6 +1080,30 @@ function setMes(val) {
 
 function setSurtio(val) { surtioFiltro = val; renderOPs(); }
 function setSemana(val) { semanaActual = val; renderOPs(); }
+
+// ── FILTROS DEVOLUCIONES ────────────────────────────────────
+function setMesDev(val) {
+  mesDevActual = val;
+  const sel = document.getElementById('dev-sem-select');
+  sel.innerHTML = '<option value="todas">Todas las semanas</option>';
+  let semanas;
+  if (val === 'todos') {
+    semanas = [...new Set(devData.map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  } else {
+    const [anio, mes] = val.split('-').map(Number);
+    semanas = [...new Set(devData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getFullYear() === anio && f.getMonth() === mes;
+    }).map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  }
+  semanas.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o); });
+  semanaDevActual = 'todas';
+  sel.value = 'todas';
+  renderDevoluciones();
+}
+function setSemanaDev(val) { semanaDevActual = val; renderDevoluciones(); }
+function setUbicoDev(val)  { ubicoDevFiltro  = val; renderDevoluciones(); }
+function setEstadoDev(val) { estadoDevFiltro = val; renderDevoluciones(); }
 
 // ── FILTROS OPs ──────────────────────────────────────────────
 function parseFecha(v) {
@@ -3217,6 +3280,24 @@ async function cargarDevoluciones() {
     obsUbicacion: idx.obsUbicacion !== -1 ? cl(r[idx.obsUbicacion]) : '',
     semana:    idx.semana !== -1 ? cl(r[idx.semana]) : '',
   })).filter(r => r.folio);
+
+  // Poblar selector de meses (arranca en "Todos los meses")
+  const mesesSet = new Map();
+  devData.forEach(r => {
+    const f = parseFecha(r.fecha);
+    if (!f) return;
+    const key = `${f.getFullYear()}-${f.getMonth()}`;
+    if (!mesesSet.has(key)) mesesSet.set(key, `${MESES_NOMBRES[f.getMonth()]} ${f.getFullYear()}`);
+  });
+  const mesSelDev = document.getElementById('dev-mes-select');
+  if (mesSelDev) {
+    const valorPrevio = mesSelDev.value || 'todos';
+    mesSelDev.innerHTML = '<option value="todos">Todos los meses</option>';
+    [...mesesSet.entries()].sort().forEach(([val, lbl]) => {
+      const o = document.createElement('option'); o.value = val; o.textContent = lbl; mesSelDev.appendChild(o);
+    });
+    if ([...mesesSet.keys()].includes(valorPrevio)) mesSelDev.value = valorPrevio;
+  }
 }
 
 function buildTimeBarDev(primera) {
@@ -3256,6 +3337,22 @@ function renderDevoluciones() {
   const q = (document.getElementById('dev-search')?.value || '').toLowerCase().trim();
   let filas = devData;
   if (q) filas = filas.filter(r => r.folio.toLowerCase().includes(q) || r.codigo.toLowerCase().includes(q));
+
+  if (mesDevActual !== 'todos') {
+    const [anio, mes] = mesDevActual.split('-').map(Number);
+    filas = filas.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getFullYear() === anio && f.getMonth() === mes;
+    });
+  }
+  if (semanaDevActual !== 'todas') filas = filas.filter(r => (r.semana||'') === semanaDevActual);
+  if (ubicoDevFiltro !== 'todos') filas = filas.filter(r => (r.ubico||'') === ubicoDevFiltro);
+  if (estadoDevFiltro !== 'todos') {
+    filas = filas.filter(r => {
+      const est = (r.estado||'').toLowerCase();
+      return estadoDevFiltro === 'Ubicada' ? est === 'ubicada' : est !== 'ubicada';
+    });
+  }
 
   // Agrupar por folio
   const folios = {};
