@@ -305,6 +305,7 @@
   <div class="tabs">
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
+    <div class="tab" id="tab-dev" onclick="switchTab('dev')">↩️ Devoluciones</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -580,6 +581,72 @@
   </div>
 </div>
 
+<!-- ═══════════════ SECCIÓN DEVOLUCIONES ═══════════════ -->
+<div class="section" id="section-dev">
+  <div class="filtros">
+    <div class="filter-row">
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input class="search-input" id="dev-search" type="text" placeholder="Buscar folio o código..." oninput="renderDevoluciones()">
+      </div>
+    </div>
+  </div>
+  <div class="resumen">
+    <div class="res-card total"><div class="res-num" id="dev-r-total">0</div><div class="res-lbl">Folios</div></div>
+    <div class="res-card rojo"><div class="res-num" id="dev-r-hoy">0</div><div class="res-lbl">Hoy</div></div>
+  </div>
+  <div style="padding:0 16px 12px">
+    <button onclick="abrirModalDevolucion()" style="width:100%;padding:12px;background:#c0392b;color:#fff;border:none;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.05em">
+      ↩️ + NUEVA DEVOLUCIÓN
+    </button>
+  </div>
+  <div class="lista" id="lista-dev"><div class="loading"><div class="spinner"></div>Cargando devoluciones...</div></div>
+</div>
+
+<!-- ═══════════════ MODAL NUEVA DEVOLUCIÓN ═══════════════ -->
+<div class="modal-bg" id="modal-dev-bg">
+  <div class="modal-box">
+    <div class="modal-title">↩️ Nueva Devolución</div>
+
+    <label class="modal-label">Folio (el que trae la hoja impresa)</label>
+    <input type="text" id="dev-folio" placeholder="Ej: 0543" oninput="verificarDevolucionLista()"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:8px">¿Quién registra?</label>
+    <input type="text" id="dev-registro" placeholder="Nombre de quien captura" oninput="verificarDevolucionLista()"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:8px">¿Qué se marcó en la hoja?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn" id="dev-tipo-no" onclick="seleccionarTipoDev('No utilizado')">
+        <div class="p-icon">📦</div><div class="p-name">No utilizado</div>
+      </div>
+      <div class="persona-btn" id="dev-tipo-des" onclick="seleccionarTipoDev('Para destrucción')">
+        <div class="p-icon">🗑️</div><div class="p-name">Para destrucción</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">Materiales devueltos</label>
+    <div id="dev-lineas"></div>
+    <div class="modal-cancel" style="color:var(--orange);margin:6px 0 0" onclick="agregarLineaDev()">➕ Agregar material</div>
+
+    <label class="modal-label" style="margin-top:10px">Foto de la hoja</label>
+    <input type="file" id="dev-foto" accept="image/*" capture="environment"
+      style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
+
+    <label class="modal-label" style="margin-top:8px">Observaciones (opcional)</label>
+    <textarea id="dev-obs" placeholder="Notas adicionales..." rows="2"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
+
+    <div id="dev-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="dev-modal-confirm" onclick="confirmarDevolucion()" disabled>
+      ↩️ Registrar Devolución
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('dev')">Cancelar</div>
+  </div>
+</div>
+
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
 <div class="section" id="section-pts">
 
@@ -707,8 +774,11 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSRg1ZLxBjfUoibNuDWKZAEXvBxKorj-3Qs3_I5bwYc4gP5ix7Rg8TmOQv0oXAWhE/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
+// TODO: reemplazar &gid=XXXXXXXXX por el gid real de la pestaña "Devoluciones" una vez publicada a la web (ver instrucciones)
+const CSV_DEV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=XXXXXXXXX&single=true&output=csv';
 
-let opsData = [], actData = [];
+let opsData = [], actData = [], devData = [];
+let devLineas = [];
 let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'Pendiente';
 let opSeleccionada = null, actSeleccionada = null;
@@ -884,11 +954,12 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','pts'].forEach(t => {
+  ['ops','act','dev','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
   if (tab === 'pts') renderPuntos();
+  if (tab === 'dev') renderDevoluciones();
 }
 
 let surtioFiltro = 'todos';
@@ -1715,6 +1786,133 @@ async function confirmarExplosion() {
     msg.textContent = '❌ Error de conexión';
     btn.disabled = false;
     btn.textContent = '💥 Registrar Explosión';
+  }
+}
+
+// ── DEVOLUCIONES ────────────────────────────────────────────
+let devTipo = '';
+
+function abrirModalDevolucion() {
+  document.getElementById('dev-folio').value = '';
+  document.getElementById('dev-registro').value = '';
+  document.getElementById('dev-foto').value = '';
+  document.getElementById('dev-obs').value = '';
+  document.getElementById('dev-modal-msg').style.display = 'none';
+  document.getElementById('dev-modal-confirm').disabled = true;
+  devTipo = '';
+  document.getElementById('dev-tipo-no').classList.remove('selected');
+  document.getElementById('dev-tipo-des').classList.remove('selected');
+  devLineas = [{ codigo:'', producto:'', lote:'', cantidad:'', unidad:'PZA' }];
+  renderLineasDev();
+  document.getElementById('modal-dev-bg').classList.add('open');
+}
+
+function seleccionarTipoDev(tipo) {
+  devTipo = tipo;
+  document.getElementById('dev-tipo-no').classList.toggle('selected', tipo === 'No utilizado');
+  document.getElementById('dev-tipo-des').classList.toggle('selected', tipo === 'Para destrucción');
+  verificarDevolucionLista();
+}
+
+function renderLineasDev() {
+  const cont = document.getElementById('dev-lineas');
+  cont.innerHTML = devLineas.map((l, i) => `
+    <div style="border:1.5px solid var(--g2);border-radius:10px;padding:8px;margin-bottom:8px">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input type="text" placeholder="Código EYE-..." value="${l.codigo}" oninput="actualizarLineaDev(${i},'codigo',this.value)"
+          style="flex:1.2;padding:8px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;box-sizing:border-box;outline:none">
+        <input type="text" placeholder="Descripción" value="${l.producto}" oninput="actualizarLineaDev(${i},'producto',this.value)"
+          style="flex:1.8;padding:8px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;box-sizing:border-box;outline:none">
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="text" placeholder="Lote" value="${l.lote}" oninput="actualizarLineaDev(${i},'lote',this.value)"
+          style="flex:1;padding:8px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;box-sizing:border-box;outline:none">
+        <input type="text" inputmode="decimal" placeholder="Cantidad" value="${l.cantidad}" oninput="actualizarLineaDev(${i},'cantidad',this.value)"
+          style="flex:0.8;padding:8px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;box-sizing:border-box;outline:none">
+        <input type="text" placeholder="Unidad" value="${l.unidad}" oninput="actualizarLineaDev(${i},'unidad',this.value)"
+          style="flex:0.7;padding:8px;border:1.5px solid var(--g2);border-radius:8px;font-size:13px;box-sizing:border-box;outline:none">
+        ${devLineas.length > 1 ? `<div onclick="quitarLineaDev(${i})" style="padding:6px 8px;color:var(--red);cursor:pointer;font-size:18px">✕</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function agregarLineaDev() {
+  devLineas.push({ codigo:'', producto:'', lote:'', cantidad:'', unidad:'PZA' });
+  renderLineasDev();
+  verificarDevolucionLista();
+}
+
+function quitarLineaDev(i) {
+  devLineas.splice(i, 1);
+  renderLineasDev();
+  verificarDevolucionLista();
+}
+
+function actualizarLineaDev(i, campo, val) {
+  devLineas[i][campo] = val;
+  verificarDevolucionLista();
+}
+
+function verificarDevolucionLista() {
+  const folio = document.getElementById('dev-folio').value.trim();
+  const registro = document.getElementById('dev-registro').value.trim();
+  const lineasOk = devLineas.length > 0 && devLineas.every(l => l.codigo.trim() && l.cantidad.toString().trim());
+  document.getElementById('dev-modal-confirm').disabled = !(folio && registro && devTipo && lineasOk);
+}
+
+async function confirmarDevolucion() {
+  const folio = document.getElementById('dev-folio').value.trim();
+  const registro = document.getElementById('dev-registro').value.trim();
+  if (!folio || !registro) return;
+  const btn = document.getElementById('dev-modal-confirm');
+  const msg = document.getElementById('dev-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Registrando...';
+
+  let fotoB64 = '', fotoNombre = '', fotoMime = '';
+  const fotoInput = document.getElementById('dev-foto');
+  if (fotoInput.files && fotoInput.files[0]) {
+    try {
+      const file = fotoInput.files[0];
+      fotoNombre = file.name;
+      fotoMime = file.type;
+      fotoB64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    } catch(e) { console.log('Error leyendo foto:', e); }
+  }
+
+  try {
+    const resp = await sai_fetch({
+      tipo: 'devolucion',
+      folio,
+      registro,
+      tipoDevolucion: devTipo,
+      observaciones: document.getElementById('dev-obs').value,
+      lineas: devLineas,
+      fotoB64,
+      fotoNombre,
+      fotoMime
+    });
+    if (resp.ok) {
+      msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '✅ Devolución registrada correctamente';
+      setTimeout(() => { cerrarModal('dev'); recargar(); }, 1500);
+    } else {
+      msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '❌ Error: ' + (resp.msg || 'intenta de nuevo');
+      btn.disabled = false;
+      btn.textContent = '↩️ Registrar Devolución';
+    }
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error de conexión';
+    btn.disabled = false;
+    btn.textContent = '↩️ Registrar Devolución';
   }
 }
 
@@ -2786,22 +2984,98 @@ async function cargarActividades() {
   // Ya no se preselecciona la última semana: arranca en "Todas las semanas"
 }
 
+async function cargarDevoluciones() {
+  const res = await fetchConTimeout(CSV_DEV + '&t=' + Date.now());
+  const txt = await res.text();
+  const rows = parseCSV(txt);
+  const h = rows[0].map(x => cl(x).toLowerCase());
+  const idx = {
+    folio:     h.indexOf('folio'),
+    fecha:     h.indexOf('fecha'),
+    codigo:    h.indexOf('codigo'),
+    producto:  h.indexOf('producto'),
+    lote:      h.indexOf('lote'),
+    cantidad:  h.indexOf('cantidad'),
+    unidad:    h.indexOf('unidad'),
+    tipo:      h.indexOf('tipo'),
+    registro:  h.indexOf('registró') !== -1 ? h.indexOf('registró') : h.indexOf('registro'),
+    foto:      h.indexOf('foto'),
+    observaciones: h.indexOf('observaciones'),
+  };
+  devData = rows.slice(1).map(r => ({
+    folio:     cl(r[idx.folio]),
+    fecha:     cl(r[idx.fecha]),
+    codigo:    cl(r[idx.codigo]),
+    producto:  cl(r[idx.producto]),
+    lote:      cl(r[idx.lote]),
+    cantidad:  cl(r[idx.cantidad]),
+    unidad:    cl(r[idx.unidad]),
+    tipo:      cl(r[idx.tipo]),
+    registro:  idx.registro !== -1 ? cl(r[idx.registro]) : '',
+    foto:      idx.foto !== -1 ? cl(r[idx.foto]) : '',
+    observaciones: idx.observaciones !== -1 ? cl(r[idx.observaciones]) : '',
+  })).filter(r => r.folio);
+}
+
+function renderDevoluciones() {
+  const cont = document.getElementById('lista-dev');
+  if (!cont) return;
+  const q = (document.getElementById('dev-search')?.value || '').toLowerCase().trim();
+  let filas = devData;
+  if (q) filas = filas.filter(r => r.folio.toLowerCase().includes(q) || r.codigo.toLowerCase().includes(q));
+
+  // Agrupar por folio
+  const folios = {};
+  filas.forEach(r => { (folios[r.folio] = folios[r.folio] || []).push(r); });
+  const folioKeys = Object.keys(folios).sort().reverse();
+
+  document.getElementById('dev-r-total').textContent = Object.keys(folios).length;
+  const hoyStr = new Date().toLocaleDateString('es-MX');
+  document.getElementById('dev-r-hoy').textContent = Object.values(folios)
+    .filter(lineas => lineas[0] && parseFecha(lineas[0].fecha) && parseFecha(lineas[0].fecha).toLocaleDateString('es-MX') === hoyStr).length;
+
+  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">↩️</div>Sin devoluciones registradas</div>`; return; }
+
+  cont.innerHTML = folioKeys.map(folio => {
+    const lineas = folios[folio];
+    const primera = lineas[0];
+    const materiales = lineas.map(l =>
+      `<div style="padding:6px 0;border-top:1px solid var(--g1);font-size:13px">
+        <strong>${l.codigo}</strong>${l.producto ? ' — ' + l.producto : ''}<br>
+        <span style="color:var(--g4)">Lote ${l.lote || 's/lote'} · ${l.cantidad || '?'} ${l.unidad || ''}</span>
+      </div>`
+    ).join('');
+    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #c0392b;padding:11px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Folio ${folio}</strong>
+        <span style="color:var(--g4);font-size:12px">${primera.fecha}</span>
+      </div>
+      <div style="color:var(--g4);font-size:12px;margin-top:2px">👤 ${primera.registro || 'Sin capturar'} · ${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>
+      ${materiales}
+      ${primera.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${primera.observaciones}</div>` : ''}
+      ${primera.foto ? `<a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a>` : ''}
+    </div>`;
+  }).join('');
+}
+
 async function recargar() {
   document.getElementById('upd-txt').textContent = 'Actualizando...';
   document.getElementById('lista-ops').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-act').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  document.getElementById('lista-dev').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   await load();
 }
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
     iniciarSelectorMeses();
     renderOPs();
     renderActividades();
+    renderDevoluciones();
     const now = new Date();
     document.getElementById('upd-txt').innerHTML = `Datos al <strong>${now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</strong> · ${now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
   } catch(e) {
