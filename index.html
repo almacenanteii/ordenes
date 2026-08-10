@@ -1804,6 +1804,8 @@ async function confirmarActualizarExplosion() {
 
 function filtrarCatalogoExp(q) {
   const ac = document.getElementById('exp-autocomplete');
+  expCodigo = ''; expNombre = ''; // si edita el texto, invalida la selección previa
+  verificarExplosionLista();
   if (!q || q.length < 2) { ac.style.display = 'none'; return; }
   const termino = q.toLowerCase();
   const resultados = CATALOGO_PT.filter(p =>
@@ -1850,11 +1852,25 @@ function selectFifoExp(val) {
 }
 
 function verificarExplosionLista() {
-  document.getElementById('exp-modal-confirm').disabled = !(expCodigo && expPersona);
+  // No exige haber tocado la sugerencia del buscador: basta con haber escrito algo.
+  const textoBuscado = (document.getElementById('exp-search').value || '').trim();
+  document.getElementById('exp-modal-confirm').disabled = !((expCodigo || textoBuscado) && expPersona);
 }
 
 async function confirmarExplosion() {
-  if (!expCodigo || !expPersona) return;
+  // Respaldo: si nunca se tocó una sugerencia del buscador (expCodigo vacío) pero sí
+  // se escribió algo, se usa ese texto tal cual — o el match exacto del catálogo si
+  // el texto coincide con una clave — para no perder el dato capturado.
+  let codigoFinal = expCodigo, productoFinal = expNombre;
+  if (!codigoFinal) {
+    const texto = document.getElementById('exp-search').value.trim();
+    if (texto) {
+      const match = CATALOGO_PT.find(p => p.clave.toLowerCase() === texto.toLowerCase());
+      if (match) { codigoFinal = match.clave; productoFinal = match.desc; }
+      else { codigoFinal = texto; }
+    }
+  }
+  if (!codigoFinal || !expPersona) return;
   const btn = document.getElementById('exp-modal-confirm');
   const msg = document.getElementById('exp-modal-msg');
   btn.disabled = true;
@@ -1880,8 +1896,8 @@ async function confirmarExplosion() {
   try {
     const resp = await sai_fetch({
       tipo: 'explosion',
-      codigo: expCodigo,
-      producto: expNombre,
+      codigo: codigoFinal,
+      producto: productoFinal,
       surtio: expPersona,
       observaciones: document.getElementById('exp-obs').value,
       fotoB64,
