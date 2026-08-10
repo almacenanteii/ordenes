@@ -1733,7 +1733,7 @@ async function confirmarNuevaActividad() {
     });
     msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
     msg.textContent = '✅ Actividad creada correctamente';
-    setTimeout(() => { cerrarModal('newact'); recargarDatos(); }, 1500);
+    setTimeout(() => { cerrarModal('newact'); recargar(); }, 1500);
   } catch(e) {
     msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
     msg.textContent = '❌ Error al crear actividad';
@@ -1793,7 +1793,7 @@ async function confirmarActualizarExplosion() {
     });
     msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
     msg.textContent = '✅ Actualizado correctamente';
-    setTimeout(() => { cerrarModal('expupd'); recargarDatos(); }, 1500);
+    setTimeout(() => { cerrarModal('expupd'); recargar(); }, 1500);
   } catch(e) {
     msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
     msg.textContent = '❌ Error al actualizar';
@@ -1907,7 +1907,7 @@ async function confirmarExplosion() {
     if (resp.ok) {
       msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
       msg.textContent = '✅ Explosión registrada correctamente';
-      setTimeout(() => { cerrarModal('exp'); recargarDatos(); }, 1500);
+      setTimeout(() => { cerrarModal('exp'); recargar(); }, 1500);
     } else {
       msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
       msg.textContent = '❌ Error: ' + (resp.msg || 'intenta de nuevo');
