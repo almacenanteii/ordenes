@@ -3021,10 +3021,6 @@ function renderPuntos() {
     <div class="pts-detalle">
       <div class="pts-sep">RESUMEN POR SEMANA</div>
       ${semanasRows || '<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin datos este mes</div></div>'}
-    </div>
-    <div class="pts-total-row">
-      <div class="pts-total-lbl">Sin incidencias / Solicitadas</div>
-      <div class="pts-total-val" style="color:${kpiColor}">${sinIncidencia} / ${totalSurtidas}</div>
     </div>`;
 
   // Devoluciones por semana (mismo filtro de mes/semana que las OPs)
@@ -3039,12 +3035,20 @@ function renderDevolucionesPorSemana(mes, anio, semFiltro) {
   const cont = document.getElementById('pts-devoluciones');
   if (!cont) return;
 
-  const devMes = devData.filter(r => {
-    const f = parseFecha(r.fecha);
-    if (!f || f.getMonth() !== mes || f.getFullYear() !== anio) return false;
-    if (semFiltro !== 'todas' && (r.semana || '') !== semFiltro) return false;
-    return true;
-  });
+  // Una semana puede caer a caballo entre dos meses (ej. semana 32 con días de julio
+  // y de agosto). Para que no se vea "partida", primero se decide QUÉ semanas
+  // pertenecen a este mes/filtro, y luego se toman TODAS las devoluciones de esas
+  // semanas completas, sin importar en qué mes cae cada fecha individual.
+  let semanasObjetivo;
+  if (semFiltro !== 'todas') {
+    semanasObjetivo = [semFiltro];
+  } else {
+    semanasObjetivo = [...new Set(devData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getMonth() === mes && f.getFullYear() === anio;
+    }).map(r => r.semana).filter(s => s))];
+  }
+  const devMes = devData.filter(r => semanasObjetivo.includes(r.semana));
 
   const totalMes = devMes.length;
   const pendMes  = devMes.filter(r => (r.estado||'').toLowerCase() !== 'ubicada').length;
