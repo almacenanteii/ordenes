@@ -612,7 +612,7 @@
         <select class="sem-select" id="dev-ubico-select" onchange="setUbicoDev(this.value)">
           <option value="todos">Todos</option>
           <option value="Marco Reyes">Marco Reyes</option>
-          <option value="Guadalupe Alferez">Guadalupe Alferez</option>
+          <option value="Lupita Alferez">Lupita Alferez</option>
           <option value="Eduardo de Loera">Eduardo de Loera</option>
           <option value="">Sin ubicar</option>
         </select>
@@ -655,8 +655,8 @@
       <div class="persona-btn" id="dev-reg-marco" onclick="selectRegistroDev('Marco Reyes')">
         <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
       </div>
-      <div class="persona-btn" id="dev-reg-lupita" onclick="selectRegistroDev('Guadalupe Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Guadalupe Alferez</div>
+      <div class="persona-btn" id="dev-reg-lupita" onclick="selectRegistroDev('Lupita Alferez')">
+        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
       </div>
       <div class="persona-btn" id="dev-reg-eduardo" onclick="selectRegistroDev('Eduardo de Loera')">
         <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
@@ -715,8 +715,8 @@
       <div class="persona-btn" id="devubic-marco" onclick="selectPersonaUbicarDev('Marco Reyes')">
         <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
       </div>
-      <div class="persona-btn" id="devubic-lupita" onclick="selectPersonaUbicarDev('Guadalupe Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Guadalupe Alferez</div>
+      <div class="persona-btn" id="devubic-lupita" onclick="selectPersonaUbicarDev('Lupita Alferez')">
+        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
       </div>
       <div class="persona-btn" id="devubic-eduardo" onclick="selectPersonaUbicarDev('Eduardo de Loera')">
         <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
@@ -1934,7 +1934,7 @@ function abrirModalDevolucion() {
 function selectRegistroDev(persona) {
   devRegistro = persona;
   document.getElementById('dev-reg-marco').classList.toggle('selected', persona === 'Marco Reyes');
-  document.getElementById('dev-reg-lupita').classList.toggle('selected', persona === 'Guadalupe Alferez');
+  document.getElementById('dev-reg-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
   document.getElementById('dev-reg-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
   verificarDevolucionLista();
 }
@@ -2069,7 +2069,7 @@ function abrirModalUbicarDevolucion(folio) {
 function selectPersonaUbicarDev(persona) {
   devUbicPersona = persona;
   document.getElementById('devubic-marco').classList.toggle('selected', persona === 'Marco Reyes');
-  document.getElementById('devubic-lupita').classList.toggle('selected', persona === 'Guadalupe Alferez');
+  document.getElementById('devubic-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
   document.getElementById('devubic-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
 }
 
@@ -2193,6 +2193,13 @@ function ptsActividad(diasTardanza, esPendiente) {
   return -5;                             // 6+ días
 }
 
+function ptsDevolucion(horas) {
+  if (horas < 12) return 6;
+  if (horas < 24) return 3;
+  if (horas < 48) return 1;
+  return -2;                             // ubicada, pero fuera de la meta de 48h
+}
+
 function calcPuntosMes(persona, mes, anio, semFiltro = 'todas') {
   const detalles = [];
   let total = 0;
@@ -2259,6 +2266,34 @@ function calcPuntosMes(persona, mes, anio, semFiltro = 'todas') {
     detalles.push({ desc, pts, tipo: 'act' });
   });
 
+  // Devoluciones
+  devData.forEach(r => {
+    const fecha = parseFecha(r.fecha);
+    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
+    if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return;
+
+    const ubicada = (r.estado||'').toLowerCase() === 'ubicada';
+
+    if (ubicada) {
+      // Puntos individuales: solo a quien la ubicó
+      if ((r.ubico||'') !== persona.key) return;
+      const fechaUbic = parseFecha(r.fechaUbicada);
+      if (!fechaUbic) return;
+      const horas = (fechaUbic - fecha) / (1000 * 60 * 60);
+      const pts = ptsDevolucion(horas);
+      const tiempoTxt = horas < 24 ? `${Math.round(horas)} hrs` : `${(horas/24).toFixed(1)} días`;
+      total += pts;
+      detalles.push({ desc: `Devolución ${r.folio} — ubicada en ${tiempoTxt}`, pts, tipo: 'dev' });
+    } else {
+      // Pendiente y ya pasó de 48h: responsabilidad compartida de todo el equipo de almacén
+      const horasAbierta = (new Date() - fecha) / (1000 * 60 * 60);
+      if (horasAbierta > 48) {
+        total += -2;
+        detalles.push({ desc: `Devolución ${r.folio} — pendiente +48h (compartida)`, pts: -2, tipo: 'dev' });
+      }
+    }
+  });
+
   // Contar OPs surtidas del mes para meta dinámica
   const numOPs = detalles.filter(d => d.tipo === 'op' && d.pts > 0).length;
 
@@ -2320,7 +2355,34 @@ const MISIONES_ACT = [
   },
 ];
 
-const MISIONES = [...MISIONES_OP, ...MISIONES_ACT];
+const MISIONES_DEV = [
+  {
+    id: 'recolectorrapido',
+    emoji: '🏃',
+    titulo: 'Recolector Rápido',
+    desc: 'Ubicar 5 devoluciones el mismo día',
+    pts: 15,
+    check: (stats) => ({ actual: stats.devsMismoDia, meta: 5 })
+  },
+  {
+    id: 'cerorezago',
+    emoji: '🔐',
+    titulo: 'Cero Rezago',
+    desc: 'Ninguna devolución abierta más de 48h',
+    pts: 10,
+    check: (stats) => ({ actual: (stats.devsMas48 === 0 && stats.totalDevsEquipo > 0) ? 1 : 0, meta: 1, binaria: true })
+  },
+  {
+    id: 'puntualidadtotal',
+    emoji: '🎯',
+    titulo: 'Puntualidad Total',
+    desc: 'Ubicar 8 devoluciones en menos de 24h',
+    pts: 15,
+    check: (stats) => ({ actual: stats.devsEn24hrs, meta: 8 })
+  },
+];
+
+const MISIONES = [...MISIONES_OP, ...MISIONES_ACT, ...MISIONES_DEV];
 
 const MISION_REY = {
   id: 'rey',
@@ -2334,7 +2396,8 @@ function calcStats(persona, mes, anio) {
   const stats = {
     opsMismoDia: 0, opsEn2dias: 0, opsMas5: 0,
     opsMaxSemana: 0, semanaLimpia: false, opsMismoDiaSemana: 0,
-    actsAntes: 0, actsTarde: 0, totalOPs: 0, totalActs: 0
+    actsAntes: 0, actsTarde: 0, totalOPs: 0, totalActs: 0,
+    devsMismoDia: 0, devsEn24hrs: 0, totalDevs: 0, devsMas48: 0, totalDevsEquipo: 0
   };
 
   // Claves de TODAS las personas del equipo (para misiones compartidas)
@@ -2416,6 +2479,36 @@ function calcStats(persona, mes, anio) {
     else if (diasTard > 0) stats.actsTarde++;
   });
 
+  // Devoluciones
+  devData.forEach(r => {
+    const fecha = parseFecha(r.fecha);
+    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
+    const ubicada = (r.estado||'').toLowerCase() === 'ubicada';
+
+    // Rezago (>48h abierta) y total: cuentan para TODO el equipo (misión compartida)
+    if (ubicada) {
+      stats.totalDevsEquipo++;
+      const fechaUbic = parseFecha(r.fechaUbicada);
+      if (fechaUbic) {
+        const horas = (fechaUbic - fecha) / (1000 * 60 * 60);
+        if (horas > 48) stats.devsMas48++;
+      }
+    } else {
+      stats.totalDevsEquipo++;
+      const horasAbierta = (new Date() - fecha) / (1000 * 60 * 60);
+      if (horasAbierta > 48) stats.devsMas48++;
+    }
+
+    // Puntos individuales: solo devoluciones ubicadas por esta persona
+    if (!ubicada || (r.ubico||'') !== persona.key) return;
+    const fechaUbic = parseFecha(r.fechaUbicada);
+    if (!fechaUbic) return;
+    const horas = (fechaUbic - fecha) / (1000 * 60 * 60);
+    stats.totalDevs++;
+    if (horas < 24) stats.devsEn24hrs++;
+    if (Math.floor(horas / 24) === 0 && fecha.toDateString() === fechaUbic.toDateString()) stats.devsMismoDia++;
+  });
+
   return stats;
 }
 
@@ -2458,9 +2551,10 @@ function buildMisiones(persona, mes, anio) {
   let misionesCompletadas = 0;
   let misionesFaltantes = [];
 
-  // Si no hay OPs ni actividades reales, las misiones no suman puntos
+  // Si no hay OPs, actividades ni devoluciones reales, las misiones no suman puntos
   const hayActividad = (stats.opsMismoDia + stats.opsEn2dias + stats.opsMaxSemana) > 0 ||
-                       (stats.actsAntes + stats.actsTarde) > 0;
+                       (stats.actsAntes + stats.actsTarde) > 0 ||
+                       (stats.totalDevs + stats.totalDevsEquipo) > 0;
 
   let htmlOps = `<div class="pts-sep">⚡ MISIONES — ÓRDENES</div>`;
   MISIONES_OP.forEach(m => {
@@ -2474,6 +2568,14 @@ function buildMisiones(persona, mes, anio) {
   MISIONES_ACT.forEach(m => {
     const { html, completada } = buildMisionRow(m, stats);
     htmlActs += html;
+    if (completada && hayActividad) { ptsMisiones += m.pts; misionesCompletadas++; }
+    else if (!completada) misionesFaltantes.push(m.titulo);
+  });
+
+  let htmlDevs = `<div class="pts-sep">↩️ MISIONES — DEVOLUCIONES</div>`;
+  MISIONES_DEV.forEach(m => {
+    const { html, completada } = buildMisionRow(m, stats);
+    htmlDevs += html;
     if (completada && hayActividad) { ptsMisiones += m.pts; misionesCompletadas++; }
     else if (!completada) misionesFaltantes.push(m.titulo);
   });
@@ -2499,7 +2601,7 @@ function buildMisiones(persona, mes, anio) {
         <div class="mision-prog-txt" style="padding:4px 0 0 30px;color:var(--g4);font-size:11px">Falta: ${misionesFaltantes.join(', ')}</div>
       </div>`;
 
-  return { html: `${htmlOps}${htmlActs}${reyRow}`, ptsMisiones };
+  return { html: `${htmlOps}${htmlActs}${htmlDevs}${reyRow}`, ptsMisiones };
 }
 
 function buildKpiTable(persona, mes, anio) {
