@@ -587,7 +587,7 @@
     <div class="filter-row">
       <div class="search-wrap">
         <span class="search-ico">🔍</span>
-        <input class="search-input" id="dev-search" type="text" placeholder="Buscar folio o código..." oninput="renderDevoluciones()">
+        <input class="search-input" id="dev-search" type="text" placeholder="Buscar código, producto o lote..." oninput="renderDevoluciones()">
       </div>
     </div>
     <div class="filter-row">
@@ -630,87 +630,32 @@
     </div>
   </div>
   <div class="resumen">
-    <div class="res-card total"><div class="res-num" id="dev-r-total">0</div><div class="res-lbl">Folios</div></div>
-    <div class="res-card rojo"><div class="res-num" id="dev-r-hoy">0</div><div class="res-lbl">Hoy</div></div>
-  </div>
-  <div style="padding:0 16px 12px">
-    <button onclick="abrirModalDevolucion()" style="width:100%;padding:12px;background:#c0392b;color:#fff;border:none;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.05em">
-      ↩️ + NUEVA DEVOLUCIÓN
-    </button>
+    <div class="res-card total"><div class="res-num" id="dev-r-total">0</div><div class="res-lbl">Pendientes</div></div>
+    <div class="res-card rojo"><div class="res-num" id="dev-r-hoy">0</div><div class="res-lbl">Ubicadas hoy</div></div>
   </div>
   <div class="lista" id="lista-dev"><div class="loading"><div class="spinner"></div>Cargando devoluciones...</div></div>
-</div>
-
-<!-- ═══════════════ MODAL NUEVA DEVOLUCIÓN ═══════════════ -->
-<div class="modal-bg" id="modal-dev-bg">
-  <div class="modal-box">
-    <div class="modal-title">↩️ Nueva Devolución</div>
-
-    <label class="modal-label">Folio (el que trae la hoja impresa)</label>
-    <input type="text" id="dev-folio" placeholder="Ej: 0543" oninput="verificarDevolucionLista()"
-      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none">
-
-    <label class="modal-label" style="margin-top:8px">¿Quién registra?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="persona-btn" id="dev-reg-marco" onclick="selectRegistroDev('Marco Reyes')">
-        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
-      </div>
-      <div class="persona-btn" id="dev-reg-lupita" onclick="selectRegistroDev('Lupita Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
-      </div>
-      <div class="persona-btn" id="dev-reg-eduardo" onclick="selectRegistroDev('Eduardo de Loera')">
-        <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
-      </div>
-    </div>
-
-    <label class="modal-label" style="margin-top:8px">Buscar código o producto</label>
-    <div style="position:relative;margin-bottom:4px">
-      <input type="text" id="dev-buscar-codigo" placeholder="Escribe código o nombre..." oninput="filtrarCatalogoDev(this.value)"
-        style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none">
-      <div id="dev-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--g2);border-radius:10px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
-    </div>
-    <div id="dev-producto-sel" style="display:none;padding:8px 10px;background:#c0392b15;border-radius:8px;margin-bottom:8px;font-size:13px">
-      <strong id="dev-codigo-txt"></strong> — <span id="dev-nombre-txt"></span>
-    </div>
-
-    <label class="modal-label" style="margin-top:8px">Lote</label>
-    <input type="text" id="dev-lote" placeholder="Ej: ME0726067" oninput="verificarDevolucionLista()"
-      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:14px;box-sizing:border-box;outline:none">
-
-    <label class="modal-label" style="margin-top:8px">¿Qué se marcó en la hoja?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr">
-      <div class="persona-btn" id="dev-tipo-no" onclick="seleccionarTipoDev('No utilizado')">
-        <div class="p-icon">📦</div><div class="p-name">No utilizado</div>
-      </div>
-      <div class="persona-btn" id="dev-tipo-des" onclick="seleccionarTipoDev('Para destrucción')">
-        <div class="p-icon">🗑️</div><div class="p-name">Para destrucción</div>
-      </div>
-    </div>
-
-    <label class="modal-label" style="margin-top:10px">Foto de la hoja (opcional)</label>
-    <input type="file" id="dev-foto" accept="image/*" capture="environment"
-      style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
-
-    <label class="modal-label" style="margin-top:8px">Observaciones (opcional)</label>
-    <textarea id="dev-obs" placeholder="Notas adicionales..." rows="2"
-      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
-
-    <div id="dev-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
-
-    <button class="modal-confirm" id="dev-modal-confirm" onclick="confirmarDevolucion()">
-      ↩️ Registrar Devolución
-    </button>
-    <div class="modal-cancel" onclick="cerrarModal('dev')">Cancelar</div>
-  </div>
 </div>
 
 <!-- ═══════════════ MODAL MARCAR DEVOLUCIÓN COMO UBICADA ═══════════════ -->
 <div class="modal-bg" id="modal-devubic-bg">
   <div class="modal-box">
     <div class="modal-title">📍 Marcar como ubicada</div>
-    <div class="modal-subtitle" style="color:var(--g4);font-size:13px;margin-bottom:12px">Folio <span id="devubic-folio-txt" style="color:#1a8a50;font-weight:700"></span></div>
+    <div id="devubic-item-info" style="background:#1a8a5015;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:13px">
+      <strong id="devubic-clave-txt"></strong> — <span id="devubic-desc-txt"></span><br>
+      <span style="color:var(--g4)">Lote: <strong id="devubic-lote-txt"></strong> · Existencia: <strong id="devubic-existencia-txt"></strong></span>
+    </div>
 
-    <label class="modal-label">¿Quién la ubicó?</label>
+    <label class="modal-label">¿Qué se marcó en la hoja?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn" id="devubic-tipo-no" onclick="seleccionarTipoUbicar('No utilizado')">
+        <div class="p-icon">📦</div><div class="p-name">No utilizado</div>
+      </div>
+      <div class="persona-btn" id="devubic-tipo-des" onclick="seleccionarTipoUbicar('Para destrucción')">
+        <div class="p-icon">🗑️</div><div class="p-name">Para destrucción</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">¿Quién la ubicó?</label>
     <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
       <div class="persona-btn" id="devubic-marco" onclick="selectPersonaUbicarDev('Marco Reyes')">
         <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
@@ -722,6 +667,10 @@
         <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
       </div>
     </div>
+
+    <label class="modal-label" style="margin-top:8px">Foto (opcional)</label>
+    <input type="file" id="devubic-foto" accept="image/*" capture="environment"
+      style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
 
     <label class="modal-label" style="margin-top:8px">Observaciones (opcional)</label>
     <textarea id="devubic-obs" placeholder="Ej: Se ubicó en anaquel B3..." rows="2"
@@ -869,8 +818,12 @@ const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 const CSV_DEV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1773791934&single=true&output=csv';
 const CSV_CONFIPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1762689909&single=true&output=csv';
+// Almacén DEV: reporte de existencias pendientes de ubicar (SKU/lote), se regenera
+// solo — la app solo LEE de aquí, nunca escribe. Clave+Lote es la llave para
+// relacionarlo con lo que ya se marcó como "Ubicada" en la hoja Devoluciones.
+const CSV_DEV_ALMACEN = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1557636426&single=true&output=csv';
 
-let opsData = [], actData = [], devData = [], catalogoConfiPT = [];
+let opsData = [], actData = [], devData = [], catalogoConfiPT = [], devAlmacenData = [];
 let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'Pendiente';
 let mesDevActual = 'todos', semanaDevActual = 'todas', ubicoDevFiltro = 'todos', estadoDevFiltro = 'todos';
@@ -1923,91 +1876,53 @@ async function confirmarExplosion() {
 }
 
 // ── DEVOLUCIONES ────────────────────────────────────────────
-let devTipo = '', devRegistro = null, devCodigo = '', devNombre = '';
+// Ya no hay captura manual: los "Pendientes" salen directo del reporte del
+// almacén DEV (devAlmacenData). Solo se captura al "Marcar como ubicada".
 
-function abrirModalDevolucion() {
-  document.getElementById('dev-folio').value = '';
-  document.getElementById('dev-buscar-codigo').value = '';
-  document.getElementById('dev-autocomplete').style.display = 'none';
-  document.getElementById('dev-producto-sel').style.display = 'none';
-  document.getElementById('dev-lote').value = '';
-  document.getElementById('dev-foto').value = '';
-  document.getElementById('dev-obs').value = '';
-  document.getElementById('dev-modal-msg').style.display = 'none';
-  document.getElementById('dev-modal-confirm').disabled = false;
-  devTipo = '';
-  devRegistro = null;
-  devCodigo = '';
-  devNombre = '';
-  document.getElementById('dev-tipo-no').classList.remove('selected');
-  document.getElementById('dev-tipo-des').classList.remove('selected');
-  document.getElementById('dev-reg-marco').classList.remove('selected');
-  document.getElementById('dev-reg-lupita').classList.remove('selected');
-  document.getElementById('dev-reg-eduardo').classList.remove('selected');
-  document.getElementById('modal-dev-bg').classList.add('open');
+// ── MARCAR DEVOLUCIÓN COMO UBICADA ────────────────────────────
+let devUbicItem = null, devUbicPersona = null, devUbicTipo = '';
+
+function abrirModalUbicarDevolucion(item) {
+  devUbicItem = item; // { clave, descripcion, lote, existencia, unidad }
+  devUbicPersona = null;
+  devUbicTipo = '';
+  document.getElementById('devubic-clave-txt').textContent = item.clave;
+  document.getElementById('devubic-desc-txt').textContent = item.descripcion || '';
+  document.getElementById('devubic-lote-txt').textContent = item.lote || 's/lote';
+  document.getElementById('devubic-existencia-txt').textContent = `${item.existencia || 0} ${item.unidad || ''}`;
+  document.getElementById('devubic-obs').value = '';
+  document.getElementById('devubic-foto').value = '';
+  document.getElementById('devubic-modal-msg').style.display = 'none';
+  document.getElementById('devubic-marco').classList.remove('selected');
+  document.getElementById('devubic-lupita').classList.remove('selected');
+  document.getElementById('devubic-eduardo').classList.remove('selected');
+  document.getElementById('devubic-tipo-no').classList.remove('selected');
+  document.getElementById('devubic-tipo-des').classList.remove('selected');
+  document.getElementById('modal-devubic-bg').classList.add('open');
 }
 
-function selectRegistroDev(persona) {
-  devRegistro = persona;
-  document.getElementById('dev-reg-marco').classList.toggle('selected', persona === 'Marco Reyes');
-  document.getElementById('dev-reg-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
-  document.getElementById('dev-reg-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
-  verificarDevolucionLista();
+function selectPersonaUbicarDev(persona) {
+  devUbicPersona = persona;
+  document.getElementById('devubic-marco').classList.toggle('selected', persona === 'Marco Reyes');
+  document.getElementById('devubic-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
+  document.getElementById('devubic-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
 }
 
-// Búsqueda de producto terminado (código MAQ-/PT-), cargada en vivo desde la
-// hoja "ConfiPT" publicada (catalogoConfiPT, ver cargarCatalogoConfiPT()).
-// Esta sí se actualiza sola: en cuanto agreguen filas en ConfiPT, aparecen aquí.
-function filtrarCatalogoDev(q) {
-  const ac = document.getElementById('dev-autocomplete');
-  if (!q || q.length < 2) { ac.style.display = 'none'; return; }
-  const termino = q.toLowerCase();
-  const resultados = catalogoConfiPT.filter(p =>
-    p.clave.toLowerCase().includes(termino) || p.desc.toLowerCase().includes(termino)
-  ).slice(0, 8);
-  if (!resultados.length) { ac.style.display = 'none'; return; }
-  ac.innerHTML = resultados.map(p =>
-    `<div onclick="seleccionarProductoDev('${p.clave}','${p.desc.replace(/'/g,"&#39;")}')"
-      style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:13px"
-      onmouseover="this.style.background='var(--g1)'" onmouseout="this.style.background=''">
-      <strong>${p.clave}</strong> — ${p.desc}
-    </div>`
-  ).join('');
-  ac.style.display = 'block';
+function seleccionarTipoUbicar(tipo) {
+  devUbicTipo = tipo;
+  document.getElementById('devubic-tipo-no').classList.toggle('selected', tipo === 'No utilizado');
+  document.getElementById('devubic-tipo-des').classList.toggle('selected', tipo === 'Para destrucción');
 }
 
-function seleccionarProductoDev(clave, nombre) {
-  devCodigo = clave; devNombre = nombre;
-  document.getElementById('dev-buscar-codigo').value = clave;
-  document.getElementById('dev-autocomplete').style.display = 'none';
-  document.getElementById('dev-codigo-txt').textContent = clave;
-  document.getElementById('dev-nombre-txt').textContent = nombre;
-  document.getElementById('dev-producto-sel').style.display = 'block';
-  verificarDevolucionLista();
-}
-
-function seleccionarTipoDev(tipo) {
-  devTipo = tipo;
-  document.getElementById('dev-tipo-no').classList.toggle('selected', tipo === 'No utilizado');
-  document.getElementById('dev-tipo-des').classList.toggle('selected', tipo === 'Para destrucción');
-  verificarDevolucionLista();
-}
-
-function verificarDevolucionLista() {
-  // Sin campos obligatorios: el botón siempre queda habilitado.
-  document.getElementById('dev-modal-confirm').disabled = false;
-}
-
-async function confirmarDevolucion() {
-  const folio = document.getElementById('dev-folio').value.trim();
-  const lote = document.getElementById('dev-lote').value.trim();
-  const btn = document.getElementById('dev-modal-confirm');
-  const msg = document.getElementById('dev-modal-msg');
+async function confirmarUbicarDevolucion() {
+  if (!devUbicItem) return;
+  const btn = document.getElementById('devubic-modal-confirm');
+  const msg = document.getElementById('devubic-modal-msg');
   btn.disabled = true;
-  btn.textContent = 'Registrando...';
+  btn.textContent = 'Guardando...';
 
   let fotoB64 = '', fotoNombre = '', fotoMime = '';
-  const fotoInput = document.getElementById('dev-foto');
+  const fotoInput = document.getElementById('devubic-foto');
   if (fotoInput.files && fotoInput.files[0]) {
     try {
       const file = fotoInput.files[0];
@@ -2022,85 +1937,18 @@ async function confirmarDevolucion() {
     } catch(e) { console.log('Error leyendo foto:', e); }
   }
 
-  // Respaldo: si nunca se tocó una sugerencia del buscador (devCodigo vacío) pero sí
-  // se escribió algo en el campo, se usa ese texto tal cual — o el match exacto del
-  // catálogo si el texto coincide con una clave — para no perder el dato capturado.
-  let codigoFinal = devCodigo, productoFinal = devNombre;
-  if (!codigoFinal) {
-    const texto = document.getElementById('dev-buscar-codigo').value.trim();
-    if (texto) {
-      const match = catalogoConfiPT.find(p => p.clave.toLowerCase() === texto.toLowerCase());
-      if (match) { codigoFinal = match.clave; productoFinal = match.desc; }
-      else { codigoFinal = texto; }
-    }
-  }
-
-  try {
-    const resp = await sai_fetch({
-      tipo: 'devolucion',
-      folio,
-      registro: devRegistro,
-      tipoDevolucion: devTipo,
-      codigo: codigoFinal,
-      producto: productoFinal,
-      lote,
-      observaciones: document.getElementById('dev-obs').value,
-      fotoB64,
-      fotoNombre,
-      fotoMime
-    });
-    if (resp.ok) {
-      msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-      msg.textContent = '✅ Devolución registrada correctamente';
-      setTimeout(() => { cerrarModal('dev'); recargar(); }, 1500);
-    } else {
-      msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-      msg.textContent = '❌ Error: ' + (resp.msg || 'intenta de nuevo');
-      btn.disabled = false;
-      btn.textContent = '↩️ Registrar Devolución';
-    }
-  } catch(e) {
-    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-    msg.textContent = '❌ Error de conexión';
-    btn.disabled = false;
-    btn.textContent = '↩️ Registrar Devolución';
-  }
-}
-
-// ── MARCAR DEVOLUCIÓN COMO UBICADA ────────────────────────────
-let devUbicFolio = null, devUbicPersona = null;
-
-function abrirModalUbicarDevolucion(folio) {
-  devUbicFolio = folio;
-  devUbicPersona = null;
-  document.getElementById('devubic-folio-txt').textContent = folio;
-  document.getElementById('devubic-obs').value = '';
-  document.getElementById('devubic-modal-msg').style.display = 'none';
-  document.getElementById('devubic-marco').classList.remove('selected');
-  document.getElementById('devubic-lupita').classList.remove('selected');
-  document.getElementById('devubic-eduardo').classList.remove('selected');
-  document.getElementById('modal-devubic-bg').classList.add('open');
-}
-
-function selectPersonaUbicarDev(persona) {
-  devUbicPersona = persona;
-  document.getElementById('devubic-marco').classList.toggle('selected', persona === 'Marco Reyes');
-  document.getElementById('devubic-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
-  document.getElementById('devubic-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
-}
-
-async function confirmarUbicarDevolucion() {
-  if (!devUbicFolio) return;
-  const btn = document.getElementById('devubic-modal-confirm');
-  const msg = document.getElementById('devubic-modal-msg');
-  btn.disabled = true;
-  btn.textContent = 'Guardando...';
   try {
     const resp = await sai_fetch({
       tipo: 'ubicarDevolucion',
-      folio: devUbicFolio,
+      clave: devUbicItem.clave,
+      producto: devUbicItem.descripcion || '',
+      lote: devUbicItem.lote || '',
+      cantidad: devUbicItem.existencia || '',
+      unidad: devUbicItem.unidad || '',
+      tipoDevolucion: devUbicTipo,
       ubicoPor: devUbicPersona || '',
-      observacionUbicacion: document.getElementById('devubic-obs').value
+      observacionUbicacion: document.getElementById('devubic-obs').value,
+      fotoB64, fotoNombre, fotoMime
     });
     if (resp.ok) {
       msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
@@ -3422,97 +3270,162 @@ async function cargarDevoluciones() {
   }
 }
 
-function buildTimeBarDev(primera) {
-  const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
-  const ini = parseFecha(primera.fecha);
-  if (!ini || isNaN(ini)) return '';
+// Almacén DEV: reporte de existencias pendientes (Clave, Lote, Existencia...).
+// Solo lectura — nunca se escribe aquí, se regenera solo cuando corre el reporte.
+async function cargarAlmacenDEV() {
+  const res = await fetchConTimeout(CSV_DEV_ALMACEN + '&t=' + Date.now());
+  const txt = await res.text();
+  const rows = parseCSV(txt);
+  const h = rows[0].map(x => cl(x).toLowerCase());
+  const colClase  = h.indexOf('clase');
+  const colClave  = h.indexOf('clave');
+  const colDesc   = h.indexOf('descripcion') !== -1 ? h.indexOf('descripcion') : h.indexOf('descripción');
+  const colLote   = h.indexOf('lote');
+  const colExist  = h.indexOf('existencia');
+  const colUnidad = h.indexOf('unidad');
+  const colCaduc  = h.indexOf('fecha caducidad');
+  const colAlmacen= h.indexOf('almacén') !== -1 ? h.indexOf('almacén') : h.indexOf('almacen');
+  devAlmacenData = rows.slice(1)
+    .map(r => ({
+      clase:      colClase  !== -1 ? cl(r[colClase])  : '',
+      clave:      cl(r[colClave]),
+      descripcion:cl(r[colDesc]),
+      lote:       cl(r[colLote]),
+      existencia: parseFloat(cl(r[colExist])) || 0,
+      unidad:     colUnidad !== -1 ? cl(r[colUnidad]) : '',
+      fechaCaducidad: colCaduc !== -1 ? cl(r[colCaduc]) : '',
+      almacen:    colAlmacen !== -1 ? cl(r[colAlmacen]) : '',
+    }))
+    .filter(r => r.clave && (colAlmacen === -1 || r.almacen.toUpperCase() === 'DEV'));
+}
 
-  if (ubicada) {
-    const fin = parseFecha(primera.fechaUbicada) || new Date();
-    const horas = Math.max(0, (fin - ini) / (1000 * 60 * 60));
-    const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
-    const txt = dias === 0 ? `Ubicada en ${hrsResto} hrs` : `Ubicada en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
-    return `<div class="time-surtida">📍 <strong>${txt}</strong>${primera.ubico ? ' por ' + primera.ubico : ''}${primera.obsUbicacion ? `<br>📋 ${primera.obsUbicacion}` : ''}</div>`;
+// Combina lo que hoy está en el almacén DEV (pendiente) con lo que ya se marcó
+// como ubicado en la hoja Devoluciones, usando Clave+Lote como llave — porque
+// DEV se regenera solo y no guarda ese estatus.
+function construirListaDevoluciones() {
+  const ubicadasPorLlave = {};
+  devData.forEach(r => {
+    if ((r.estado||'').toLowerCase() !== 'ubicada') return;
+    const llave = (r.codigo||'').toUpperCase() + '|' + (r.lote||'').toUpperCase();
+    const actual = ubicadasPorLlave[llave];
+    if (!actual || (parseFecha(r.fechaUbicada) || 0) > (parseFecha(actual.fechaUbicada) || 0)) {
+      ubicadasPorLlave[llave] = r;
+    }
+  });
+
+  const vistos = new Set();
+  const lista = [];
+
+  devAlmacenData.forEach(d => {
+    const llave = (d.clave||'').toUpperCase() + '|' + (d.lote||'').toUpperCase();
+    vistos.add(llave);
+    const ubic = ubicadasPorLlave[llave];
+    if (ubic) {
+      lista.push({
+        clave: d.clave, descripcion: d.descripcion || ubic.producto, lote: d.lote,
+        existencia: d.existencia, unidad: d.unidad, fechaCaducidad: d.fechaCaducidad, clase: d.clase,
+        estado: 'Ubicada', ubico: ubic.ubico, fecha: ubic.fecha, fechaUbicada: ubic.fechaUbicada,
+        obsUbicacion: ubic.obsUbicacion, tipo: ubic.tipo, foto: ubic.foto, semana: ubic.semana
+      });
+    } else {
+      lista.push({
+        clave: d.clave, descripcion: d.descripcion, lote: d.lote,
+        existencia: d.existencia, unidad: d.unidad, fechaCaducidad: d.fechaCaducidad, clase: d.clase,
+        estado: 'Pendiente', ubico: '', fecha: '', fechaUbicada: '', obsUbicacion: '', tipo: '', foto: '', semana: ''
+      });
+    }
+  });
+
+  // Ubicadas históricas cuya Clave+Lote ya no aparece en DEV (ya se despachó a EyeJal)
+  Object.keys(ubicadasPorLlave).forEach(llave => {
+    if (vistos.has(llave)) return;
+    const ubic = ubicadasPorLlave[llave];
+    lista.push({
+      clave: ubic.codigo, descripcion: ubic.producto, lote: ubic.lote,
+      existencia: ubic.cantidad, unidad: ubic.unidad, fechaCaducidad: '', clase: '',
+      estado: 'Ubicada', ubico: ubic.ubico, fecha: ubic.fecha, fechaUbicada: ubic.fechaUbicada,
+      obsUbicacion: ubic.obsUbicacion, tipo: ubic.tipo, foto: ubic.foto, semana: ubic.semana
+    });
+  });
+
+  return lista;
+}
+
+function buildTimeBarDev(item) {
+  if (item.estado !== 'Ubicada') return ''; // pendientes: vienen del reporte en vivo, sin fecha propia
+  const ini = parseFecha(item.fecha);
+  const fin = parseFecha(item.fechaUbicada);
+  if (!ini || !fin) {
+    return `<div class="time-surtida">📍 <strong>Ubicada</strong>${item.ubico ? ' por ' + item.ubico : ''}${item.fechaUbicada ? ' el ' + item.fechaUbicada : ''}${item.obsUbicacion ? `<br>📋 ${item.obsUbicacion}` : ''}</div>`;
   }
-
-  const horas = (new Date() - ini) / (1000 * 60 * 60);
+  const horas = Math.max(0, (fin - ini) / (1000 * 60 * 60));
+  // Con el flujo nuevo, registro y ubicación pasan casi al mismo momento —
+  // mostrar "0 hrs" no sirve, mejor mostrar solo la fecha/hora.
+  if (horas < 0.05) {
+    return `<div class="time-surtida">📍 <strong>Ubicada el ${item.fechaUbicada}</strong>${item.ubico ? ' por ' + item.ubico : ''}${item.obsUbicacion ? `<br>📋 ${item.obsUbicacion}` : ''}</div>`;
+  }
   const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
-  let cls = 'c0';
-  if (horas >= 48) cls = 'c4';
-  else if (horas >= 36) cls = 'c3';
-  else if (horas >= 24) cls = 'c2';
-  else if (horas >= 12) cls = 'c1';
-  const pct = Math.min((horas / 48) * 100, 100);
-  const txt = dias === 0 ? `${hrsResto} hrs abierta` : `${dias} día${dias>1?'s':''} ${hrsResto} hrs abierta`;
-  return `<div class="time-bar-wrap">
-    <div class="time-bar-label">
-      <span class="time-bar-txt">⏱ Tiempo abierta</span>
-      <span class="time-bar-days ${cls}">${txt}</span>
-    </div>
-    <div class="time-bar"><div class="time-bar-fill ${cls}" style="width:${pct}%"></div></div>
-  </div>`;
+  const txt = dias === 0 ? `Ubicada en ${hrsResto} hrs` : `Ubicada en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
+  return `<div class="time-surtida">📍 <strong>${txt}</strong>${item.ubico ? ' por ' + item.ubico : ''}${item.obsUbicacion ? `<br>📋 ${item.obsUbicacion}` : ''}</div>`;
 }
 
 function renderDevoluciones() {
   const cont = document.getElementById('lista-dev');
   if (!cont) return;
   const q = (document.getElementById('dev-search')?.value || '').toLowerCase().trim();
-  let filas = devData;
-  if (q) filas = filas.filter(r => r.folio.toLowerCase().includes(q) || r.codigo.toLowerCase().includes(q));
+  let filas = construirListaDevoluciones();
 
+  if (q) filas = filas.filter(r =>
+    (r.clave||'').toLowerCase().includes(q) ||
+    (r.descripcion||'').toLowerCase().includes(q) ||
+    (r.lote||'').toLowerCase().includes(q)
+  );
+
+  // Mes/Semana solo filtran lo ya Ubicado — los Pendientes vienen del reporte
+  // DEV en vivo, no tienen una fecha de captura propia, así que siempre se ven.
   if (mesDevActual !== 'todos') {
     const [anio, mes] = mesDevActual.split('-').map(Number);
     filas = filas.filter(r => {
-      const f = parseFecha(r.fecha);
+      if (r.estado !== 'Ubicada') return true;
+      const f = parseFecha(r.fechaUbicada || r.fecha);
       return f && f.getFullYear() === anio && f.getMonth() === mes;
     });
   }
-  if (semanaDevActual !== 'todas') filas = filas.filter(r => (r.semana||'') === semanaDevActual);
-  if (ubicoDevFiltro !== 'todos') filas = filas.filter(r => (r.ubico||'') === ubicoDevFiltro);
-  if (estadoDevFiltro !== 'todos') {
-    filas = filas.filter(r => {
-      const est = (r.estado||'').toLowerCase();
-      return estadoDevFiltro === 'Ubicada' ? est === 'ubicada' : est !== 'ubicada';
-    });
+  if (semanaDevActual !== 'todas') {
+    filas = filas.filter(r => r.estado !== 'Ubicada' || (r.semana||'') === semanaDevActual);
   }
+  if (ubicoDevFiltro !== 'todos') filas = filas.filter(r => (r.ubico||'') === ubicoDevFiltro);
+  if (estadoDevFiltro !== 'todos') filas = filas.filter(r => r.estado === estadoDevFiltro);
 
-  // Agrupar por folio
-  const folios = {};
-  filas.forEach(r => { (folios[r.folio] = folios[r.folio] || []).push(r); });
-  const folioKeys = Object.keys(folios).sort().reverse();
+  filas.sort((a, b) => {
+    if (a.estado !== b.estado) return a.estado === 'Pendiente' ? -1 : 1;
+    if (a.estado === 'Ubicada') return (parseFecha(b.fechaUbicada) || 0) - (parseFecha(a.fechaUbicada) || 0);
+    return (a.clave||'').localeCompare(b.clave||'');
+  });
 
-  document.getElementById('dev-r-total').textContent = Object.keys(folios).length;
+  const pendientesCount = filas.filter(r => r.estado === 'Pendiente').length;
+  document.getElementById('dev-r-total').textContent = pendientesCount;
   const hoyStr = new Date().toLocaleDateString('es-MX');
-  document.getElementById('dev-r-hoy').textContent = Object.values(folios)
-    .filter(lineas => lineas[0] && parseFecha(lineas[0].fecha) && parseFecha(lineas[0].fecha).toLocaleDateString('es-MX') === hoyStr).length;
+  document.getElementById('dev-r-hoy').textContent = filas
+    .filter(r => r.estado === 'Ubicada' && parseFecha(r.fechaUbicada) && parseFecha(r.fechaUbicada).toLocaleDateString('es-MX') === hoyStr).length;
 
-  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">↩️</div>Sin devoluciones registradas</div>`; return; }
+  if (!filas.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">↩️</div>Sin devoluciones pendientes</div>`; return; }
 
-  cont.innerHTML = folioKeys.map(folio => {
-    const lineas = folios[folio];
-    const primera = lineas[0];
-    const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
-    const conDatos = lineas.filter(l => l.codigo || l.producto || l.lote);
-    const materiales = conDatos.length
-      ? conDatos.map(l => {
-          const cant = l.cantidad ? ` · ${l.cantidad} ${l.unidad || ''}` : '';
-          return `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:13px">
-            <div><strong>${l.codigo || 'Sin código'}</strong>${l.producto ? ' — ' + l.producto : ''}</div>
-            <span style="color:var(--g4)">Lote: <strong>${l.lote || 's/lote'}</strong>${cant}</span>
-          </div>`;
-        }).join('')
-      : `<div style="padding:8px 0;border-top:1px solid var(--g1);font-size:12px;color:var(--g4);font-style:italic">⚠️ Sin datos de producto capturados en este registro</div>`;
+  cont.innerHTML = filas.map(item => {
+    const ubicada = item.estado === 'Ubicada';
+    const cant = item.existencia ? ` · ${item.existencia} ${item.unidad || ''}` : '';
+    const itemJson = JSON.stringify({clave:item.clave, descripcion:item.descripcion, lote:item.lote, existencia:item.existencia, unidad:item.unidad}).replace(/'/g,"&#39;");
     return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:11px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong>Folio ${folio}</strong>
-        <span style="color:var(--g4);font-size:12px">${primera.fecha}</span>
+        <strong>${item.clave}</strong>
+        ${item.fechaCaducidad ? `<span style="color:var(--g4);font-size:12px">Caduca: ${item.fechaCaducidad}</span>` : ''}
       </div>
-      <div style="color:var(--g4);font-size:12px;margin-top:2px">👤 ${primera.registro || 'Sin capturar'} · ${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>
-      ${materiales}
-      ${primera.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${primera.observaciones}</div>` : ''}
-      ${primera.foto ? `<div style="margin-top:4px"><a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
-      ${buildTimeBarDev(primera)}
-      ${!ubicada ? `<button onclick="abrirModalUbicarDevolucion('${folio.replace(/'/g,"&#39;")}')" style="width:100%;margin-top:8px;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box">📍 Marcar como ubicada</button>` : ''}
+      <div style="font-size:13px;margin-top:2px">${item.descripcion || ''}</div>
+      <div style="color:var(--g4);font-size:12px;margin-top:2px">Lote: <strong>${item.lote || 's/lote'}</strong>${cant}${item.clase ? ' · ' + item.clase : ''}</div>
+      ${ubicada ? `<div style="color:var(--g4);font-size:12px;margin-top:2px">${item.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>` : ''}
+      ${item.foto ? `<div style="margin-top:4px"><a href="${item.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
+      ${buildTimeBarDev(item)}
+      ${!ubicada ? `<button onclick='abrirModalUbicarDevolucion(${itemJson})' style="width:100%;margin-top:8px;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box">📍 Marcar como ubicada</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -3527,7 +3440,7 @@ async function recargar() {
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarCatalogoConfiPT()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarAlmacenDEV()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
