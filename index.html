@@ -2461,23 +2461,11 @@ function renderPedidos() {
         <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
       </div>
       ${lineasHtml}
-      <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--g1)">
-        ${!completado ? `<button onclick="confirmarPedido('${folio}')" style="flex:1;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ Marcar completado</button>` : ''}
-        <button onclick="imprimirCaratula('${folio}')" style="flex:${completado ? '1' : '0 0 auto'};padding:10px 14px;background:var(--g1);color:var(--g9);border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer">🖨️ Imprimir carátula</button>
+      <div style="padding:10px 14px;border-top:1px solid var(--g1)">
+        <button onclick="imprimirCaratula('${folio}')" style="width:100%;padding:10px 14px;background:var(--g1);color:var(--g9);border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer">🖨️ Imprimir carátula</button>
       </div>
     </div>`;
   }).join('');
-}
-
-async function confirmarPedido(folio) {
-  if (!confirm('¿Marcar el pedido ' + folio + ' completo como completado?')) return;
-  try {
-    await sai_fetch({ tipo: 'completarPedido', folio });
-    pedData.forEach(r => { if (r.folio === folio) { r.completado = true; r.fechaCompletado = new Date().toLocaleDateString('es-MX'); } });
-    renderPedidos();
-  } catch (e) {
-    alert('Error de conexión, intenta de nuevo');
-  }
 }
 
 function imprimirCaratula(folio) {
