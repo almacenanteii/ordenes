@@ -2461,8 +2461,69 @@ function renderPedidos() {
         <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
       </div>
       ${lineasHtml}
+      <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--g1)">
+        ${!completado ? `<button onclick="confirmarPedido('${folio}')" style="flex:1;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ Marcar completado</button>` : ''}
+        <button onclick="imprimirCaratula('${folio}')" style="flex:${completado ? '1' : '0 0 auto'};padding:10px 14px;background:var(--g1);color:var(--g9);border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer">🖨️ Imprimir carátula</button>
+      </div>
     </div>`;
   }).join('');
+}
+
+async function confirmarPedido(folio) {
+  if (!confirm('¿Marcar el pedido ' + folio + ' completo como completado?')) return;
+  try {
+    await sai_fetch({ tipo: 'completarPedido', folio });
+    pedData.forEach(r => { if (r.folio === folio) { r.completado = true; r.fechaCompletado = new Date().toLocaleDateString('es-MX'); } });
+    renderPedidos();
+  } catch (e) {
+    alert('Error de conexión, intenta de nuevo');
+  }
+}
+
+function imprimirCaratula(folio) {
+  const lineas = pedData.filter(r => r.folio === folio);
+  if (!lineas.length) return;
+  const primera = lineas[0];
+
+  const filasHtml = lineas.map(l => {
+    const nTarimas = Number(l.tarimas) || 0;
+    const nSueltas = Number(l.cajasSueltas) || 0;
+    const cajasTxt = l.cajas !== '' ? `${l.cajas}${nTarimas > 0 ? ` (${nTarimas} tarima${nTarimas>1?'s':''}${nSueltas>0?' + '+nSueltas+' suelta'+(nSueltas>1?'s':''):''})` : ''}` : '-';
+    return `<tr>
+      <td>${l.clave}<br><span style="font-size:12px;color:#555">${l.descripcion}</span></td>
+      <td style="text-align:center">${l.lote || 'S/LOTE'}</td>
+      <td style="text-align:center">${cajasTxt}</td>
+      <td style="text-align:center">${l.cantidad} ${l.unidad}</td>
+    </tr>`;
+  }).join('');
+
+  const totalCajas  = lineas.reduce((a, l) => a + (Number(l.cajas) || 0), 0);
+  const totalPiezas = lineas.reduce((a, l) => a + (Number(l.cantidad) || 0), 0);
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Carátula ${folio}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#111}
+    h1{font-size:44px;margin:0 0 6px;letter-spacing:1px}
+    .sub{font-size:15px;color:#555;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #333;padding:10px;font-size:15px;text-align:left}
+    th{background:#eee}
+    .totales{margin-top:18px;font-size:18px;font-weight:bold;text-align:right}
+  </style></head>
+  <body>
+    <h1>${(primera.destino || '').toUpperCase()}</h1>
+    <div class="sub">Folio Remisión: <strong>${folio}</strong>${primera.fechaEntrega ? ' &nbsp;·&nbsp; Entrega: <strong>' + primera.fechaEntrega + '</strong>' : ''}</div>
+    <table>
+      <tr><th>Producto</th><th>Lote</th><th>Cajas</th><th>Piezas</th></tr>
+      ${filasHtml}
+    </table>
+    <div class="totales">Total: ${totalCajas} cajas &nbsp;·&nbsp; ${totalPiezas} piezas</div>
+    <script>window.onload = () => window.print();<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 async function confirmarOP() {
