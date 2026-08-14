@@ -295,6 +295,19 @@
   .time-bar-fill.c4 { background:var(--red); }
   .time-surtida { padding:6px 14px 10px; border-top:1px solid var(--g1); font-size:11px; color:var(--g4); }
   .time-surtida strong { color:var(--green); }
+
+  /* PEDIDOS CARD — mismo lenguaje visual que .op-card */
+  .ped-card { background:var(--white); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); border-left:4px solid var(--g2); margin-bottom:10px; }
+  .ped-top { display:flex; justify-content:space-between; align-items:flex-start; padding:11px 14px 6px; }
+  .ped-destino { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:800; color:var(--g9); }
+  .ped-folio { font-size:10px; color:var(--g4); margin-top:2px; }
+  .ped-linea { padding:9px 14px; border-top:1px solid var(--g1); }
+  .ped-linea-top { display:flex; justify-content:space-between; align-items:center; }
+  .ped-clave { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800; color:var(--g9); }
+  .ped-desc { font-size:12px; font-weight:500; color:var(--g7); margin-top:2px; line-height:1.3; }
+  .ped-grid { display:grid; grid-template-columns:1fr 1fr 1fr; margin-top:7px; gap:6px; }
+  .ped-field-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); margin-bottom:2px; }
+  .ped-field-val { font-size:13px; font-weight:700; color:var(--g7); }
 </style>
 </head>
 <body>
@@ -785,8 +798,8 @@
     </div>
   </div>
   <div class="resumen">
-    <div class="res-card total"><div class="res-num" id="ped-r-total">0</div><div class="res-lbl">Líneas pendientes</div></div>
-    <div class="res-card verde"><div class="res-num" id="ped-r-hoy">0</div><div class="res-lbl">Completadas hoy</div></div>
+    <div class="res-card total"><div class="res-num" id="ped-r-total">0</div><div class="res-lbl">Pedidos pendientes</div></div>
+    <div class="res-card verde"><div class="res-num" id="ped-r-hoy">0</div><div class="res-lbl">Completados hoy</div></div>
   </div>
   <div class="lista" id="lista-ped"><div class="loading"><div class="spinner"></div>Cargando pedidos...</div></div>
 </div>
@@ -2328,29 +2341,45 @@ function renderPedidos() {
 
   let filas = pedData;
   if (destinoPedFiltro !== 'todos') filas = filas.filter(r => r.destino === destinoPedFiltro);
-  if (estadoPedFiltro === 'pendientes')      filas = filas.filter(r => !r.completado);
-  else if (estadoPedFiltro === 'completados') filas = filas.filter(r => r.completado);
 
-  document.getElementById('ped-r-total').textContent = pedData.filter(r => !r.completado).length;
-  const hoyStr = new Date().toLocaleDateString('es-MX');
-  document.getElementById('ped-r-hoy').textContent = pedData.filter(r => {
-    const fc = parseFecha(r.fechaCompletado);
-    return r.completado && fc && fc.toLocaleDateString('es-MX') === hoyStr;
-  }).length;
-
-  if (!filas.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">🚚</div>Sin pedidos</div>`; return; }
-
+  // Agrupar por folio — el estatus Pendiente/Completado es de la remisión
+  // completa (todos sus productos), no de cada código por separado.
   const folios = {};
   filas.forEach(r => { (folios[r.folio] = folios[r.folio] || []).push(r); });
-  const folioKeys = Object.keys(folios).sort((a, b) => Number(b) - Number(a));
+  const folioCompletado = {};
+  Object.keys(folios).forEach(f => { folioCompletado[f] = folios[f].every(l => l.completado); });
+
+  let folioKeys = Object.keys(folios);
+  if (estadoPedFiltro === 'pendientes')      folioKeys = folioKeys.filter(f => !folioCompletado[f]);
+  else if (estadoPedFiltro === 'completados') folioKeys = folioKeys.filter(f => folioCompletado[f]);
+
+  // Resumen: sobre TODOS los pedidos (sin filtro de destino), agrupado por folio.
+  const foliosGlobal = {};
+  pedData.forEach(r => { (foliosGlobal[r.folio] = foliosGlobal[r.folio] || []).push(r); });
+  const folioKeysGlobal = Object.keys(foliosGlobal);
+  document.getElementById('ped-r-total').textContent = folioKeysGlobal.filter(f => !foliosGlobal[f].every(l => l.completado)).length;
+  const hoyStr = new Date().toLocaleDateString('es-MX');
+  document.getElementById('ped-r-hoy').textContent = folioKeysGlobal.filter(f => {
+    const lineas = foliosGlobal[f];
+    if (!lineas.every(l => l.completado)) return false;
+    const fechas = lineas.map(l => parseFecha(l.fechaCompletado)).filter(Boolean);
+    if (!fechas.length) return false;
+    const masReciente = new Date(Math.max(...fechas.map(d => d.getTime())));
+    return masReciente.toLocaleDateString('es-MX') === hoyStr;
+  }).length;
+
+  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">🚚</div>Sin pedidos</div>`; return; }
+
+  folioKeys = folioKeys.sort((a, b) => Number(b) - Number(a));
   const colorDestino = { 'Monterrey': '#2980B9', 'Tezontepec': '#8e44ad', 'Tonala': '#e08e0b' };
 
   cont.innerHTML = folioKeys.map(folio => {
     const lineas = folios[folio];
     const primera = lineas[0];
+    const completado = folioCompletado[folio];
     const fEntrega = parseFecha(primera.fechaEntrega);
     let urgTxt = '', urgColor = colorDestino[primera.destino] || 'var(--g7)';
-    if (fEntrega) {
+    if (fEntrega && !completado) {
       const diffDias = Math.ceil((fEntrega - new Date()) / (1000*60*60*24));
       if (diffDias < 0)      { urgTxt = `⚠️ Venció hace ${Math.abs(diffDias)} día${Math.abs(diffDias)===1?'':'s'}`; urgColor = '#c0392b'; }
       else if (diffDias === 0){ urgTxt = '🚨 ¡Entrega hoy!'; urgColor = '#c0392b'; }
@@ -2362,30 +2391,28 @@ function renderPedidos() {
       const nTarimas = Number(l.tarimas) || 0;
       const nSueltas = Number(l.cajasSueltas) || 0;
       let empaqueTxt;
-      if (l.cajas === '') empaqueTxt = 'sin config de empaque (agregar clave en hoja Empaques)';
-      else if (nTarimas > 0) empaqueTxt = `${nTarimas} tarima${nTarimas>1?'s':''} completa${nTarimas>1?'s':''}${nSueltas>0 ? ` + ${nSueltas} caja${nSueltas>1?'s':''} suelta${nSueltas>1?'s':''}` : ''}`;
-      else empaqueTxt = `${l.cajas} caja${Number(l.cajas)!==1?'s':''}`;
-      return `<div style="padding:12px 0;border-top:1px solid var(--g1)">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <strong style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;line-height:1.1;color:var(--g9)">${l.clave}</strong>
-          <span style="font-size:12px;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;margin-left:8px;background:${l.completado ? '#e8f8f0' : '#fff3f3'};color:${l.completado ? '#1a8a50' : '#c0392b'}">${l.completado ? '✅ Completado' : '⏳ Pendiente'}</span>
+      if (l.cajas === '') empaqueTxt = 'Sin config';
+      else if (nTarimas > 0) empaqueTxt = `${nTarimas} tar.${nSueltas > 0 ? ` + ${nSueltas} caj.` : ''}`;
+      else empaqueTxt = `${l.cajas} caja${Number(l.cajas) !== 1 ? 's' : ''}`;
+      return `<div class="ped-linea">
+        <span class="ped-clave">${l.clave}</span>
+        <div class="ped-desc">${l.descripcion}</div>
+        <div class="ped-grid">
+          <div><div class="ped-field-lbl">Lote</div><div class="ped-field-val">${l.lote || 'S/LOTE'}</div></div>
+          <div><div class="ped-field-lbl">Cantidad</div><div class="ped-field-val">${l.cantidad} ${l.unidad}</div></div>
+          <div><div class="ped-field-lbl">Cajas</div><div class="ped-field-val">${empaqueTxt}</div></div>
         </div>
-        <div style="font-size:14px;font-weight:600;margin-top:2px;color:var(--g9)">${l.descripcion}</div>
-        <div style="background:#eef6fb;border-radius:10px;padding:8px 12px;margin-top:8px;display:inline-block">
-          <span style="font-size:13px;color:var(--g4);font-weight:600">LOTE:</span>
-          <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--g9);margin-left:4px">${l.lote || 'S/LOTE'}</span>
-          <span style="font-size:14px;font-weight:700;color:var(--g9);margin-left:8px">${l.cantidad} ${l.unidad}</span>
-        </div>
-        <div style="margin-top:8px;font-size:16px;font-weight:800;color:var(--g9)">📦 ${empaqueTxt}</div>
       </div>`;
     }).join('');
 
-    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${urgColor};padding:14px 16px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--g9)">🚚 ${primera.destino}</strong>
-        <span style="color:var(--g4);font-size:12px">Folio ${folio}</span>
+    return `<div class="ped-card" style="border-left-color:${urgColor}">
+      <div class="ped-top">
+        <div>
+          <div class="ped-destino">🚚 ${primera.destino}</div>
+          <div class="ped-folio">Folio Remisión ${folio}${primera.fechaEntrega ? ' · Entrega ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
+        </div>
+        <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
       </div>
-      <div style="font-size:13px;margin-top:2px;color:${urgColor};font-weight:700">${primera.fechaEntrega ? 'Entrega: ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
       ${lineasHtml}
     </div>`;
   }).join('');
