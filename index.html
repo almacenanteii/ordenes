@@ -307,6 +307,7 @@
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
     <div class="tab" id="tab-dev" onclick="switchTab('dev')">↩️ DEVO</div>
     <div class="tab" id="tab-mtc" onclick="switchTab('mtc')">🚜 Montacargas</div>
+    <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Pedidos</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -758,6 +759,38 @@
   </div>
 </div>
 
+<!-- ═══════════════ SECCIÓN PEDIDOS ═══════════════ -->
+<div class="section" id="section-ped">
+  <div class="filtros">
+    <div class="filter-row">
+      <div class="filter-label">Destino</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="ped-destino-select" onchange="setDestinoPed(this.value)">
+          <option value="todos">Todos</option>
+          <option value="Monterrey">Monterrey</option>
+          <option value="Tezontepec">Tezontepec</option>
+          <option value="Tonala">Tonalá</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Estado</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="ped-estado-select" onchange="setEstadoPed(this.value)">
+          <option value="pendientes">⏳ Pendientes</option>
+          <option value="completados">✅ Completados</option>
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="resumen">
+    <div class="res-card total"><div class="res-num" id="ped-r-total">0</div><div class="res-lbl">Líneas pendientes</div></div>
+    <div class="res-card verde"><div class="res-num" id="ped-r-hoy">0</div><div class="res-lbl">Completadas hoy</div></div>
+  </div>
+  <div class="lista" id="lista-ped"><div class="loading"><div class="spinner"></div>Cargando pedidos...</div></div>
+</div>
+
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
 <div class="section" id="section-pts">
 
@@ -892,13 +925,18 @@ const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 const CSV_DEV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1773791934&single=true&output=csv';
 const CSV_CONFIPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1762689909&single=true&output=csv';
 const CSV_MTC = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=358244993&single=true&output=csv';
+// TODO: reemplazar por el link de "Publicar en la web" (CSV) de la pestaña
+// "Pedidos" en cuanto exista (se crea sola al correr sai_pedidos.gs por
+// primera vez) — ver instrucciones de entrega.
+const CSV_PED = 'PENDIENTE_LINK_CSV_PEDIDOS';
 // Nota: el reporte del almacén DEV (gid=1557636426) ya NO se lee desde aquí —
 // lo revisa directo el backend (sai_sincronizarDEV, cada 30 min) y crea el
 // "Pendiente" en la hoja Devoluciones con fecha real. Este frontend solo lee
 // esa hoja (CSV_DEV, arriba), igual que antes.
 
-let opsData = [], actData = [], devData = [], mtcData = [], catalogoConfiPT = [];
+let opsData = [], actData = [], devData = [], mtcData = [], pedData = [], catalogoConfiPT = [];
 let mtcPersona = null, mtcTipo = '';
+let destinoPedFiltro = 'todos', estadoPedFiltro = 'pendientes';
 let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'Pendiente';
 let mesDevActual = 'todos', semanaDevActual = 'todas', ubicoDevFiltro = 'todos', estadoDevFiltro = 'todos';
@@ -1075,13 +1113,14 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','dev','mtc','pts'].forEach(t => {
+  ['ops','act','dev','mtc','ped','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
   if (tab === 'pts') renderPuntos();
   if (tab === 'dev') renderDevoluciones();
   if (tab === 'mtc') renderMontacargas();
+  if (tab === 'ped') renderPedidos();
 }
 
 let surtioFiltro = 'todos';
@@ -2235,6 +2274,122 @@ function renderMontacargas() {
       ${r.costo ? `<div style="color:var(--g4);font-size:12px;margin-top:2px">💰 $${r.costo}</div>` : ''}
       ${r.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${r.observaciones}</div>` : ''}
       ${r.foto ? `<div style="margin-top:4px"><a href="${r.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver hoja de servicio</a></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── PEDIDOS ───────────────────────────────────────────────────
+// De solo lectura: los pedidos los arma sai_pedidos.gs solo (lee las
+// remisiones), y "Completado" se marca con el checkbox directo en la
+// hoja de Sheets — aquí solo se muestra para que el almacenista vea
+// cajas/tarimas grandes y claras.
+async function cargarPedidos() {
+  const res = await fetchConTimeout(CSV_PED + '&t=' + Date.now());
+  const txt = await res.text();
+  const rows = parseCSV(txt);
+  const h = rows[0].map(x => cl(x).toLowerCase());
+  const idx = {
+    fechaRemision:   h.indexOf('fecha remision'),
+    folio:           h.indexOf('folio remision'),
+    destino:         h.indexOf('destino'),
+    fechaEntrega:    h.indexOf('fecha entrega'),
+    clave:           h.indexOf('clave'),
+    descripcion:     h.indexOf('descripcion'),
+    lote:            h.indexOf('lote'),
+    cantidad:        h.indexOf('cantidad'),
+    unidad:          h.indexOf('unidad'),
+    cajas:           h.indexOf('cajas'),
+    tarimas:         h.indexOf('tarimas completas'),
+    cajasSueltas:    h.indexOf('cajas sueltas'),
+    completado:      h.indexOf('completado'),
+    fechaCompletado: h.indexOf('fecha completado'),
+  };
+  pedData = rows.slice(1).map(r => ({
+    fechaRemision:   cl(r[idx.fechaRemision]),
+    folio:           cl(r[idx.folio]),
+    destino:         cl(r[idx.destino]),
+    fechaEntrega:    cl(r[idx.fechaEntrega]),
+    clave:           cl(r[idx.clave]),
+    descripcion:     cl(r[idx.descripcion]),
+    lote:            cl(r[idx.lote]),
+    cantidad:        cl(r[idx.cantidad]),
+    unidad:          cl(r[idx.unidad]),
+    cajas:           cl(r[idx.cajas]),
+    tarimas:         cl(r[idx.tarimas]),
+    cajasSueltas:    cl(r[idx.cajasSueltas]),
+    completado:      String(cl(r[idx.completado])).trim().toUpperCase() === 'TRUE',
+    fechaCompletado: idx.fechaCompletado !== -1 ? cl(r[idx.fechaCompletado]) : '',
+  })).filter(r => r.clave);
+}
+
+function setDestinoPed(val) { destinoPedFiltro = val; renderPedidos(); }
+function setEstadoPed(val)  { estadoPedFiltro = val; renderPedidos(); }
+
+function renderPedidos() {
+  const cont = document.getElementById('lista-ped');
+  if (!cont) return;
+
+  let filas = pedData;
+  if (destinoPedFiltro !== 'todos') filas = filas.filter(r => r.destino === destinoPedFiltro);
+  if (estadoPedFiltro === 'pendientes')      filas = filas.filter(r => !r.completado);
+  else if (estadoPedFiltro === 'completados') filas = filas.filter(r => r.completado);
+
+  document.getElementById('ped-r-total').textContent = pedData.filter(r => !r.completado).length;
+  const hoyStr = new Date().toLocaleDateString('es-MX');
+  document.getElementById('ped-r-hoy').textContent = pedData.filter(r => {
+    const fc = parseFecha(r.fechaCompletado);
+    return r.completado && fc && fc.toLocaleDateString('es-MX') === hoyStr;
+  }).length;
+
+  if (!filas.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">🚚</div>Sin pedidos</div>`; return; }
+
+  const folios = {};
+  filas.forEach(r => { (folios[r.folio] = folios[r.folio] || []).push(r); });
+  const folioKeys = Object.keys(folios).sort((a, b) => Number(b) - Number(a));
+  const colorDestino = { 'Monterrey': '#2980B9', 'Tezontepec': '#8e44ad', 'Tonala': '#e08e0b' };
+
+  cont.innerHTML = folioKeys.map(folio => {
+    const lineas = folios[folio];
+    const primera = lineas[0];
+    const fEntrega = parseFecha(primera.fechaEntrega);
+    let urgTxt = '', urgColor = colorDestino[primera.destino] || 'var(--g7)';
+    if (fEntrega) {
+      const diffDias = Math.ceil((fEntrega - new Date()) / (1000*60*60*24));
+      if (diffDias < 0)      { urgTxt = `⚠️ Venció hace ${Math.abs(diffDias)} día${Math.abs(diffDias)===1?'':'s'}`; urgColor = '#c0392b'; }
+      else if (diffDias === 0){ urgTxt = '🚨 ¡Entrega hoy!'; urgColor = '#c0392b'; }
+      else if (diffDias === 1){ urgTxt = '⏳ Entrega mañana'; urgColor = '#e08e0b'; }
+      else                    { urgTxt = `Entrega en ${diffDias} días`; }
+    }
+
+    const lineasHtml = lineas.map(l => {
+      const nTarimas = Number(l.tarimas) || 0;
+      const nSueltas = Number(l.cajasSueltas) || 0;
+      let empaqueTxt;
+      if (l.cajas === '') empaqueTxt = 'sin config de empaque (agregar clave en hoja Empaques)';
+      else if (nTarimas > 0) empaqueTxt = `${nTarimas} tarima${nTarimas>1?'s':''} completa${nTarimas>1?'s':''}${nSueltas>0 ? ` + ${nSueltas} caja${nSueltas>1?'s':''} suelta${nSueltas>1?'s':''}` : ''}`;
+      else empaqueTxt = `${l.cajas} caja${Number(l.cajas)!==1?'s':''}`;
+      return `<div style="padding:12px 0;border-top:1px solid var(--g1)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <strong style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;line-height:1.1;color:var(--g9)">${l.clave}</strong>
+          <span style="font-size:12px;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;margin-left:8px;background:${l.completado ? '#e8f8f0' : '#fff3f3'};color:${l.completado ? '#1a8a50' : '#c0392b'}">${l.completado ? '✅ Completado' : '⏳ Pendiente'}</span>
+        </div>
+        <div style="font-size:14px;font-weight:600;margin-top:2px;color:var(--g9)">${l.descripcion}</div>
+        <div style="background:#eef6fb;border-radius:10px;padding:8px 12px;margin-top:8px;display:inline-block">
+          <span style="font-size:13px;color:var(--g4);font-weight:600">LOTE:</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--g9);margin-left:4px">${l.lote || 'S/LOTE'}</span>
+          <span style="font-size:14px;font-weight:700;color:var(--g9);margin-left:8px">${l.cantidad} ${l.unidad}</span>
+        </div>
+        <div style="margin-top:8px;font-size:16px;font-weight:800;color:var(--g9)">📦 ${empaqueTxt}</div>
+      </div>`;
+    }).join('');
+
+    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${urgColor};padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--g9)">🚚 ${primera.destino}</strong>
+        <span style="color:var(--g4);font-size:12px">Folio ${folio}</span>
+      </div>
+      <div style="font-size:13px;margin-top:2px;color:${urgColor};font-weight:700">${primera.fechaEntrega ? 'Entrega: ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
+      ${lineasHtml}
     </div>`;
   }).join('');
 }
@@ -3636,12 +3791,13 @@ async function recargar() {
   document.getElementById('lista-act').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-dev').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-mtc').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  document.getElementById('lista-ped').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   await load();
 }
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
@@ -3650,6 +3806,7 @@ async function load() {
     renderActividades();
     renderDevoluciones();
     renderMontacargas();
+    renderPedidos();
     const now = new Date();
     document.getElementById('upd-txt').innerHTML = `Datos al <strong>${now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</strong> · ${now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
   } catch(e) {
