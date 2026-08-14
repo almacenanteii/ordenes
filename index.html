@@ -306,6 +306,7 @@
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
     <div class="tab" id="tab-dev" onclick="switchTab('dev')">↩️ DEVO</div>
+    <div class="tab" id="tab-mtc" onclick="switchTab('mtc')">🚜 Montacargas</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -685,6 +686,78 @@
   </div>
 </div>
 
+<!-- ═══════════════ SECCIÓN MONTACARGAS ═══════════════ -->
+<div class="section" id="section-mtc">
+  <div class="filtros" style="padding:14px 14px 0">
+    <div style="background:var(--white);border:1.5px solid var(--g2);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--g4);margin-bottom:6px">Proveedor de servicio</div>
+      <div style="font-size:15px;font-weight:800">🚜 Delman</div>
+      <div style="font-size:12px;color:var(--g4);margin-bottom:10px">Servicio Especializado en Montacargas</div>
+      <a href="https://wa.me/523316168585" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:700;text-decoration:none">📱 WhatsApp +52 1 33 1616 8585</a>
+    </div>
+    <div id="mtc-estado-card" style="border-radius:12px;padding:14px;margin-bottom:12px;color:#fff"></div>
+    <button class="modal-confirm" style="margin-bottom:14px" onclick="abrirModalMontacargas()">➕ Registrar mantenimiento</button>
+  </div>
+  <div class="lista" id="lista-mtc"><div class="loading"><div class="spinner"></div>Cargando historial...</div></div>
+</div>
+
+<!-- ═══════════════ MODAL REGISTRAR MANTENIMIENTO MONTACARGAS ═══════════════ -->
+<div class="modal-bg" id="modal-mtc-bg">
+  <div class="modal-box">
+    <div class="modal-title">🚜 Registrar mantenimiento</div>
+
+    <label class="modal-label">Fecha del servicio (déjalo vacío si es de hoy)</label>
+    <input type="date" id="mtc-fecha"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:8px">Folio de la hoja de servicio</label>
+    <input type="text" id="mtc-folio" placeholder="Ej: 4521" oninput="verificarMontacargasLista()"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:8px">Tipo de mantenimiento</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr">
+      <div class="persona-btn" id="mtc-tipo-prev" onclick="seleccionarTipoMtc('Preventivo')">
+        <div class="p-icon">🛠️</div><div class="p-name">Preventivo</div>
+      </div>
+      <div class="persona-btn" id="mtc-tipo-corr" onclick="seleccionarTipoMtc('Correctivo')">
+        <div class="p-icon">⚠️</div><div class="p-name">Correctivo</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">¿Quién registra?</label>
+    <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="persona-btn" id="mtc-marco" onclick="selectPersonaMtc('Marco Reyes')">
+        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
+      </div>
+      <div class="persona-btn" id="mtc-lupita" onclick="selectPersonaMtc('Lupita Alferez')">
+        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
+      </div>
+      <div class="persona-btn" id="mtc-eduardo" onclick="selectPersonaMtc('Eduardo de Loera')">
+        <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
+      </div>
+    </div>
+
+    <label class="modal-label" style="margin-top:8px">Costo (opcional)</label>
+    <input type="number" id="mtc-costo" placeholder="$"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:8px">Foto de la hoja de servicio</label>
+    <input type="file" id="mtc-foto" accept="image/*" capture="environment"
+      style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
+
+    <label class="modal-label" style="margin-top:8px">Observaciones (opcional)</label>
+    <textarea id="mtc-obs" placeholder="Ej: Se cambió filtro hidráulico, falla de frenos..." rows="2"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
+
+    <div id="mtc-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="mtc-modal-confirm" onclick="confirmarMontacargas()" disabled>
+      💾 Guardar mantenimiento
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('mtc')">Cancelar</div>
+  </div>
+</div>
+
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
 <div class="section" id="section-pts">
 
@@ -818,12 +891,14 @@ const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
 const CSV_DEV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1773791934&single=true&output=csv';
 const CSV_CONFIPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1762689909&single=true&output=csv';
-// Almacén DEV: reporte de existencias pendientes de ubicar (SKU/lote), se regenera
-// solo — la app solo LEE de aquí, nunca escribe. Clave+Lote es la llave para
-// relacionarlo con lo que ya se marcó como "Ubicada" en la hoja Devoluciones.
-const CSV_DEV_ALMACEN = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1557636426&single=true&output=csv';
+const CSV_MTC = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=358244993&single=true&output=csv';
+// Nota: el reporte del almacén DEV (gid=1557636426) ya NO se lee desde aquí —
+// lo revisa directo el backend (sai_sincronizarDEV, cada 30 min) y crea el
+// "Pendiente" en la hoja Devoluciones con fecha real. Este frontend solo lee
+// esa hoja (CSV_DEV, arriba), igual que antes.
 
-let opsData = [], actData = [], devData = [], catalogoConfiPT = [], devAlmacenData = [];
+let opsData = [], actData = [], devData = [], mtcData = [], catalogoConfiPT = [];
+let mtcPersona = null, mtcTipo = '';
 let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'Pendiente';
 let mesDevActual = 'todos', semanaDevActual = 'todas', ubicoDevFiltro = 'todos', estadoDevFiltro = 'todos';
@@ -1000,12 +1075,13 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','dev','pts'].forEach(t => {
+  ['ops','act','dev','mtc','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
   if (tab === 'pts') renderPuntos();
   if (tab === 'dev') renderDevoluciones();
+  if (tab === 'mtc') renderMontacargas();
 }
 
 let surtioFiltro = 'todos';
@@ -1876,8 +1952,9 @@ async function confirmarExplosion() {
 }
 
 // ── DEVOLUCIONES ────────────────────────────────────────────
-// Ya no hay captura manual: los "Pendientes" salen directo del reporte del
-// almacén DEV (devAlmacenData). Solo se captura al "Marcar como ubicada".
+// Ya no hay captura manual: sai_sincronizarDEV (backend) detecta solo lo nuevo
+// en el almacén DEV y crea el "Pendiente" con fecha real. Aquí solo se
+// captura al "Marcar como ubicada".
 
 // ── MARCAR DEVOLUCIÓN COMO UBICADA ────────────────────────────
 let devUbicItem = null, devUbicPersona = null, devUbicTipo = '';
@@ -1981,6 +2058,185 @@ function abrirModalAct(act) {
 
 function cerrarModal(tipo) {
   document.getElementById('modal-'+tipo+'-bg').classList.remove('open');
+}
+
+// ── MONTACARGAS ──────────────────────────────────────────────
+function abrirModalMontacargas() {
+  mtcPersona = null; mtcTipo = '';
+  document.getElementById('mtc-fecha').value = '';
+  document.getElementById('mtc-folio').value = '';
+  document.getElementById('mtc-costo').value = '';
+  document.getElementById('mtc-obs').value = '';
+  document.getElementById('mtc-foto').value = '';
+  document.getElementById('mtc-modal-msg').style.display = 'none';
+  ['mtc-tipo-prev','mtc-tipo-corr','mtc-marco','mtc-lupita','mtc-eduardo'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  verificarMontacargasLista();
+  document.getElementById('modal-mtc-bg').classList.add('open');
+}
+
+function seleccionarTipoMtc(tipo) {
+  mtcTipo = tipo;
+  document.getElementById('mtc-tipo-prev').classList.toggle('selected', tipo === 'Preventivo');
+  document.getElementById('mtc-tipo-corr').classList.toggle('selected', tipo === 'Correctivo');
+  verificarMontacargasLista();
+}
+
+function selectPersonaMtc(persona) {
+  mtcPersona = persona;
+  document.getElementById('mtc-marco').classList.toggle('selected', persona === 'Marco Reyes');
+  document.getElementById('mtc-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
+  document.getElementById('mtc-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
+  verificarMontacargasLista();
+}
+
+function verificarMontacargasLista() {
+  const folio = document.getElementById('mtc-folio').value.trim();
+  document.getElementById('mtc-modal-confirm').disabled = !(folio && mtcTipo && mtcPersona);
+}
+
+async function confirmarMontacargas() {
+  const btn = document.getElementById('mtc-modal-confirm');
+  const msg = document.getElementById('mtc-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  let fotoB64 = '', fotoNombre = '', fotoMime = '';
+  const fotoInput = document.getElementById('mtc-foto');
+  if (fotoInput.files && fotoInput.files[0]) {
+    try {
+      const file = fotoInput.files[0];
+      fotoNombre = file.name;
+      fotoMime = file.type;
+      fotoB64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    } catch(e) { console.log('Error leyendo foto:', e); }
+  }
+
+  try {
+    const resp = await sai_fetch({
+      tipo: 'mantenimientoMontacargas',
+      folio: document.getElementById('mtc-folio').value.trim(),
+      fecha: document.getElementById('mtc-fecha').value,
+      tipoMantenimiento: mtcTipo,
+      registro: mtcPersona || '',
+      costo: document.getElementById('mtc-costo').value,
+      observaciones: document.getElementById('mtc-obs').value,
+      fotoB64, fotoNombre, fotoMime
+    });
+    if (resp.ok) {
+      msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '✅ Mantenimiento registrado';
+      setTimeout(() => { cerrarModal('mtc'); recargar(); }, 1500);
+    } else {
+      msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+      msg.textContent = '❌ Error: ' + (resp.msg || 'intenta de nuevo');
+      btn.disabled = false;
+      btn.textContent = '💾 Guardar mantenimiento';
+    }
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error de conexión';
+    btn.disabled = false;
+    btn.textContent = '💾 Guardar mantenimiento';
+  }
+}
+
+async function cargarMontacargas() {
+  const res = await fetchConTimeout(CSV_MTC + '&t=' + Date.now());
+  const txt = await res.text();
+  const rows = parseCSV(txt);
+  const h = rows[0].map(x => cl(x).toLowerCase());
+  const idx = {
+    folio:    h.indexOf('folio'),
+    fecha:    h.indexOf('fecha'),
+    tipo:     h.indexOf('tipo'),
+    proveedor:h.indexOf('proveedor'),
+    registro: h.indexOf('registro') !== -1 ? h.indexOf('registro') : h.indexOf('registró'),
+    observaciones: h.indexOf('observaciones'),
+    costo:    h.indexOf('costo'),
+    foto:     h.indexOf('foto'),
+    proximo:  h.indexOf('proximo mantenimiento') !== -1 ? h.indexOf('proximo mantenimiento') : h.indexOf('próximo mantenimiento'),
+    estado:   h.indexOf('estado'),
+  };
+  mtcData = rows.slice(1).map(r => ({
+    folio:    cl(r[idx.folio]),
+    fecha:    cl(r[idx.fecha]),
+    tipo:     cl(r[idx.tipo]),
+    proveedor:idx.proveedor !== -1 ? cl(r[idx.proveedor]) : '',
+    registro: idx.registro !== -1 ? cl(r[idx.registro]) : '',
+    observaciones: idx.observaciones !== -1 ? cl(r[idx.observaciones]) : '',
+    costo:    idx.costo !== -1 ? cl(r[idx.costo]) : '',
+    foto:     idx.foto !== -1 ? cl(r[idx.foto]) : '',
+    proximo:  idx.proximo !== -1 ? cl(r[idx.proximo]) : '',
+    estado:   idx.estado !== -1 ? cl(r[idx.estado]) : '',
+  })).filter(r => r.folio);
+}
+
+function renderMontacargas() {
+  const cont = document.getElementById('lista-mtc');
+  const estadoCard = document.getElementById('mtc-estado-card');
+  if (!cont || !estadoCard) return;
+
+  if (!mtcData.length) {
+    cont.innerHTML = `<div class="empty"><div class="empty-ico">🚜</div>Sin mantenimientos registrados aún</div>`;
+    estadoCard.style.background = 'var(--g3)';
+    estadoCard.innerHTML = `<div style="font-weight:800">Sin historial todavía</div><div style="font-size:12px;opacity:.9">Registra el primer mantenimiento para empezar a contar los 2 meses.</div>`;
+    return;
+  }
+
+  const ordenado = [...mtcData].sort((a,b) => (parseFecha(b.fecha)||0) - (parseFecha(a.fecha)||0));
+  const ultimo = ordenado[0];
+
+  let proximo = parseFecha(ultimo.proximo);
+  if (!proximo) {
+    const f = parseFecha(ultimo.fecha);
+    if (f) { proximo = new Date(f); proximo.setMonth(proximo.getMonth() + 2); }
+  }
+
+  const fechaUltimo = parseFecha(ultimo.fecha);
+  const diasDesde = fechaUltimo ? Math.floor((new Date() - fechaUltimo) / (1000*60*60*24)) : null;
+  const bloqueDesde = fechaUltimo
+    ? `<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Último mantenimiento</div>
+       <div style="font-size:14px;font-weight:700;margin:2px 0 8px">${fechaUltimo.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})} · hace ${diasDesde} día${diasDesde===1?'':'s'}</div>
+       <div style="height:1px;background:rgba(255,255,255,.35);margin-bottom:8px"></div>`
+    : '';
+
+  if (proximo) {
+    const hoy = new Date();
+    const diffDias = Math.ceil((proximo - hoy) / (1000*60*60*24));
+    let color, txt;
+    if (diffDias < 0)      { color = '#c0392b'; txt = `⚠️ VENCIDO desde hace ${Math.abs(diffDias)} día${Math.abs(diffDias)===1?'':'s'}`; }
+    else if (diffDias === 0){ color = '#c0392b'; txt = '🚨 ¡Hoy toca mantenimiento!'; }
+    else if (diffDias <= 7) { color = '#e08e0b'; txt = `⏳ Faltan ${diffDias} día${diffDias===1?'':'s'} — contactar a Delman`; }
+    else                    { color = '#1a8a50'; txt = `✅ Faltan ${diffDias} días`; }
+    estadoCard.style.background = color;
+    estadoCard.innerHTML = `${bloqueDesde}<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.85">Próximo mantenimiento</div>
+      <div style="font-size:18px;font-weight:800;margin:2px 0">${proximo.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})}</div>
+      <div style="font-size:13px">${txt}</div>`;
+  } else {
+    estadoCard.style.background = 'var(--g3)';
+    estadoCard.innerHTML = `${bloqueDesde}<div>No se pudo calcular la próxima fecha</div>`;
+  }
+
+  cont.innerHTML = ordenado.map(r => {
+    const fecha = parseFecha(r.fecha);
+    const fechaTxt = fecha ? fecha.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : r.fecha;
+    const emoji = r.tipo === 'Correctivo' ? '⚠️' : '🛠️';
+    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid ${r.tipo === 'Correctivo' ? '#c0392b' : '#1a8a50'};padding:11px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>🗂️ ${r.folio}</strong>
+        <span style="color:var(--g4);font-size:12px">${fechaTxt}</span>
+      </div>
+      <div style="font-size:13px;margin-top:2px">${emoji} ${r.tipo || 'Sin tipo'}${r.registro ? ' · 👤 ' + r.registro : ''}</div>
+      ${r.costo ? `<div style="color:var(--g4);font-size:12px;margin-top:2px">💰 $${r.costo}</div>` : ''}
+      ${r.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${r.observaciones}</div>` : ''}
+      ${r.foto ? `<div style="margin-top:4px"><a href="${r.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver hoja de servicio</a></div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 async function confirmarOP() {
@@ -3270,161 +3526,101 @@ async function cargarDevoluciones() {
   }
 }
 
-// Almacén DEV: reporte de existencias pendientes (Clave, Lote, Existencia...).
-// Solo lectura — nunca se escribe aquí, se regenera solo cuando corre el reporte.
-async function cargarAlmacenDEV() {
-  const res = await fetchConTimeout(CSV_DEV_ALMACEN + '&t=' + Date.now());
-  const txt = await res.text();
-  const rows = parseCSV(txt);
-  const h = rows[0].map(x => cl(x).toLowerCase());
-  const colClase  = h.indexOf('clase');
-  const colClave  = h.indexOf('clave');
-  const colDesc   = h.indexOf('descripcion') !== -1 ? h.indexOf('descripcion') : h.indexOf('descripción');
-  const colLote   = h.indexOf('lote');
-  const colExist  = h.indexOf('existencia');
-  const colUnidad = h.indexOf('unidad');
-  const colCaduc  = h.indexOf('fecha caducidad');
-  const colAlmacen= h.indexOf('almacén') !== -1 ? h.indexOf('almacén') : h.indexOf('almacen');
-  devAlmacenData = rows.slice(1)
-    .map(r => ({
-      clase:      colClase  !== -1 ? cl(r[colClase])  : '',
-      clave:      cl(r[colClave]),
-      descripcion:cl(r[colDesc]),
-      lote:       cl(r[colLote]),
-      existencia: parseFloat(cl(r[colExist])) || 0,
-      unidad:     colUnidad !== -1 ? cl(r[colUnidad]) : '',
-      fechaCaducidad: colCaduc !== -1 ? cl(r[colCaduc]) : '',
-      almacen:    colAlmacen !== -1 ? cl(r[colAlmacen]) : '',
-    }))
-    .filter(r => r.clave && (colAlmacen === -1 || r.almacen.toUpperCase() === 'DEV'));
-}
+// Nota: el registro "Pendiente" en la hoja Devoluciones ahora lo crea solo el
+// backend (sai_sincronizarDEV, corre cada 30 min) en cuanto detecta algo nuevo
+// en el reporte del almacén DEV — por eso ya no hace falta leer ese CSV aquí
+// ni armar una lista combinada: devData (cargarDevoluciones) ya trae todo,
+// con Fecha real, así que la barra de 48h vuelve a funcionar igual que antes.
 
-// Combina lo que hoy está en el almacén DEV (pendiente) con lo que ya se marcó
-// como ubicado en la hoja Devoluciones, usando Clave+Lote como llave — porque
-// DEV se regenera solo y no guarda ese estatus.
-function construirListaDevoluciones() {
-  const ubicadasPorLlave = {};
-  devData.forEach(r => {
-    if ((r.estado||'').toLowerCase() !== 'ubicada') return;
-    const llave = (r.codigo||'').toUpperCase() + '|' + (r.lote||'').toUpperCase();
-    const actual = ubicadasPorLlave[llave];
-    if (!actual || (parseFecha(r.fechaUbicada) || 0) > (parseFecha(actual.fechaUbicada) || 0)) {
-      ubicadasPorLlave[llave] = r;
-    }
-  });
+function buildTimeBarDev(primera) {
+  const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
+  const ini = parseFecha(primera.fecha);
+  if (!ini || isNaN(ini)) return '';
 
-  const vistos = new Set();
-  const lista = [];
-
-  devAlmacenData.forEach(d => {
-    const llave = (d.clave||'').toUpperCase() + '|' + (d.lote||'').toUpperCase();
-    vistos.add(llave);
-    const ubic = ubicadasPorLlave[llave];
-    if (ubic) {
-      lista.push({
-        clave: d.clave, descripcion: d.descripcion || ubic.producto, lote: d.lote,
-        existencia: d.existencia, unidad: d.unidad, fechaCaducidad: d.fechaCaducidad, clase: d.clase,
-        estado: 'Ubicada', ubico: ubic.ubico, fecha: ubic.fecha, fechaUbicada: ubic.fechaUbicada,
-        obsUbicacion: ubic.obsUbicacion, tipo: ubic.tipo, foto: ubic.foto, semana: ubic.semana
-      });
-    } else {
-      lista.push({
-        clave: d.clave, descripcion: d.descripcion, lote: d.lote,
-        existencia: d.existencia, unidad: d.unidad, fechaCaducidad: d.fechaCaducidad, clase: d.clase,
-        estado: 'Pendiente', ubico: '', fecha: '', fechaUbicada: '', obsUbicacion: '', tipo: '', foto: '', semana: ''
-      });
-    }
-  });
-
-  // Ubicadas históricas cuya Clave+Lote ya no aparece en DEV (ya se despachó a EyeJal)
-  Object.keys(ubicadasPorLlave).forEach(llave => {
-    if (vistos.has(llave)) return;
-    const ubic = ubicadasPorLlave[llave];
-    lista.push({
-      clave: ubic.codigo, descripcion: ubic.producto, lote: ubic.lote,
-      existencia: ubic.cantidad, unidad: ubic.unidad, fechaCaducidad: '', clase: '',
-      estado: 'Ubicada', ubico: ubic.ubico, fecha: ubic.fecha, fechaUbicada: ubic.fechaUbicada,
-      obsUbicacion: ubic.obsUbicacion, tipo: ubic.tipo, foto: ubic.foto, semana: ubic.semana
-    });
-  });
-
-  return lista;
-}
-
-function buildTimeBarDev(item) {
-  if (item.estado !== 'Ubicada') return ''; // pendientes: vienen del reporte en vivo, sin fecha propia
-  const ini = parseFecha(item.fecha);
-  const fin = parseFecha(item.fechaUbicada);
-  if (!ini || !fin) {
-    return `<div class="time-surtida">📍 <strong>Ubicada</strong>${item.ubico ? ' por ' + item.ubico : ''}${item.fechaUbicada ? ' el ' + item.fechaUbicada : ''}${item.obsUbicacion ? `<br>📋 ${item.obsUbicacion}` : ''}</div>`;
+  if (ubicada) {
+    const fin = parseFecha(primera.fechaUbicada) || new Date();
+    const horas = Math.max(0, (fin - ini) / (1000 * 60 * 60));
+    const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
+    const txt = dias === 0 ? `Ubicada en ${hrsResto} hrs` : `Ubicada en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
+    return `<div class="time-surtida">📍 <strong>${txt}</strong>${primera.ubico ? ' por ' + primera.ubico : ''}${primera.obsUbicacion ? `<br>📋 ${primera.obsUbicacion}` : ''}</div>`;
   }
-  const horas = Math.max(0, (fin - ini) / (1000 * 60 * 60));
-  // Con el flujo nuevo, registro y ubicación pasan casi al mismo momento —
-  // mostrar "0 hrs" no sirve, mejor mostrar solo la fecha/hora.
-  if (horas < 0.05) {
-    return `<div class="time-surtida">📍 <strong>Ubicada el ${item.fechaUbicada}</strong>${item.ubico ? ' por ' + item.ubico : ''}${item.obsUbicacion ? `<br>📋 ${item.obsUbicacion}` : ''}</div>`;
-  }
+
+  const horas = (new Date() - ini) / (1000 * 60 * 60);
   const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
-  const txt = dias === 0 ? `Ubicada en ${hrsResto} hrs` : `Ubicada en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
-  return `<div class="time-surtida">📍 <strong>${txt}</strong>${item.ubico ? ' por ' + item.ubico : ''}${item.obsUbicacion ? `<br>📋 ${item.obsUbicacion}` : ''}</div>`;
+  let cls = 'c0';
+  if (horas >= 48) cls = 'c4';
+  else if (horas >= 36) cls = 'c3';
+  else if (horas >= 24) cls = 'c2';
+  else if (horas >= 12) cls = 'c1';
+  const pct = Math.min((horas / 48) * 100, 100);
+  const txt = dias === 0 ? `${hrsResto} hrs abierta` : `${dias} día${dias>1?'s':''} ${hrsResto} hrs abierta`;
+  return `<div class="time-bar-wrap">
+    <div class="time-bar-label">
+      <span class="time-bar-txt">⏱ Tiempo abierta</span>
+      <span class="time-bar-days ${cls}">${txt}</span>
+    </div>
+    <div class="time-bar"><div class="time-bar-fill ${cls}" style="width:${pct}%"></div></div>
+  </div>`;
 }
 
 function renderDevoluciones() {
   const cont = document.getElementById('lista-dev');
   if (!cont) return;
   const q = (document.getElementById('dev-search')?.value || '').toLowerCase().trim();
-  let filas = construirListaDevoluciones();
-
+  let filas = devData;
   if (q) filas = filas.filter(r =>
-    (r.clave||'').toLowerCase().includes(q) ||
-    (r.descripcion||'').toLowerCase().includes(q) ||
-    (r.lote||'').toLowerCase().includes(q)
+    r.codigo.toLowerCase().includes(q) || r.producto.toLowerCase().includes(q) || r.lote.toLowerCase().includes(q)
   );
 
-  // Mes/Semana solo filtran lo ya Ubicado — los Pendientes vienen del reporte
-  // DEV en vivo, no tienen una fecha de captura propia, así que siempre se ven.
   if (mesDevActual !== 'todos') {
     const [anio, mes] = mesDevActual.split('-').map(Number);
     filas = filas.filter(r => {
-      if (r.estado !== 'Ubicada') return true;
-      const f = parseFecha(r.fechaUbicada || r.fecha);
+      const f = parseFecha(r.fecha);
       return f && f.getFullYear() === anio && f.getMonth() === mes;
     });
   }
-  if (semanaDevActual !== 'todas') {
-    filas = filas.filter(r => r.estado !== 'Ubicada' || (r.semana||'') === semanaDevActual);
-  }
+  if (semanaDevActual !== 'todas') filas = filas.filter(r => (r.semana||'') === semanaDevActual);
   if (ubicoDevFiltro !== 'todos') filas = filas.filter(r => (r.ubico||'') === ubicoDevFiltro);
-  if (estadoDevFiltro !== 'todos') filas = filas.filter(r => r.estado === estadoDevFiltro);
+  if (estadoDevFiltro !== 'todos') {
+    filas = filas.filter(r => {
+      const est = (r.estado||'').toLowerCase();
+      return estadoDevFiltro === 'Ubicada' ? est === 'ubicada' : est !== 'ubicada';
+    });
+  }
 
-  filas.sort((a, b) => {
-    if (a.estado !== b.estado) return a.estado === 'Pendiente' ? -1 : 1;
-    if (a.estado === 'Ubicada') return (parseFecha(b.fechaUbicada) || 0) - (parseFecha(a.fechaUbicada) || 0);
-    return (a.clave||'').localeCompare(b.clave||'');
-  });
+  // Agrupar por folio (uno por Clave+Lote, generado por la sincronización)
+  const folios = {};
+  filas.forEach(r => { (folios[r.folio] = folios[r.folio] || []).push(r); });
+  const folioKeys = Object.keys(folios).sort().reverse();
 
-  const pendientesCount = filas.filter(r => r.estado === 'Pendiente').length;
+  const pendientesCount = folioKeys.filter(f => (folios[f][0].estado||'').toLowerCase() !== 'ubicada').length;
   document.getElementById('dev-r-total').textContent = pendientesCount;
   const hoyStr = new Date().toLocaleDateString('es-MX');
-  document.getElementById('dev-r-hoy').textContent = filas
-    .filter(r => r.estado === 'Ubicada' && parseFecha(r.fechaUbicada) && parseFecha(r.fechaUbicada).toLocaleDateString('es-MX') === hoyStr).length;
+  document.getElementById('dev-r-hoy').textContent = folioKeys
+    .filter(f => {
+      const p = folios[f][0];
+      return (p.estado||'').toLowerCase() === 'ubicada' && parseFecha(p.fechaUbicada) && parseFecha(p.fechaUbicada).toLocaleDateString('es-MX') === hoyStr;
+    }).length;
 
-  if (!filas.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">↩️</div>Sin devoluciones pendientes</div>`; return; }
+  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">↩️</div>Sin devoluciones pendientes</div>`; return; }
 
-  cont.innerHTML = filas.map(item => {
-    const ubicada = item.estado === 'Ubicada';
-    const cant = item.existencia ? ` · ${item.existencia} ${item.unidad || ''}` : '';
-    const itemJson = JSON.stringify({clave:item.clave, descripcion:item.descripcion, lote:item.lote, existencia:item.existencia, unidad:item.unidad}).replace(/'/g,"&#39;");
+  cont.innerHTML = folioKeys.map(folio => {
+    const lineas = folios[folio];
+    const primera = lineas[0];
+    const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
+    const cant = primera.cantidad ? ` · ${primera.cantidad} ${primera.unidad || ''}` : '';
+    const itemJson = JSON.stringify({clave: primera.codigo, descripcion: primera.producto, lote: primera.lote, existencia: primera.cantidad, unidad: primera.unidad}).replace(/'/g,"&#39;");
     return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:11px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong>${item.clave}</strong>
-        ${item.fechaCaducidad ? `<span style="color:var(--g4);font-size:12px">Caduca: ${item.fechaCaducidad}</span>` : ''}
+        <strong>${primera.codigo || 'Sin código'}</strong>
+        <span style="color:var(--g4);font-size:12px">${primera.fecha}</span>
       </div>
-      <div style="font-size:13px;margin-top:2px">${item.descripcion || ''}</div>
-      <div style="color:var(--g4);font-size:12px;margin-top:2px">Lote: <strong>${item.lote || 's/lote'}</strong>${cant}${item.clase ? ' · ' + item.clase : ''}</div>
-      ${ubicada ? `<div style="color:var(--g4);font-size:12px;margin-top:2px">${item.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>` : ''}
-      ${item.foto ? `<div style="margin-top:4px"><a href="${item.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
-      ${buildTimeBarDev(item)}
+      <div style="font-size:13px;margin-top:2px">${primera.producto || ''}</div>
+      <div style="color:var(--g4);font-size:12px;margin-top:2px">Lote: <strong>${primera.lote || 's/lote'}</strong>${cant}</div>
+      ${ubicada ? `<div style="color:var(--g4);font-size:12px;margin-top:2px">${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>` : ''}
+      ${primera.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${primera.observaciones}</div>` : ''}
+      ${primera.foto ? `<div style="margin-top:4px"><a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
+      ${buildTimeBarDev(primera)}
       ${!ubicada ? `<button onclick='abrirModalUbicarDevolucion(${itemJson})' style="width:100%;margin-top:8px;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box">📍 Marcar como ubicada</button>` : ''}
     </div>`;
   }).join('');
@@ -3435,12 +3631,13 @@ async function recargar() {
   document.getElementById('lista-ops').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-act').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-dev').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+  document.getElementById('lista-mtc').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   await load();
 }
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarAlmacenDEV()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
@@ -3448,6 +3645,7 @@ async function load() {
     renderOPs();
     renderActividades();
     renderDevoluciones();
+    renderMontacargas();
     const now = new Date();
     document.getElementById('upd-txt').innerHTML = `Datos al <strong>${now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</strong> · ${now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
   } catch(e) {
@@ -3472,6 +3670,7 @@ async function sai_fetch(payload) {
 ['modal-op-bg','modal-act-bg'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) cerrarModal(id.includes('op')?'op':'act'); });
 });
+document.getElementById('modal-mtc-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('mtc'); });
 
 load();
 </script>
