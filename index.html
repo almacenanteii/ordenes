@@ -296,18 +296,16 @@
   .time-surtida { padding:6px 14px 10px; border-top:1px solid var(--g1); font-size:11px; color:var(--g4); }
   .time-surtida strong { color:var(--green); }
 
-  /* PEDIDOS CARD — mismo lenguaje visual que .op-card */
+  /* PEDIDOS CARD */
   .ped-card { background:var(--white); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); border-left:4px solid var(--g2); margin-bottom:10px; }
-  .ped-top { display:flex; justify-content:space-between; align-items:flex-start; padding:11px 14px 6px; }
-  .ped-destino { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:800; color:var(--g9); }
-  .ped-folio { font-size:10px; color:var(--g4); margin-top:2px; }
-  .ped-linea { padding:9px 14px; border-top:1px solid var(--g1); }
-  .ped-linea-top { display:flex; justify-content:space-between; align-items:center; }
-  .ped-clave { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800; color:var(--g9); }
+  .ped-top { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 14px 8px; }
+  .ped-folio-big { font-family:'Barlow Condensed',sans-serif; font-size:23px; font-weight:800; color:var(--g9); line-height:1.1; }
+  .ped-destino-sub { font-size:12px; font-weight:600; color:var(--g4); margin-top:3px; }
+  .ped-linea { padding:10px 14px; border-top:1px solid var(--g1); }
+  .ped-clave { font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800; color:var(--g9); }
   .ped-desc { font-size:12px; font-weight:500; color:var(--g7); margin-top:2px; line-height:1.3; }
-  .ped-grid { display:grid; grid-template-columns:1fr 1fr 1fr; margin-top:7px; gap:6px; }
-  .ped-field-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); margin-bottom:2px; }
-  .ped-field-val { font-size:13px; font-weight:700; color:var(--g7); }
+  .ped-info-row { display:flex; gap:16px; margin-top:6px; font-size:13px; font-weight:600; color:var(--g7); }
+  .ped-cajas { margin-top:6px; font-size:14px; font-weight:700; color:var(--g9); }
 </style>
 </head>
 <body>
@@ -2390,26 +2388,26 @@ function renderPedidos() {
     const lineasHtml = lineas.map(l => {
       const nTarimas = Number(l.tarimas) || 0;
       const nSueltas = Number(l.cajasSueltas) || 0;
-      let empaqueTxt;
-      if (l.cajas === '') empaqueTxt = 'Sin config';
-      else if (nTarimas > 0) empaqueTxt = `${nTarimas} tar.${nSueltas > 0 ? ` + ${nSueltas} caj.` : ''}`;
-      else empaqueTxt = `${l.cajas} caja${Number(l.cajas) !== 1 ? 's' : ''}`;
+      let cajasTxt;
+      if (l.cajas === '') cajasTxt = '⚠️ Sin config de empaque';
+      else cajasTxt = `📦 ${l.cajas} caja${Number(l.cajas) !== 1 ? 's' : ''}`;
+      const tarimaTxt = nTarimas > 0 ? ` · 🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''} completa${nTarimas > 1 ? 's' : ''}${nSueltas > 0 ? ` + ${nSueltas} suelta${nSueltas > 1 ? 's' : ''}` : ''}` : '';
       return `<div class="ped-linea">
-        <span class="ped-clave">${l.clave}</span>
+        <div class="ped-clave">${l.clave}</div>
         <div class="ped-desc">${l.descripcion}</div>
-        <div class="ped-grid">
-          <div><div class="ped-field-lbl">Lote</div><div class="ped-field-val">${l.lote || 'S/LOTE'}</div></div>
-          <div><div class="ped-field-lbl">Cantidad</div><div class="ped-field-val">${l.cantidad} ${l.unidad}</div></div>
-          <div><div class="ped-field-lbl">Cajas</div><div class="ped-field-val">${empaqueTxt}</div></div>
+        <div class="ped-info-row">
+          <span>🏷️ Lote: <strong>${l.lote || 'S/LOTE'}</strong></span>
+          <span>🔢 ${l.cantidad} ${l.unidad}</span>
         </div>
+        <div class="ped-cajas">${cajasTxt}${tarimaTxt}</div>
       </div>`;
     }).join('');
 
     return `<div class="ped-card" style="border-left-color:${urgColor}">
       <div class="ped-top">
         <div>
-          <div class="ped-destino">🚚 ${primera.destino}</div>
-          <div class="ped-folio">Folio Remisión ${folio}${primera.fechaEntrega ? ' · Entrega ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
+          <div class="ped-folio-big">Folio Remisión ${folio}</div>
+          <div class="ped-destino-sub">🚚 ${primera.destino}${primera.fechaEntrega ? ' · Entrega ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
         </div>
         <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
       </div>
