@@ -299,13 +299,15 @@
   /* PEDIDOS CARD */
   .ped-card { background:var(--white); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); border-left:4px solid var(--g2); margin-bottom:10px; }
   .ped-top { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 14px 8px; }
-  .ped-folio-big { font-family:'Barlow Condensed',sans-serif; font-size:23px; font-weight:800; color:var(--g9); line-height:1.1; }
-  .ped-destino-sub { font-size:12px; font-weight:600; color:var(--g4); margin-top:3px; }
+  .ped-destino-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:800; color:#fff; margin-bottom:5px; }
+  .ped-folio-big { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:800; color:var(--g9); line-height:1.1; }
+  .ped-destino-sub { font-size:11px; font-weight:600; color:var(--g4); margin-top:3px; }
   .ped-linea { padding:10px 14px; border-top:1px solid var(--g1); }
   .ped-clave { font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800; color:var(--g9); }
   .ped-desc { font-size:12px; font-weight:500; color:var(--g7); margin-top:2px; line-height:1.3; }
   .ped-info-row { display:flex; gap:16px; margin-top:6px; font-size:13px; font-weight:600; color:var(--g7); }
   .ped-cajas { margin-top:6px; font-size:14px; font-weight:700; color:var(--g9); }
+  .ped-existencia { font-size:12px; font-weight:700; margin-top:3px; }
 </style>
 </head>
 <body>
@@ -937,6 +939,7 @@ const CSV_DEV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 const CSV_CONFIPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1762689909&single=true&output=csv';
 const CSV_MTC = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=358244993&single=true&output=csv';
 const CSV_PED = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1224567058&single=true&output=csv';
+const CSV_INVPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=2121915166&single=true&output=csv';
 // Nota: el reporte del almacén DEV (gid=1557636426) ya NO se lee desde aquí —
 // lo revisa directo el backend (sai_sincronizarDEV, cada 30 min) y crea el
 // "Pendiente" en la hoja Devoluciones con fecha real. Este frontend solo lee
@@ -945,6 +948,7 @@ const CSV_PED = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 let opsData = [], actData = [], devData = [], mtcData = [], pedData = [], catalogoConfiPT = [];
 let mtcPersona = null, mtcTipo = '';
 let destinoPedFiltro = 'todos', estadoPedFiltro = 'pendientes';
+let invPTMap = {};
 let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'Pendiente';
 let mesDevActual = 'todos', semanaDevActual = 'todas', ubicoDevFiltro = 'todos', estadoDevFiltro = 'todos';
@@ -2333,6 +2337,34 @@ async function cargarPedidos() {
 function setDestinoPed(val) { destinoPedFiltro = val; renderPedidos(); }
 function setEstadoPed(val)  { estadoPedFiltro = val; renderPedidos(); }
 
+// Existencia real por Clave+Lote (y también por solo Clave como respaldo),
+// para poder avisar si un pedido no alcanza con lo que hay en InventarioPT.
+// Detecta las columnas por palabra clave en el encabezado en vez de exigir
+// un nombre exacto, para no depender de cómo esté escrito ahí.
+async function cargarInventarioPT() {
+  const res = await fetchConTimeout(CSV_INVPT + '&t=' + Date.now());
+  const txt = await res.text();
+  const rows = parseCSV(txt);
+  if (!rows.length) { invPTMap = {}; return; }
+  const h = rows[0].map(x => cl(x).toLowerCase());
+  const colClave = h.findIndex(x => x.includes('clave'));
+  const colLote = h.findIndex(x => x.includes('lote'));
+  const colExist = h.findIndex(x => x.includes('existencia'));
+  if (colClave === -1 || colExist === -1) { invPTMap = {}; return; }
+
+  const mapa = {};
+  rows.slice(1).forEach(r => {
+    const clave = cl(r[colClave]).toUpperCase();
+    if (!clave) return;
+    const lote = colLote !== -1 ? cl(r[colLote]).toUpperCase() : '';
+    const exist = parseFloat(String(cl(r[colExist])).replace(/,/g, '')) || 0;
+    const key = clave + '|' + lote;
+    mapa[key] = (mapa[key] || 0) + exist;
+    mapa[clave] = (mapa[clave] || 0) + exist; // respaldo si el lote no hace match exacto
+  });
+  invPTMap = mapa;
+}
+
 function renderPedidos() {
   const cont = document.getElementById('lista-ped');
   if (!cont) return;
@@ -2392,6 +2424,21 @@ function renderPedidos() {
       if (l.cajas === '') cajasTxt = '⚠️ Sin config de empaque';
       else cajasTxt = `📦 ${l.cajas} caja${Number(l.cajas) !== 1 ? 's' : ''}`;
       const tarimaTxt = nTarimas > 0 ? ` · 🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''} completa${nTarimas > 1 ? 's' : ''}${nSueltas > 0 ? ` + ${nSueltas} suelta${nSueltas > 1 ? 's' : ''}` : ''}` : '';
+
+      const claveU = (l.clave || '').toUpperCase();
+      const loteU = (l.lote || '').toUpperCase();
+      let existTxt = '';
+      if (Object.keys(invPTMap).length) {
+        const key = claveU + '|' + loteU;
+        const existencia = invPTMap[key] !== undefined ? invPTMap[key] : invPTMap[claveU];
+        if (existencia !== undefined) {
+          const alcanza = existencia >= Number(l.cantidad);
+          existTxt = `<div class="ped-existencia" style="color:${alcanza ? '#1a8a50' : '#c0392b'}">${alcanza ? '✅' : '⚠️'} Existencia: ${existencia} ${l.unidad}${!alcanza ? ' — NO ALCANZA' : ''}</div>`;
+        } else {
+          existTxt = `<div class="ped-existencia" style="color:var(--g4)">Sin dato de existencia</div>`;
+        }
+      }
+
       return `<div class="ped-linea">
         <div class="ped-clave">${l.clave}</div>
         <div class="ped-desc">${l.descripcion}</div>
@@ -2399,6 +2446,7 @@ function renderPedidos() {
           <span>🏷️ Lote: <strong>${l.lote || 'S/LOTE'}</strong></span>
           <span>🔢 ${l.cantidad} ${l.unidad}</span>
         </div>
+        ${existTxt}
         <div class="ped-cajas">${cajasTxt}${tarimaTxt}</div>
       </div>`;
     }).join('');
@@ -2406,8 +2454,9 @@ function renderPedidos() {
     return `<div class="ped-card" style="border-left-color:${urgColor}">
       <div class="ped-top">
         <div>
+          <span class="ped-destino-badge" style="background:${colorDestino[primera.destino] || '#7f8c8d'}">🚚 ${primera.destino}</span>
           <div class="ped-folio-big">Folio Remisión ${folio}</div>
-          <div class="ped-destino-sub">🚚 ${primera.destino}${primera.fechaEntrega ? ' · Entrega ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
+          <div class="ped-destino-sub">${primera.fechaEntrega ? 'Entrega ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
         </div>
         <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
       </div>
@@ -3819,7 +3868,7 @@ async function recargar() {
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
