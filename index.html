@@ -3610,14 +3610,18 @@ function renderDevoluciones() {
     const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
     const cant = primera.cantidad ? ` · ${primera.cantidad} ${primera.unidad || ''}` : '';
     const itemJson = JSON.stringify({clave: primera.codigo, descripcion: primera.producto, lote: primera.lote, existencia: primera.cantidad, unidad: primera.unidad}).replace(/'/g,"&#39;");
-    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:11px 14px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong>${primera.codigo || 'Sin código'}</strong>
-        <span style="color:var(--g4);font-size:12px">${primera.fecha}</span>
+    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;line-height:1.1;color:var(--g9)">${primera.codigo || 'Sin código'}</strong>
+        <span style="color:var(--g4);font-size:12px;white-space:nowrap;margin-left:8px">${primera.fecha}</span>
       </div>
-      <div style="font-size:13px;margin-top:2px">${primera.producto || ''}</div>
-      <div style="color:var(--g4);font-size:12px;margin-top:2px">Lote: <strong>${primera.lote || 's/lote'}</strong>${cant}</div>
-      ${ubicada ? `<div style="color:var(--g4);font-size:12px;margin-top:2px">${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>` : ''}
+      <div style="font-size:16px;font-weight:600;margin-top:4px;color:var(--g9)">${primera.producto || ''}</div>
+      <div style="background:#fff3f3;border-radius:10px;padding:8px 12px;margin-top:8px;display:inline-block">
+        <span style="font-size:13px;color:var(--g4);font-weight:600">LOTE:</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--g9);margin-left:4px">${primera.lote || 'S/LOTE'}</span>
+        ${cant ? `<span style="font-size:15px;font-weight:700;color:var(--g9);margin-left:8px">${cant.replace(' · ','')}</span>` : ''}
+      </div>
+      ${ubicada ? `<div style="color:var(--g4);font-size:12px;margin-top:6px">${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>` : ''}
       ${primera.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${primera.observaciones}</div>` : ''}
       ${primera.foto ? `<div style="margin-top:4px"><a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
       ${buildTimeBarDev(primera)}
