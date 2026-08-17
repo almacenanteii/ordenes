@@ -3398,9 +3398,9 @@ function renderPuntos() {
       </div>`;
     })() : '';
 
-    // OPs pendientes de esta semana
-    const opsPendSem = todasOpsMes.filter(r =>
-      (r.semana||'S/N') === sem && esEstadoActivo(r.estado)
+    // OPs pendientes de surtir — TODAS, sin importar la semana ni el mes reportado
+    const opsPendTodas = opsData.filter(r =>
+      esEstadoActivo(r.estado) && !String(r.op||'').trim().toUpperCase().startsWith('EXPLO')
     );
     // OPs sin recolectar de TODAS las semanas
     const opsNoRecTodas = opsData.filter(r =>
@@ -3434,10 +3434,6 @@ function renderPuntos() {
       !String(r.opref||'').trim()
     );
 
-    // OPs pendientes (sin explosiones)
-    const opsPendSemPuras = opsPendSem.filter(r => !String(r.op||'').trim().toUpperCase().startsWith('EXPLO'));
-    // Explosiones pendientes de esta semana
-    const explosPendSem = opsPendSem.filter(r => String(r.op||'').trim().toUpperCase().startsWith('EXPLO'));
     // OPs parciales de esta semana
     const opsParcSem = todasOpsMes.filter(r =>
       (r.semana||'S/N') === sem && (r.estado||'').toLowerCase().trim() === 'parcial'
@@ -3448,7 +3444,7 @@ function renderPuntos() {
     );
 
     let listaOPs = '';
-    if (opsPendSemPuras.length > 0 || explosPendSem.length > 0 || opsParcSem.length > 0 || opsCancSem.length > 0 || opsNoRecTodas.length > 0 || exploSinOPLista.length > 0) {
+    if (opsPendTodas.length > 0 || opsParcSem.length > 0 || opsCancSem.length > 0 || opsNoRecTodas.length > 0 || exploSinOPLista.length > 0) {
 
       const fmtFila = (r, color, etiqueta) => {
         const f = parseFecha(r.fecha);
@@ -3467,8 +3463,18 @@ function renderPuntos() {
         <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.05em;margin:6px 0 4px">${titulo}</div>
         ${filas}` : '';
 
-      const filasPend    = seccion('⏳ POR SURTIR', '#E74C3C',
-        opsPendSemPuras.map(r => fmtFila(r, '#E74C3C', `<span style="font-size:10px;font-weight:700;color:#E74C3C;white-space:nowrap">Sin surtir</span>`)).join(''));
+      const filasPend    = seccion('⏳ POR SURTIR (todas las semanas)', '#E74C3C',
+        opsPendTodas.map(r => {
+          const f = parseFecha(r.fecha); const dias = f ? Math.floor((new Date()-f)/(1000*60*60*24)) : '?';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#E74C3C10;border-radius:8px;margin-bottom:3px">
+            <div style="flex:1;min-width:0;font-size:12px;color:var(--g9)">
+              <strong>${r.op}</strong>
+              <span style="color:var(--g5);font-size:10px"> ${fmtFecha(r.fecha)||''}</span>
+              <span style="color:var(--g4)"> ${(r.producto||'').substring(0,35)}${(r.producto||'').length>35?'…':''}</span>
+            </div>
+            <span style="font-size:10px;color:var(--g4);white-space:nowrap">Sem ${r.semana||'?'} · ${dias}d</span>
+          </div>`;
+        }).join(''));
 
       const filasParc    = seccion('◑ PARCIAL', '#616a6b',
         opsParcSem.map(r => fmtFila(r, '#616a6b', `<span style="font-size:10px;color:var(--g4);white-space:nowrap">Parcial</span>`)).join(''));
