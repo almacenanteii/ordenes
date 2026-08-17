@@ -3351,7 +3351,11 @@ function renderPuntos() {
     // Estados + incidencias
     const estados = estadosPorSemana[sem] || {};
     const totalSem = Object.values(estados).reduce((s,n) => s+n, 0);
-    const incSem = todasOpsMes.filter(r => (r.semana||'S/N') === sem && String(r.incidencia) === '1').length;
+    const incidenciasSemLista = todasOpsMes.filter(r => (r.semana||'S/N') === sem && String(r.incidencia) === '1');
+    const incSem = incidenciasSemLista.length;
+    // PEPS no respetado de esta semana (fifo = 0)
+    const pepsSemLista = todasOpsMes.filter(r => (r.semana||'S/N') === sem && String(r.fifo) === '0');
+    const pepsSem = pepsSemLista.length;
 
     const ordenados = ESTADO_ORDEN.filter(e => estados[e]).concat(
       Object.keys(estados).filter(e => !ESTADO_ORDEN.includes(e))
@@ -3381,6 +3385,14 @@ function renderPuntos() {
       <div style="font-size:22px;font-weight:800;color:${incColor};line-height:1">${incSem}</div>
       ${incLabel}
     </div>`;
+
+    // Tarjeta PEPS no respetado
+    const pepsColor = pepsSem > 0 ? '#8e44ad' : '#1a8a50';
+    const pepsCard = pepsSem > 0 ? `<div style="background:${pepsColor}18;border-radius:12px;padding:10px 14px;min-width:80px;text-align:center;flex:1">
+      <div style="font-size:16px;margin-bottom:2px">🔄</div>
+      <div style="font-size:11px;font-weight:600;color:${pepsColor};margin-bottom:4px">PEPS no resp.</div>
+      <div style="font-size:22px;font-weight:800;color:${pepsColor};line-height:1">${pepsSem}</div>
+    </div>` : '';
 
     // Bloque KPI derecha
     const kpiBloque = kpiSem ? (() => {
@@ -3510,6 +3522,31 @@ function renderPuntos() {
       </div>`;
     }
 
+    // Detalle de incidencias de esta semana: OP afectada + motivo, y desglose
+    // aparte de incidencias de PEPS no respetado.
+    let detalleIncidencias = '';
+    if (incidenciasSemLista.length > 0 || pepsSemLista.length > 0) {
+      const filaIncidencia = (r, color, motivo) => `<div style="padding:6px 8px;background:${color}10;border-radius:8px;margin-bottom:3px">
+        <div style="font-size:12px;color:var(--g9)">
+          <strong>OP ${r.op}</strong>
+          <span style="color:var(--g4)"> ${r.codigo||''} — ${(r.producto||'').substring(0,30)}${(r.producto||'').length>30?'…':''}</span>
+        </div>
+        <div style="font-size:11px;color:var(--g5);margin-top:2px${motivo?'':';font-style:italic'}">📋 ${motivo || 'Sin motivo registrado'}</div>
+      </div>`;
+
+      const filasIncSku = incidenciasSemLista.length > 0 ? `
+        <div style="font-size:10px;font-weight:700;color:#E74C3C;letter-spacing:0.05em;margin:6px 0 4px">⚠️ INCIDENCIAS — SKU FALTANTE</div>
+        ${incidenciasSemLista.map(r => filaIncidencia(r, '#E74C3C', r.motivoIncidencia)).join('')}` : '';
+
+      const filasPepsDetalle = pepsSemLista.length > 0 ? `
+        <div style="font-size:10px;font-weight:700;color:#8e44ad;letter-spacing:0.05em;margin:6px 0 4px">🔄 INCIDENCIAS — PEPS NO RESPETADO</div>
+        ${pepsSemLista.map(r => filaIncidencia(r, '#8e44ad', r.motivoFifo)).join('')}` : '';
+
+      detalleIncidencias = `<div style="border-top:1px solid var(--g2);margin-top:10px;padding-top:10px">
+        ${filasIncSku}${filasPepsDetalle}
+      </div>`;
+    }
+
     return `<div style="background:var(--white);border:1.5px solid var(--g2);border-radius:14px;padding:14px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
@@ -3518,7 +3555,8 @@ function renderPuntos() {
         </div>
         ${kpiBloque}
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${exploCard}${incCard}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${estadoCards}${exploCard}${incCard}${pepsCard}</div>
+      ${detalleIncidencias}
       ${listaOPs}
     </div>`;
   }).join('');
@@ -3660,6 +3698,12 @@ async function cargarOPs() {
   const rows = parseCSV(txt);
   const h = rows[0].map(x => cl(x).toLowerCase());
   const idx = { op:h.indexOf('op'), fecha:h.indexOf('fecha'), codigo:h.indexOf('codigo'), producto:h.indexOf('producto'), lote:h.indexOf('lote'), surtio:h.indexOf('surtio'), estado:h.indexOf('estado'), fechasurtido:h.indexOf('fecha de sutido'), atiempo:h.indexOf('a tiempo'), semana:h.indexOf('semana'), pdf:h.indexOf('pdf'), materiales:h.indexOf('materiales'), prioridad:h.indexOf('prioridad'), incidencia:h.indexOf('incidencias'), fifo:h.indexOf('fifo'), opref:h.indexOf('opref'), observaciones:h.indexOf('observaciones') };
+  // Motivo de incidencia (SKU faltante) y motivo de PEPS no respetado: viven en las
+  // columnas Y/Z de "Trazabilidad OP" (así las escribe sai_acciones.gs). Se busca
+  // primero por nombre de encabezado por si el sheet los tiene rotulados, y si no
+  // se usa la posición fija de esas columnas (24 y 25, base 0) como respaldo.
+  const idxMotivoInc  = h.indexOf('motivo incidencia') !== -1 ? h.indexOf('motivo incidencia') : 24;
+  const idxMotivoFifo = h.indexOf('motivo fifo') !== -1 ? h.indexOf('motivo fifo') : 25;
   opsData = rows.slice(1).map(r => ({
     op: cl(r[idx.op]), fecha: cl(r[idx.fecha]), codigo: cl(r[idx.codigo]),
     producto: cl(r[idx.producto]), lote: idx.lote !== -1 ? cl(r[idx.lote]) : '',
@@ -3672,6 +3716,8 @@ async function cargarOPs() {
     fifo: idx.fifo !== -1 ? cl(r[idx.fifo]) : '1',
     opref: idx.opref !== -1 ? cl(r[idx.opref]) : '',
     observaciones: idx.observaciones !== -1 ? cl(r[idx.observaciones]) : '',
+    motivoIncidencia: idxMotivoInc !== -1 && r[idxMotivoInc] !== undefined ? cl(r[idxMotivoInc]) : '',
+    motivoFifo: idxMotivoFifo !== -1 && r[idxMotivoFifo] !== undefined ? cl(r[idxMotivoFifo]) : '',
   })).filter(r => r.op);
 
   // Meses únicos
