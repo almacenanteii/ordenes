@@ -662,6 +662,7 @@
     <div class="res-card rojo"><div class="res-num" id="dev-r-nocuadran">0</div><div class="res-lbl">No cuadran</div></div>
     <div class="res-card total"><div class="res-num" id="dev-r-sinmov">0</div><div class="res-lbl">Sin movimiento</div></div>
   </div>
+  <button onclick="imprimirReporteDev()" style="width:100%;margin-bottom:12px;padding:11px;background:var(--white);color:var(--g9);border:1.5px solid var(--g3);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-sizing:border-box">🖨️ Imprimir reporte DEV</button>
   <div class="lista" id="lista-dev"><div class="loading"><div class="spinner"></div>Cargando devoluciones...</div></div>
 </div>
 
@@ -3927,9 +3928,11 @@ function buildTimeBarDev(primera) {
   </div>`;
 }
 
-function renderDevoluciones() {
-  const cont = document.getElementById('lista-dev');
-  if (!cont) return;
+// Aplica todos los filtros activos de Devoluciones (búsqueda, mes, semana,
+// ubicó, estado, cuadre) y agrupa por folio. La usan tanto renderDevoluciones
+// (pantalla) como imprimirReporteDev (impresión), para que ambas siempre
+// muestren exactamente lo mismo.
+function filtrarDevolucionesActuales() {
   const q = (document.getElementById('dev-search')?.value || '').toLowerCase().trim();
   let filas = devData;
   if (q) filas = filas.filter(r =>
@@ -3958,9 +3961,9 @@ function renderDevoluciones() {
   const foliosCuadre = {};
   filas.forEach(r => { (foliosCuadre[r.folio] = foliosCuadre[r.folio] || []).push(r); });
   const folioKeysCuadre = Object.keys(foliosCuadre);
-  document.getElementById('dev-r-cuadrados').textContent = folioKeysCuadre.filter(f => (foliosCuadre[f][0].cuadre||'').includes('Cuadrado')).length;
-  document.getElementById('dev-r-nocuadran').textContent = folioKeysCuadre.filter(f => (foliosCuadre[f][0].cuadre||'').includes('No cuadra')).length;
-  document.getElementById('dev-r-sinmov').textContent = folioKeysCuadre.filter(f => !foliosCuadre[f][0].movimiento).length;
+  const cuadrados  = folioKeysCuadre.filter(f => (foliosCuadre[f][0].cuadre||'').includes('Cuadrado')).length;
+  const noCuadran  = folioKeysCuadre.filter(f => (foliosCuadre[f][0].cuadre||'').includes('No cuadra')).length;
+  const sinMov     = folioKeysCuadre.filter(f => !foliosCuadre[f][0].movimiento).length;
 
   if (cuadreDevFiltro !== 'todos') {
     filas = filas.filter(r => {
@@ -3977,13 +3980,25 @@ function renderDevoluciones() {
   const folioKeys = Object.keys(folios).sort().reverse();
 
   const pendientesCount = folioKeys.filter(f => (folios[f][0].estado||'').toLowerCase() !== 'ubicada').length;
-  document.getElementById('dev-r-total').textContent = pendientesCount;
   const hoyStr = new Date().toLocaleDateString('es-MX');
-  document.getElementById('dev-r-hoy').textContent = folioKeys
-    .filter(f => {
-      const p = folios[f][0];
-      return (p.estado||'').toLowerCase() === 'ubicada' && parseFecha(p.fechaUbicada) && parseFecha(p.fechaUbicada).toLocaleDateString('es-MX') === hoyStr;
-    }).length;
+  const ubicadasHoy = folioKeys.filter(f => {
+    const p = folios[f][0];
+    return (p.estado||'').toLowerCase() === 'ubicada' && parseFecha(p.fechaUbicada) && parseFecha(p.fechaUbicada).toLocaleDateString('es-MX') === hoyStr;
+  }).length;
+
+  return { folios, folioKeys, resumen: { pendientes: pendientesCount, ubicadasHoy, cuadrados, noCuadran, sinMov } };
+}
+
+function renderDevoluciones() {
+  const cont = document.getElementById('lista-dev');
+  if (!cont) return;
+
+  const { folios, folioKeys, resumen } = filtrarDevolucionesActuales();
+  document.getElementById('dev-r-total').textContent = resumen.pendientes;
+  document.getElementById('dev-r-hoy').textContent = resumen.ubicadasHoy;
+  document.getElementById('dev-r-cuadrados').textContent = resumen.cuadrados;
+  document.getElementById('dev-r-nocuadran').textContent = resumen.noCuadran;
+  document.getElementById('dev-r-sinmov').textContent = resumen.sinMov;
 
   if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">↩️</div>Sin devoluciones pendientes</div>`; return; }
 
@@ -4016,6 +4031,87 @@ function renderDevoluciones() {
       ${!ubicada ? `<button onclick='abrirModalUbicarDevolucion(${itemJson})' style="width:100%;margin-top:8px;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box">📍 Marcar como ubicada</button>` : ''}
     </div>`;
   }).join('');
+}
+
+// Reporte imprimible de Devoluciones — pensado para que el jefe de almacén lo
+// use en la revisión diaria: respeta los filtros activos en pantalla (si
+// filtras "No cuadra" e imprimes, solo salen esas), resalta en rojo las que
+// no cuadran para verlas de un vistazo, y trae línea de firma abajo porque es
+// el mismo tipo de papeleta que ya se revisa y firma a mano.
+function imprimirReporteDev() {
+  const { folios, folioKeys, resumen } = filtrarDevolucionesActuales();
+  const ahora = new Date();
+  const fechaTxt = ahora.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+  const horaTxt  = ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+
+  const CUADRE_LBL = { cuadrado: '✅ Cuadrado', nocuadra: '⚠️ No cuadra', sinmov: '⏳ Sin movimiento' };
+  const filtrosTxt = [];
+  if (estadoDevFiltro !== 'todos') filtrosTxt.push('Estado: ' + estadoDevFiltro);
+  if (cuadreDevFiltro !== 'todos') filtrosTxt.push('Cuadre: ' + (CUADRE_LBL[cuadreDevFiltro] || cuadreDevFiltro));
+  if (ubicoDevFiltro !== 'todos') filtrosTxt.push('Ubicó: ' + (ubicoDevFiltro || 'Sin ubicar'));
+  if (mesDevActual !== 'todos') filtrosTxt.push('Mes filtrado');
+  if (semanaDevActual !== 'todas') filtrosTxt.push('Semana ' + semanaDevActual);
+
+  const filasHtml = folioKeys.map(folio => {
+    const p = folios[folio][0];
+    const ubicada = (p.estado || '').toLowerCase() === 'ubicada';
+    const f = parseFecha(p.fecha);
+    const dias = f ? Math.floor((new Date() - f) / (1000 * 60 * 60 * 24)) : '';
+    const noCuadra = (p.cuadre || '').includes('No cuadra');
+    return `<tr style="${noCuadra ? 'background:#fdecec' : ''}">
+      <td>${p.codigo || ''}</td>
+      <td>${p.producto || ''}</td>
+      <td>${p.lote || 'S/LOTE'}</td>
+      <td style="text-align:right">${p.cantidad || ''} ${p.unidad || ''}</td>
+      <td>${p.fecha || ''}</td>
+      <td style="text-align:center">${dias !== '' ? dias + 'd' : ''}</td>
+      <td>${ubicada ? '📍 Ubicada' : '⏳ Pendiente'}</td>
+      <td>${p.movimiento || '—'}</td>
+      <td>${p.cuadre || (p.movimiento ? '' : '⏳ Sin mov.')}</td>
+      <td style="color:#c0392b">${p.diferencia || ''}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte de Devoluciones - DEV</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#1a1a1a}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:#666;font-size:12px;margin-bottom:16px}
+  .resumen{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .res{border:1px solid #ddd;border-radius:8px;padding:8px 14px;text-align:center;min-width:88px}
+  .res b{display:block;font-size:20px}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th,td{border:1px solid #ddd;padding:5px 7px;text-align:left}
+  th{background:#f2f2f2}
+  .firma{margin-top:40px;display:flex;gap:60px}
+  .firma div{border-top:1px solid #333;padding-top:4px;width:220px;font-size:12px;text-align:center}
+  @media print { body{padding:10px} }
+</style></head><body>
+  <h1>Laboratorios Anteii — Reporte de Devoluciones (Almacén DEV)</h1>
+  <div class="sub">Generado el ${fechaTxt} a las ${horaTxt}${filtrosTxt.length ? ' · Filtros: ' + filtrosTxt.join(', ') : ''}</div>
+  <div class="resumen">
+    <div class="res"><b>${resumen.pendientes}</b>Pendientes</div>
+    <div class="res"><b>${resumen.ubicadasHoy}</b>Ubicadas hoy</div>
+    <div class="res"><b>${resumen.cuadrados}</b>Cuadrados</div>
+    <div class="res"><b>${resumen.noCuadran}</b>No cuadran</div>
+    <div class="res"><b>${resumen.sinMov}</b>Sin movimiento</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Código</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Fecha</th><th>Días</th><th>Estado</th><th>Movimiento</th><th>Cuadre</th><th>Diferencia</th>
+    </tr></thead>
+    <tbody>${filasHtml || '<tr><td colspan="10" style="text-align:center;color:#888">Sin registros con estos filtros</td></tr>'}</tbody>
+  </table>
+  <div class="firma">
+    <div>Revisó — Jefe de almacén</div>
+    <div>Recibió — Acondicionado</div>
+  </div>
+  <script>window.onload = () => window.print();<\/script>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 async function recargar() {
