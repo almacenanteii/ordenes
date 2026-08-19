@@ -3826,6 +3826,11 @@ async function cargarDevoluciones() {
     fechaUbicada: h.indexOf('fecha ubicada'),
     obsUbicacion: h.indexOf('obs ubicación') !== -1 ? h.indexOf('obs ubicación') : h.indexOf('obs ubicacion'),
     semana:    h.indexOf('semana'),
+    movimiento: h.indexOf('movimiento'),
+    cantidadMovimiento: h.indexOf('cantidad movimiento'),
+    cuadre:    h.indexOf('cuadre'),
+    diferencia: h.indexOf('diferencia'),
+    sucMovimiento: h.indexOf('suc. movimiento') !== -1 ? h.indexOf('suc. movimiento') : h.indexOf('suc movimiento'),
   };
   devData = rows.slice(1).map(r => ({
     folio:     cl(r[idx.folio]),
@@ -3844,6 +3849,11 @@ async function cargarDevoluciones() {
     fechaUbicada: idx.fechaUbicada !== -1 ? cl(r[idx.fechaUbicada]) : '',
     obsUbicacion: idx.obsUbicacion !== -1 ? cl(r[idx.obsUbicacion]) : '',
     semana:    idx.semana !== -1 ? cl(r[idx.semana]) : '',
+    movimiento: idx.movimiento !== -1 ? cl(r[idx.movimiento]) : '',
+    cantidadMovimiento: idx.cantidadMovimiento !== -1 ? cl(r[idx.cantidadMovimiento]) : '',
+    cuadre:    idx.cuadre !== -1 ? cl(r[idx.cuadre]) : '',
+    diferencia: idx.diferencia !== -1 ? cl(r[idx.diferencia]) : '',
+    sucMovimiento: idx.sucMovimiento !== -1 ? cl(r[idx.sucMovimiento]) : '',
   })).filter(r => r.folio);
 
   // Poblar selector de meses (arranca en "Todos los meses")
@@ -3961,6 +3971,11 @@ function renderDevoluciones() {
         ${cant ? `<span style="font-size:15px;font-weight:700;color:var(--g9);margin-left:8px">${cant.replace(' · ','')}</span>` : ''}
       </div>
       ${ubicada ? `<div style="color:var(--g4);font-size:12px;margin-top:6px">${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>` : ''}
+      ${primera.movimiento ? `<div style="background:${(primera.cuadre||'').includes('No cuadra') ? '#fff3f3' : '#e8f8f0'};border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12px">
+        <div style="font-weight:700;color:${(primera.cuadre||'').includes('No cuadra') ? '#c0392b' : '#1a8a50'}">${primera.cuadre || ''}</div>
+        <div style="color:var(--g5);margin-top:2px">🔢 Movimiento <strong>${primera.movimiento}</strong> · ${primera.cantidadMovimiento || '?'} ${primera.unidad || ''}${primera.sucMovimiento ? ' · Suc. ' + primera.sucMovimiento : ''}</div>
+        ${primera.diferencia ? `<div style="color:#c0392b;margin-top:2px">Diferencia vs. papeleta: ${primera.diferencia}</div>` : ''}
+      </div>` : !ubicada ? `<div style="color:var(--g4);font-size:11px;margin-top:6px">⏳ Esperando traspaso en MOVREP</div>` : ''}
       ${primera.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${primera.observaciones}</div>` : ''}
       ${primera.foto ? `<div style="margin-top:4px"><a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
       ${buildTimeBarDev(primera)}
