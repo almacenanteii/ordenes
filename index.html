@@ -321,6 +321,7 @@
     <div class="tab" id="tab-dev" onclick="switchTab('dev')">↩️ DEVO</div>
     <div class="tab" id="tab-mtc" onclick="switchTab('mtc')">🚜 Montacargas</div>
     <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Pedidos</div>
+    <div class="tab" id="tab-req" onclick="switchTab('req')">📝 Vales</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -780,6 +781,130 @@
   <div class="lista" id="lista-ped"><div class="loading"><div class="spinner"></div>Cargando pedidos...</div></div>
 </div>
 
+<!-- ═══════════════ SECCIÓN REQUISICIONES (VALES) ═══════════════ -->
+<div class="section" id="section-req">
+  <div style="padding:12px 14px 0">
+    <button onclick="abrirModalNuevoVale()" style="width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;cursor:pointer">
+      ➕ Nuevo vale
+    </button>
+  </div>
+  <div class="filtros">
+    <div class="filter-row">
+      <div class="filter-label">Mes</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="req-mes-select" onchange="setMesReq(this.value)">
+          <option value="todos">Todos los meses</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Semana</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="req-sem-select" onchange="setSemanaReq(this.value)">
+          <option value="todas">Todas las semanas</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Cargó a</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="req-cargoa-select" onchange="setCargoAReq(this.value)">
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Estado</div>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="req-estado-select" onchange="setEstadoReq(this.value)">
+          <option value="todos">Todos</option>
+          <option value="abierto">⏳ Abiertos</option>
+          <option value="cerrado">✅ Cerrados</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="resumen">
+    <div class="res-card total"><div class="res-num" id="req-r-abiertos">0</div><div class="res-lbl">Vales abiertos</div></div>
+    <div class="res-card verde"><div class="res-num" id="req-r-cerrados">0</div><div class="res-lbl">Vales cerrados</div></div>
+  </div>
+  <div class="lista" id="lista-req"><div class="loading"><div class="spinner"></div>Cargando vales...</div></div>
+</div>
+
+<!-- MODAL NUEVO VALE (Requisición de materiales) -->
+<div class="modal-bg" id="modal-req-bg">
+  <div class="modal">
+    <div class="modal-title">Nuevo vale de requisición</div>
+    <div class="modal-sub">Folio: se asigna automático al generar</div>
+
+    <label class="modal-label">Cargó a</label>
+    <div class="sem-select-wrap">
+      <select class="sem-select" id="req-modal-cargoa" onchange="setCargoAModalReq(this.value)" style="width:100%">
+        <option value="">Selecciona...</option>
+      </select>
+    </div>
+
+    <label class="modal-label" style="margin-top:10px">¿Quién solicita?</label>
+    <div class="modal-options" id="req-personas-container"></div>
+
+    <label class="modal-label" style="margin-top:10px">Agregar material</label>
+    <div style="position:relative">
+      <input type="text" id="req-search" placeholder="Escribe código o nombre del material..." oninput="filtrarCatalogoReq(this.value)"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+      <div id="req-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--g2);border-radius:10px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
+    </div>
+
+    <div id="req-material-sel" style="display:none;margin-top:8px;padding:10px 12px;background:var(--orange)15;border-radius:10px">
+      <div style="font-size:13px"><strong id="req-codigo-txt"></strong> — <span id="req-nombre-txt"></span></div>
+      <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Lote disponible</label>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="req-lote-select" onchange="mostrarExistenciaLoteReq()" style="width:100%">
+        </select>
+      </div>
+      <div id="req-existencia-txt" style="font-size:12px;color:var(--g5);margin-top:4px"></div>
+      <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Cantidad</label>
+      <input type="number" id="req-cantidad" min="0" step="any" placeholder="0"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+      <button onclick="agregarLineaReq()" style="width:100%;margin-top:8px;padding:9px;background:var(--g9);color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer">＋ Agregar línea al vale</button>
+    </div>
+
+    <div id="req-lineas-tabla" style="margin-top:10px"></div>
+
+    <label class="modal-label" style="margin-top:10px">Observaciones (opcional)</label>
+    <textarea id="req-obs" placeholder="Notas adicionales..." rows="2"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
+
+    <div id="req-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="req-modal-confirm" onclick="confirmarRequisicion()" disabled>
+      📝 Generar vale
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('req')">Cancelar</div>
+  </div>
+</div>
+
+<!-- MODAL CERRAR VALE -->
+<div class="modal-bg" id="modal-cerrarreq-bg">
+  <div class="modal">
+    <div class="modal-title">Cerrar vale</div>
+    <div class="modal-sub" id="cerrarreq-modal-info"></div>
+
+    <label class="modal-label">Número de movimiento</label>
+    <input type="text" id="cerrarreq-movimiento" placeholder="Ej. 181343"
+      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:10px">¿Quién cierra?</label>
+    <div class="modal-options" id="cerrarreq-personas-container"></div>
+
+    <div id="cerrarreq-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="cerrarreq-modal-confirm" onclick="confirmarCerrarVale()" disabled>
+      🔒 Cerrar vale
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('cerrarreq')">Cancelar</div>
+  </div>
+</div>
+
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
 <div class="section" id="section-pts">
 
@@ -907,6 +1032,10 @@ const CSV_INVPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP
 // sai_acciones.gs). Mientras este link no sea válido, cargarPersonas() usa
 // un roster de respaldo (PERSONAS_FALLBACK) para que la app no se rompa.
 const CSV_PERSONAS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1387720531&single=true&output=csv';
+// Pendientes de publicar (ver sai_crearHojaDestinos y la hoja "Requisiciones"
+// en sai_acciones.gs): pegar aquí los links CSV en cuanto existan.
+const CSV_DESTINOS = 'PENDIENTE_PEGAR_LINK_CSV_DESTINOS';
+const CSV_REQ = 'PENDIENTE_PEGAR_LINK_CSV_REQUISICIONES';
 // Nota: el reporte del almacén DEV (gid=1557636426) ya NO se lee desde aquí —
 // lo revisa directo el backend (sai_sincronizarDEV, cada 30 min) y crea el
 // "Pendiente" en la hoja Devoluciones con fecha real. Este frontend solo lee
@@ -921,6 +1050,22 @@ const PERSONAS_FALLBACK = [
   { nombre: 'Marco Reyes',      rol: 'Almacenista',     iniciales: 'MR',  puntos: true },
   { nombre: 'Eduardo de Loera', rol: 'Jefe de almacén', iniciales: 'EDL', puntos: false },
 ];
+
+// Roster de destinos de vales (hoja "Destinos"). Mismo patrón que Personas:
+// fallback fijo mientras CSV_DESTINOS no esté publicado, para no romper la app.
+let destinosData = [];
+const DESTINOS_FALLBACK = ['Acondicionado', 'Desarrollo', 'Calidad'];
+
+// Vales de requisición de materiales.
+let reqData = [];
+// Catálogo de materiales con lotes/existencia, armado desde la hoja
+// Inventario (cargarInventario). matInvPorClave: { CLAVE: { descripcion, lotes:[{lote,existencia}] } }
+let matInvPorClave = {};
+let catalogoMateriales = []; // [{clave, desc}] deduplicado, para el buscador del vale
+// Estado del modal "Nuevo vale" mientras se arma línea por línea.
+let reqLineasTemp = [];
+let reqCodigoSel = '', reqDescSel = '', reqPersonaSol = null, reqCargoASel = null;
+let mesReqActual = 'todos', semanaReqActual = 'todas', estadoReqFiltro = 'todos', cargoAReqFiltro = 'todos';
 let mtcPersona = null, mtcTipo = '';
 let destinoPedFiltro = 'todos', estadoPedFiltro = 'pendientes';
 let invPTMap = {};
@@ -1100,7 +1245,7 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','dev','mtc','ped','pts'].forEach(t => {
+  ['ops','act','dev','mtc','ped','req','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
@@ -1108,6 +1253,7 @@ function switchTab(tab) {
   if (tab === 'dev') renderDevoluciones();
   if (tab === 'mtc') renderMontacargas();
   if (tab === 'ped') renderPedidos();
+  if (tab === 'req') renderRequisiciones();
 }
 
 let surtioFiltro = 'todos';
@@ -2418,6 +2564,29 @@ function renderPersonaOptions(selectId, valorActual, opcionesAntes, opcionesDesp
   (opcionesDespues || []).forEach(o => { html += `<option value="${o.value}">${o.label}</option>`; });
   sel.innerHTML = html;
   if (valorActual !== undefined && valorActual !== null) sel.value = valorActual;
+}
+
+// Igual que renderPersonaOptions pero para el roster de Destinos (hoja
+// "Destinos"): un solo dato por opción (nombre), sin rol/iniciales.
+function renderDestinoOptions(selectId, valorActual, opcionesAntes, opcionesDespues) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const lista = destinosData.length ? destinosData : DESTINOS_FALLBACK;
+  let html = '';
+  (opcionesAntes || []).forEach(o => { html += `<option value="${o.value}">${o.label}</option>`; });
+  html += lista.map(nombre => `<option value="${nombre}">${nombre}</option>`).join('');
+  (opcionesDespues || []).forEach(o => { html += `<option value="${o.value}">${o.label}</option>`; });
+  sel.innerHTML = html;
+  if (valorActual !== undefined && valorActual !== null) sel.value = valorActual;
+}
+
+// Igual que personaOptionsHTML pero para Destinos — devuelve solo <option>.
+function destinoOptionsHTML(valorActual, opcionesAntes) {
+  const lista = destinosData.length ? destinosData : DESTINOS_FALLBACK;
+  let html = '';
+  (opcionesAntes || []).forEach(o => { html += `<option value="${o.value}" ${valorActual===o.value?'selected':''}>${o.label}</option>`; });
+  html += lista.map(nombre => `<option value="${nombre}" ${valorActual===nombre?'selected':''}>${nombre}</option>`).join('');
+  return html;
 }
 
 function renderPedidos() {
@@ -3734,7 +3903,448 @@ async function cargarInventario() {
       const exist = parseFloat(cl(r[colExist])) || 0;
       if (clave) window._invMap[clave] = (window._invMap[clave] || 0) + exist;
     });
+
+    // Además del total por clave (arriba), para el vale de requisición se
+    // necesita el detalle por LOTE — se busca por coincidencia parcial de
+    // encabezado (igual que en cargarInventarioPT) porque no sabemos el
+    // nombre exacto que trae esta hoja para Descripción/Lote/Unidad.
+    const colDesc   = h.findIndex(x => x.includes('descrip'));
+    const colLote   = h.findIndex(x => x.includes('lote'));
+    const colUnidad = h.findIndex(x => x.includes('unidad'));
+    matInvPorClave = {};
+    catalogoMateriales = [];
+    const vistos = {};
+    rows.slice(1).forEach(r => {
+      const claveOriginal = cl(r[colClave]);
+      const clave = claveOriginal.toUpperCase();
+      if (!clave) return;
+      const desc = colDesc !== -1 ? cl(r[colDesc]) : '';
+      const lote = colLote !== -1 ? cl(r[colLote]) : '';
+      const unidad = colUnidad !== -1 ? cl(r[colUnidad]) : '';
+      const exist = parseFloat(cl(r[colExist])) || 0;
+      if (!matInvPorClave[clave]) matInvPorClave[clave] = { clave: claveOriginal, descripcion: desc, unidad: unidad, lotes: [] };
+      if (desc && !matInvPorClave[clave].descripcion) matInvPorClave[clave].descripcion = desc;
+      if (exist > 0) matInvPorClave[clave].lotes.push({ lote: lote, existencia: exist });
+      if (!vistos[clave]) { vistos[clave] = true; catalogoMateriales.push({ clave: claveOriginal, desc: desc }); }
+    });
   } catch(e) { console.log('Inventario no cargado:', e); }
+}
+
+// Roster de destinos (hoja "Destinos"). Mismo patrón que cargarPersonas:
+// si el CSV no está listo o falla, usa DESTINOS_FALLBACK para no romper la app.
+async function cargarDestinos() {
+  if (!CSV_DESTINOS || CSV_DESTINOS.indexOf('PENDIENTE') !== -1) {
+    destinosData = DESTINOS_FALLBACK.slice();
+    return;
+  }
+  try {
+    const res = await fetchConTimeout(CSV_DESTINOS + '&t=' + Date.now());
+    const txt = await res.text();
+    const rows = parseCSV(txt);
+    if (!rows.length) { destinosData = DESTINOS_FALLBACK.slice(); return; }
+    const h = rows[0].map(x => cl(x).toLowerCase());
+    const colNombre = h.indexOf('nombre');
+    const colActivo = h.indexOf('activo');
+    if (colNombre === -1) { destinosData = DESTINOS_FALLBACK.slice(); return; }
+    const lista = rows.slice(1)
+      .map(r => ({ nombre: cl(r[colNombre]), activo: colActivo !== -1 ? cl(r[colActivo]).toUpperCase() : 'SI' }))
+      .filter(d => d.nombre && d.activo !== 'NO')
+      .map(d => d.nombre);
+    destinosData = lista.length ? lista : DESTINOS_FALLBACK.slice();
+  } catch(e) {
+    console.error('Error cargando Destinos, usando lista de respaldo:', e);
+    destinosData = DESTINOS_FALLBACK.slice();
+  }
+}
+
+// Vales de requisición de materiales (hoja "Requisiciones"). Cada renglón
+// del CSV es una línea de material; se agrupan por folio al renderizar,
+// igual que Devoluciones/Pedidos.
+async function cargarRequisiciones() {
+  if (!CSV_REQ || CSV_REQ.indexOf('PENDIENTE') !== -1) { reqData = []; return; }
+  const res = await fetchConTimeout(CSV_REQ + '&t=' + Date.now());
+  const txt = await res.text();
+  const rows = parseCSV(txt);
+  if (!rows.length) { reqData = []; return; }
+  const h = rows[0].map(x => cl(x).toLowerCase());
+  const idx = {
+    folio:      h.indexOf('folio'),
+    fecha:      h.indexOf('fecha'),
+    codigo:     h.indexOf('codigo') !== -1 ? h.indexOf('codigo') : h.indexOf('código'),
+    descripcion:h.indexOf('descripción') !== -1 ? h.indexOf('descripción') : h.indexOf('descripcion'),
+    lote:       h.indexOf('lote'),
+    cantidad:   h.indexOf('cantidad'),
+    cargoA:     h.indexOf('cargó a') !== -1 ? h.indexOf('cargó a') : h.indexOf('cargo a'),
+    solicito:   h.indexOf('solicitó') !== -1 ? h.indexOf('solicitó') : h.indexOf('solicito'),
+    estado:     h.indexOf('estado'),
+    movimiento: h.indexOf('movimiento'),
+    fechaCierre:h.indexOf('fecha cierre'),
+    cerro:      h.indexOf('cerró') !== -1 ? h.indexOf('cerró') : h.indexOf('cerro'),
+    semana:     h.indexOf('semana'),
+  };
+  reqData = rows.slice(1).map(r => ({
+    folio:      cl(r[idx.folio]),
+    fecha:      cl(r[idx.fecha]),
+    codigo:     idx.codigo      !== -1 ? cl(r[idx.codigo])      : '',
+    descripcion:idx.descripcion !== -1 ? cl(r[idx.descripcion]) : '',
+    lote:       idx.lote        !== -1 ? cl(r[idx.lote])        : '',
+    cantidad:   idx.cantidad    !== -1 ? cl(r[idx.cantidad])    : '',
+    cargoA:     idx.cargoA      !== -1 ? cl(r[idx.cargoA])      : '',
+    solicito:   idx.solicito    !== -1 ? cl(r[idx.solicito])    : '',
+    estado:     idx.estado      !== -1 ? cl(r[idx.estado])      : '',
+    movimiento: idx.movimiento  !== -1 ? cl(r[idx.movimiento])  : '',
+    fechaCierre:idx.fechaCierre !== -1 ? cl(r[idx.fechaCierre]) : '',
+    cerro:      idx.cerro       !== -1 ? cl(r[idx.cerro])       : '',
+    semana:     idx.semana      !== -1 ? cl(r[idx.semana])      : '',
+  })).filter(r => r.folio);
+
+  // Poblar selector de meses (mismo patrón que Devoluciones)
+  const mesesSet = new Map();
+  reqData.forEach(r => {
+    const f = parseFecha(r.fecha);
+    if (!f) return;
+    const key = `${f.getFullYear()}-${f.getMonth()}`;
+    if (!mesesSet.has(key)) mesesSet.set(key, `${MESES_NOMBRES[f.getMonth()]} ${f.getFullYear()}`);
+  });
+  const mesSelReq = document.getElementById('req-mes-select');
+  if (mesSelReq) {
+    const valorPrevio = mesSelReq.value || 'todos';
+    mesSelReq.innerHTML = '<option value="todos">Todos los meses</option>';
+    [...mesesSet.entries()].sort().forEach(([val, lbl]) => {
+      const o = document.createElement('option'); o.value = val; o.textContent = lbl; mesSelReq.appendChild(o);
+    });
+    if ([...mesesSet.keys()].includes(valorPrevio)) mesSelReq.value = valorPrevio;
+  }
+}
+
+// ── FILTROS REQUISICIONES ───────────────────────────────────
+function setMesReq(val) {
+  mesReqActual = val;
+  const sel = document.getElementById('req-sem-select');
+  sel.innerHTML = '<option value="todas">Todas las semanas</option>';
+  let semanas;
+  if (val === 'todos') {
+    semanas = [...new Set(reqData.map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  } else {
+    const [anio, mes] = val.split('-').map(Number);
+    semanas = [...new Set(reqData.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getFullYear() === anio && f.getMonth() === mes;
+    }).map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
+  }
+  semanas.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o); });
+  semanaReqActual = 'todas';
+  sel.value = 'todas';
+  renderRequisiciones();
+}
+function setSemanaReq(val) { semanaReqActual = val; renderRequisiciones(); }
+function setCargoAReq(val) { cargoAReqFiltro = val; renderRequisiciones(); }
+function setEstadoReq(val) { estadoReqFiltro = val; renderRequisiciones(); }
+
+function renderRequisiciones() {
+  const cont = document.getElementById('lista-req');
+  if (!cont) return;
+
+  let filas = reqData;
+  if (mesReqActual !== 'todos') {
+    const [anio, mes] = mesReqActual.split('-').map(Number);
+    filas = filas.filter(r => {
+      const f = parseFecha(r.fecha);
+      return f && f.getFullYear() === anio && f.getMonth() === mes;
+    });
+  }
+  if (semanaReqActual !== 'todas') filas = filas.filter(r => (r.semana||'') === semanaReqActual);
+  if (cargoAReqFiltro !== 'todos') filas = filas.filter(r => r.cargoA === cargoAReqFiltro);
+  if (estadoReqFiltro !== 'todos') filas = filas.filter(r => (r.estado||'').toLowerCase() === estadoReqFiltro);
+
+  const folios = {};
+  filas.forEach(r => { (folios[r.folio] = folios[r.folio] || []).push(r); });
+  const folioKeys = Object.keys(folios).sort().reverse();
+
+  const abiertos = folioKeys.filter(f => (folios[f][0].estado||'').toLowerCase() === 'abierto').length;
+  const cerrados = folioKeys.length - abiertos;
+  document.getElementById('req-r-abiertos').textContent = abiertos;
+  document.getElementById('req-r-cerrados').textContent = cerrados;
+
+  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">📝</div>Sin vales registrados</div>`; return; }
+
+  cont.innerHTML = folioKeys.map(folio => {
+    const lineas = folios[folio];
+    const primera = lineas[0];
+    const abierto = (primera.estado||'').toLowerCase() === 'abierto';
+    const lineasHtml = lineas.map(l => `
+      <div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--g1);font-size:13px">
+        <div>
+          <strong style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--g9)">${l.codigo}</strong>
+          <div style="color:var(--g5);font-size:12px">${l.descripcion || ''}${l.lote ? ' · Lote ' + l.lote : ''}</div>
+        </div>
+        <div style="font-weight:700;color:var(--g9);white-space:nowrap">${l.cantidad || '0'}</div>
+      </div>`).join('');
+
+    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${abierto ? '#e08a00' : 'var(--green)'};padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--g9)">${folio}</strong>
+        <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;color:#fff;background:${abierto ? '#e08a00' : 'var(--green)'}">${abierto ? '⏳ ABIERTO' : '✅ CERRADO'}</span>
+      </div>
+      <div style="font-size:12px;color:var(--g4);margin-top:2px">${primera.fecha} · Cargó a <strong>${primera.cargoA || '—'}</strong> · Solicitó <strong>${primera.solicito || '—'}</strong></div>
+      <div style="margin-top:8px">${lineasHtml}</div>
+      ${!abierto ? `<div style="background:#e8f8f0;border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12px">
+        <div style="color:#1a8a50;font-weight:700">🔢 Movimiento ${primera.movimiento || 's/n'}</div>
+        <div style="color:var(--g5);margin-top:2px">Cerró ${primera.cerro || ''} · ${primera.fechaCierre || ''}</div>
+      </div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="imprimirVale('${folio}')" style="flex:1;padding:9px;background:var(--g1);color:var(--g9);border:1.5px solid var(--g2);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>
+        ${abierto ? `<button onclick="abrirModalCerrarVale('${folio}')" style="flex:1;padding:9px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🔒 Cerrar vale</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL NUEVO VALE ─────────────────────────────────────────
+function abrirModalNuevoVale() {
+  reqLineasTemp = []; reqCodigoSel = ''; reqDescSel = ''; reqPersonaSol = null; reqCargoASel = null;
+  document.getElementById('req-modal-cargoa').innerHTML = destinoOptionsHTML('', [{value:'', label:'Selecciona...'}]);
+  renderPersonaBotones('req-personas-container', 'selectPersonaReq', null);
+  document.getElementById('req-search').value = '';
+  document.getElementById('req-autocomplete').style.display = 'none';
+  document.getElementById('req-material-sel').style.display = 'none';
+  document.getElementById('req-cantidad').value = '';
+  document.getElementById('req-obs').value = '';
+  document.getElementById('req-modal-msg').style.display = 'none';
+  document.getElementById('req-modal-confirm').disabled = true;
+  renderTablaLineasReq();
+  document.getElementById('modal-req-bg').classList.add('open');
+}
+
+function setCargoAModalReq(val) { reqCargoASel = val || null; verificarRequisicionLista(); }
+
+function selectPersonaReq(persona) {
+  reqPersonaSol = persona;
+  renderPersonaBotones('req-personas-container', 'selectPersonaReq', persona);
+  verificarRequisicionLista();
+}
+
+function filtrarCatalogoReq(q) {
+  const ac = document.getElementById('req-autocomplete');
+  reqCodigoSel = ''; reqDescSel = '';
+  document.getElementById('req-material-sel').style.display = 'none';
+  if (!q || q.length < 2) { ac.style.display = 'none'; return; }
+  const termino = q.toLowerCase();
+  const resultados = catalogoMateriales.filter(p =>
+    (p.clave||'').toLowerCase().includes(termino) || (p.desc||'').toLowerCase().includes(termino)
+  ).slice(0, 8);
+  if (!resultados.length) { ac.style.display = 'none'; return; }
+  ac.innerHTML = resultados.map(p =>
+    `<div onclick="seleccionarMaterialReq('${p.clave.replace(/'/g,"\\'")}','${(p.desc||'').replace(/'/g,"&#39;")}')"
+      style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:13px"
+      onmouseover="this.style.background='var(--g1)'" onmouseout="this.style.background=''">
+      <strong>${p.clave}</strong> — ${p.desc}
+    </div>`
+  ).join('');
+  ac.style.display = 'block';
+}
+
+function seleccionarMaterialReq(clave, nombre) {
+  reqCodigoSel = clave; reqDescSel = nombre;
+  document.getElementById('req-search').value = clave;
+  document.getElementById('req-autocomplete').style.display = 'none';
+  document.getElementById('req-codigo-txt').textContent = clave;
+  document.getElementById('req-nombre-txt').textContent = nombre;
+  document.getElementById('req-material-sel').style.display = 'block';
+
+  const info = matInvPorClave[clave.toUpperCase()];
+  const loteSel = document.getElementById('req-lote-select');
+  const lotes = info ? info.lotes : [];
+  if (!lotes.length) {
+    loteSel.innerHTML = '<option value="">Sin lote / sin existencia registrada</option>';
+  } else {
+    loteSel.innerHTML = lotes.map(l => `<option value="${l.lote}" data-exist="${l.existencia}">${l.lote || 'S/LOTE'} — existencia: ${l.existencia}</option>`).join('');
+  }
+  mostrarExistenciaLoteReq();
+}
+
+function mostrarExistenciaLoteReq() {
+  const sel = document.getElementById('req-lote-select');
+  const opt = sel.options[sel.selectedIndex];
+  const exist = opt ? opt.getAttribute('data-exist') : null;
+  document.getElementById('req-existencia-txt').textContent = exist !== null ? `Existencia disponible: ${exist}` : '';
+}
+
+function agregarLineaReq() {
+  const cantidad = parseFloat(document.getElementById('req-cantidad').value) || 0;
+  const loteSel = document.getElementById('req-lote-select');
+  const lote = loteSel && loteSel.value !== undefined ? loteSel.value : '';
+  if (!reqCodigoSel || !cantidad) return;
+  reqLineasTemp.push({ codigo: reqCodigoSel, descripcion: reqDescSel, lote: lote, cantidad: cantidad });
+  renderTablaLineasReq();
+  // Limpiar el buscador para la siguiente línea
+  reqCodigoSel = ''; reqDescSel = '';
+  document.getElementById('req-search').value = '';
+  document.getElementById('req-cantidad').value = '';
+  document.getElementById('req-material-sel').style.display = 'none';
+  verificarRequisicionLista();
+}
+
+function quitarLineaReq(idx) {
+  reqLineasTemp.splice(idx, 1);
+  renderTablaLineasReq();
+  verificarRequisicionLista();
+}
+
+function renderTablaLineasReq() {
+  const cont = document.getElementById('req-lineas-tabla');
+  if (!cont) return;
+  if (!reqLineasTemp.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = `<div style="border:1.5px solid var(--g2);border-radius:10px;overflow:hidden">` +
+    reqLineasTemp.map((l, i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;${i>0?'border-top:1px solid var(--g2)':''}">
+        <div style="font-size:13px">
+          <strong>${l.codigo}</strong> — ${l.descripcion || ''}${l.lote ? ' · Lote ' + l.lote : ''}
+          <div style="color:var(--g5);font-size:12px">Cantidad: ${l.cantidad}</div>
+        </div>
+        <span onclick="quitarLineaReq(${i})" style="cursor:pointer;color:#c0392b;font-size:18px;line-height:1">✕</span>
+      </div>`).join('') +
+    `</div>`;
+}
+
+function verificarRequisicionLista() {
+  document.getElementById('req-modal-confirm').disabled = !(reqCargoASel && reqPersonaSol && reqLineasTemp.length);
+}
+
+async function confirmarRequisicion() {
+  if (!reqCargoASel || !reqPersonaSol || !reqLineasTemp.length) return;
+  const btn = document.getElementById('req-modal-confirm');
+  const msg = document.getElementById('req-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+  try {
+    await sai_fetch({
+      tipo: 'requisicion',
+      cargoA: reqCargoASel,
+      solicito: reqPersonaSol,
+      observaciones: document.getElementById('req-obs').value || '',
+      lineas: reqLineasTemp,
+    });
+    msg.style.cssText = 'display:block;background:#e8f8f0;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '✅ Vale generado correctamente';
+    setTimeout(() => { cerrarModal('req'); recargar(); }, 1200);
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error al generar el vale';
+    btn.disabled = false;
+    btn.textContent = '📝 Generar vale';
+  }
+}
+
+// ── MODAL CERRAR VALE ────────────────────────────────────────
+let cerrarReqFolio = '', cerrarReqPersona = null;
+
+function abrirModalCerrarVale(folio) {
+  cerrarReqFolio = folio; cerrarReqPersona = null;
+  document.getElementById('cerrarreq-modal-info').textContent = `Vale ${folio}`;
+  document.getElementById('cerrarreq-movimiento').value = '';
+  renderPersonaBotones('cerrarreq-personas-container', 'selectPersonaCerrarReq', null);
+  document.getElementById('cerrarreq-modal-msg').style.display = 'none';
+  document.getElementById('cerrarreq-modal-confirm').disabled = true;
+  document.getElementById('modal-cerrarreq-bg').classList.add('open');
+}
+
+function selectPersonaCerrarReq(persona) {
+  cerrarReqPersona = persona;
+  renderPersonaBotones('cerrarreq-personas-container', 'selectPersonaCerrarReq', persona);
+  document.getElementById('cerrarreq-modal-confirm').disabled = !cerrarReqPersona;
+}
+
+async function confirmarCerrarVale() {
+  if (!cerrarReqPersona) return;
+  const btn = document.getElementById('cerrarreq-modal-confirm');
+  const msg = document.getElementById('cerrarreq-modal-msg');
+  btn.disabled = true;
+  btn.textContent = 'Cerrando...';
+  try {
+    await sai_fetch({
+      tipo: 'cerrarRequisicion',
+      folio: cerrarReqFolio,
+      movimiento: document.getElementById('cerrarreq-movimiento').value || '',
+      cerro: cerrarReqPersona,
+    });
+    msg.style.cssText = 'display:block;background:#e8f8f0;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '✅ Vale cerrado correctamente';
+    setTimeout(() => { cerrarModal('cerrarreq'); recargar(); }, 1200);
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error al cerrar el vale';
+    btn.disabled = false;
+    btn.textContent = '🔒 Cerrar vale';
+  }
+}
+
+// ── IMPRIMIR VALE (media hoja de máquina/oficio, vertical) ────
+// El vale físico se queda abierto durante el día y se cierra hasta que se
+// carga el movimiento en el sistema — por eso el número de movimiento sale
+// en blanco para anotarlo a mano (o ya impreso si el vale se reimprime
+// después de cerrado). Tamaño: media hoja oficio (~21.6 x 16.5cm), vertical.
+function imprimirVale(folio) {
+  const lineas = reqData.filter(r => r.folio === folio);
+  if (!lineas.length) return;
+  const primera = lineas[0];
+  const abierto = (primera.estado || '').toLowerCase() === 'abierto';
+
+  const filasHtml = lineas.map(l => `<tr>
+      <td>${l.codigo}</td>
+      <td>${l.descripcion || ''}</td>
+      <td style="text-align:center">${l.lote || 'S/LOTE'}</td>
+      <td style="text-align:center">${l.cantidad}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Vale ${folio}</title>
+  <style>
+    @page { size: 21.6cm 16.5cm; margin: 10mm; }
+    * { box-sizing: border-box; }
+    body{font-family:Arial,sans-serif;color:#111;font-size:12px;margin:0}
+    .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:8px}
+    h1{font-size:20px;margin:0}
+    .folio{font-size:18px;font-weight:bold;text-align:right}
+    .datos{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    th,td{border:1px solid #333;padding:5px 6px;font-size:11.5px;text-align:left}
+    th{background:#eee}
+    .campo-mov{margin-top:14px;font-size:13px}
+    .campo-mov .linea{display:inline-block;min-width:160px;border-bottom:1px solid #111;margin-left:6px}
+    .firmas{display:flex;justify-content:space-between;margin-top:26px}
+    .firma{width:45%;text-align:center;font-size:11px}
+    .firma .linea{border-top:1px solid #111;margin-top:26px;padding-top:4px}
+    .obs{margin-top:8px;font-size:11px;color:#333}
+  </style></head>
+  <body>
+    <div class="hdr">
+      <div>
+        <h1>NOTA DE REQUISICIÓN DE MATERIALES</h1>
+        <div style="font-size:12px;color:#555">Vale de salida de almacén</div>
+      </div>
+      <div class="folio">Folio<br>${folio}</div>
+    </div>
+    <div class="datos">
+      <div><strong>Fecha:</strong> ${primera.fecha}</div>
+      <div><strong>Cargó a:</strong> ${primera.cargoA || ''}</div>
+      <div><strong>Solicitó:</strong> ${primera.solicito || ''}</div>
+    </div>
+    <table>
+      <tr><th>Código</th><th>Descripción</th><th>Lote</th><th>Cantidad</th></tr>
+      ${filasHtml}
+    </table>
+    ${primera.observaciones ? `<div class="obs">Obs: ${primera.observaciones}</div>` : ''}
+    <div class="campo-mov">No. de movimiento:${abierto ? '<span class="linea">&nbsp;</span>' : ' <strong>' + (primera.movimiento || '') + '</strong>'}</div>
+    <div class="firmas">
+      <div class="firma"><div class="linea">Entregó</div></div>
+      <div class="firma"><div class="linea">Recibió</div></div>
+    </div>
+    <script>window.onload = () => window.print();<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 async function fetchConTimeout(url, ms = 10000) {
@@ -4204,7 +4814,7 @@ async function recargar() {
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas(), cargarDestinos(), cargarRequisiciones()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
@@ -4212,11 +4822,13 @@ async function load() {
     renderPersonaOptions('surtio-select', surtioFiltro, [{value:'todos', label:'Todos'}], [{value:'', label:'Sin asignar'}]);
     renderPersonaOptions('act-asignado-select', asignadoAct, [{value:'todos', label:'Todos'}], [{value:'Todos', label:'Asignado a Todos'}]);
     renderPersonaOptions('dev-ubico-select', ubicoDevFiltro, [{value:'todos', label:'Todos'}], [{value:'', label:'Sin ubicar'}]);
+    renderDestinoOptions('req-cargoa-select', cargoAReqFiltro, [{value:'todos', label:'Todos'}]);
     renderOPs();
     renderActividades();
     renderDevoluciones();
     renderMontacargas();
     renderPedidos();
+    renderRequisiciones();
     const now = new Date();
     document.getElementById('upd-txt').innerHTML = `Datos al <strong>${now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</strong> · ${now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
   } catch(e) {
@@ -4242,6 +4854,8 @@ async function sai_fetch(payload) {
   document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) cerrarModal(id.includes('op')?'op':'act'); });
 });
 document.getElementById('modal-mtc-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('mtc'); });
+document.getElementById('modal-req-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('req'); });
+document.getElementById('modal-cerrarreq-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('cerrarreq'); });
 
 load();
 </script>
