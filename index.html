@@ -361,9 +361,6 @@
       <div class="sem-select-wrap">
         <select class="sem-select" id="surtio-select" onchange="setSurtio(this.value)">
           <option value="todos">Todos</option>
-          <option value="Lupita Alferez">Lupita Alferez</option>
-          <option value="Marco Reyes">Marco Reyes</option>
-          <option value="">Sin asignar</option>
         </select>
       </div>
     </div>
@@ -445,14 +442,7 @@
     </div>
 
     <label class="modal-label" style="margin-top:8px">¿Quién registra?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr">
-      <div class="persona-btn" id="exp-btn-lupita" onclick="selectPersonaExp('Lupita Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
-      </div>
-      <div class="persona-btn" id="exp-btn-marco" onclick="selectPersonaExp('Marco Reyes')">
-        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
-      </div>
-    </div>
+    <div class="modal-options" id="exp-personas-container" style="grid-template-columns:1fr 1fr"></div>
 
     <label class="modal-label" style="margin-top:8px">Observaciones</label>
     <textarea id="exp-obs" placeholder="Ej: Se surten 500 pzas de 1000 requeridas..." rows="3"
@@ -525,8 +515,6 @@
       <div class="sem-select-wrap">
         <select class="sem-select" id="act-asignado-select" onchange="setEstadoAct(this.value)">
           <option value="todos">Todos</option>
-          <option value="Marco Reyes">Marco Reyes</option>
-          <option value="Lupita Alferez">Lupita Alferez</option>
           <option value="Todos">Asignado a Todos</option>
         </select>
       </div>
@@ -564,12 +552,7 @@
 
     <label class="modal-label" style="margin-top:8px">Asignado a</label>
     <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="persona-btn" id="newact-lupita" onclick="selectAsignadoAct('Lupita Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Lupita</div>
-      </div>
-      <div class="persona-btn" id="newact-marco" onclick="selectAsignadoAct('Marco Reyes')">
-        <div class="p-icon">👤</div><div class="p-name">Marco</div>
-      </div>
+      <div class="modal-options" id="newact-personas-container" style="display:contents"></div>
       <div class="persona-btn" id="newact-todos" onclick="selectAsignadoAct('Todos')">
         <div class="p-icon">👥</div><div class="p-name">Todos</div>
       </div>
@@ -601,8 +584,8 @@
   <div class="filtros">
     <div class="filter-row">
       <div class="search-wrap">
-        <span class="search-ico">🔍</span>
-        <input class="search-input" id="dev-search" type="text" placeholder="Buscar código, producto o lote..." oninput="renderDevoluciones()">
+        <span class="search-ico">📷</span>
+        <input class="search-input" id="dev-search" type="text" placeholder="Escanea o escribe código, producto o lote..." oninput="renderDevoluciones()" onkeydown="if(event.key==='Enter') buscarPorEscaneoDev()">
       </div>
     </div>
     <div class="filter-row">
@@ -626,10 +609,6 @@
       <div class="sem-select-wrap">
         <select class="sem-select" id="dev-ubico-select" onchange="setUbicoDev(this.value)">
           <option value="todos">Todos</option>
-          <option value="Marco Reyes">Marco Reyes</option>
-          <option value="Lupita Alferez">Lupita Alferez</option>
-          <option value="Eduardo de Loera">Eduardo de Loera</option>
-          <option value="">Sin ubicar</option>
         </select>
       </div>
     </div>
@@ -686,16 +665,7 @@
     </div>
 
     <label class="modal-label" style="margin-top:8px">¿Quién la ubicó?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="persona-btn" id="devubic-marco" onclick="selectPersonaUbicarDev('Marco Reyes')">
-        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
-      </div>
-      <div class="persona-btn" id="devubic-lupita" onclick="selectPersonaUbicarDev('Lupita Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
-      </div>
-      <div class="persona-btn" id="devubic-eduardo" onclick="selectPersonaUbicarDev('Eduardo de Loera')">
-        <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
-      </div>
+    <div class="modal-options" id="devubic-personas-container" style="grid-template-columns:1fr 1fr 1fr">
     </div>
 
     <label class="modal-label" style="margin-top:8px">Foto (opcional)</label>
@@ -754,16 +724,7 @@
     </div>
 
     <label class="modal-label" style="margin-top:8px">¿Quién registra?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="persona-btn" id="mtc-marco" onclick="selectPersonaMtc('Marco Reyes')">
-        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
-      </div>
-      <div class="persona-btn" id="mtc-lupita" onclick="selectPersonaMtc('Lupita Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
-      </div>
-      <div class="persona-btn" id="mtc-eduardo" onclick="selectPersonaMtc('Eduardo de Loera')">
-        <div class="p-icon">👤</div><div class="p-name">Eduardo de Loera</div>
-      </div>
+    <div class="modal-options" id="mtc-personas-container" style="grid-template-columns:1fr 1fr 1fr">
     </div>
 
     <label class="modal-label" style="margin-top:8px">Costo (opcional)</label>
@@ -875,14 +836,7 @@
     <div class="modal-title">Marcar como Surtido</div>
     <div class="modal-sub" id="modal-op-info"></div>
     <label class="modal-label">¿Quién surtió?</label>
-    <div class="modal-options">
-      <div class="persona-btn" id="op-btn-lupita" onclick="selectPersona('op','Lupita Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
-      </div>
-      <div class="persona-btn" id="op-btn-marco" onclick="selectPersona('op','Marco Reyes')">
-        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
-      </div>
-    </div>
+    <div class="modal-options" id="op-personas-container"></div>
     <label class="modal-label" style="margin-top:10px">¿Se surtió completo?</label>
     <div class="modal-options" style="grid-template-columns:1fr 1fr">
       <div class="persona-btn selected" id="op-comp-si" onclick="selectCompletoOP(1)">
@@ -930,14 +884,7 @@
     <div class="modal-title">Marcar como Completada</div>
     <div class="modal-sub" id="modal-act-info"></div>
     <label class="modal-label">¿Quién completó?</label>
-    <div class="modal-options">
-      <div class="persona-btn" id="act-btn-lupita" onclick="selectPersona('act','Lupita Alferez')">
-        <div class="p-icon">👤</div><div class="p-name">Lupita Alferez</div>
-      </div>
-      <div class="persona-btn" id="act-btn-marco" onclick="selectPersona('act','Marco Reyes')">
-        <div class="p-icon">👤</div><div class="p-name">Marco Reyes</div>
-      </div>
-    </div>
+    <div class="modal-options" id="act-personas-container"></div>
     <label class="modal-label">Comentario (opcional)</label>
     <textarea class="modal-textarea" id="act-comentario" placeholder="Escribe un comentario si lo deseas..."></textarea>
     <button class="modal-confirm" id="act-modal-confirm" disabled onclick="confirmarActividad()">Confirmar Completado</button>
@@ -955,12 +902,25 @@ const CSV_CONFIPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kX
 const CSV_MTC = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=358244993&single=true&output=csv';
 const CSV_PED = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1224567058&single=true&output=csv';
 const CSV_INVPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=2121915166&single=true&output=csv';
+// Pendiente: pegar aquí el link de "Publicar en la web" (CSV) de la nueva
+// pestaña "Personas" en cuanto se publique (ver sai_crearHojaPersonas en
+// sai_acciones.gs). Mientras este link no sea válido, cargarPersonas() usa
+// un roster de respaldo (PERSONAS_FALLBACK) para que la app no se rompa.
+const CSV_PERSONAS = 'PENDIENTE_PEGAR_LINK_CSV_PERSONAS';
 // Nota: el reporte del almacén DEV (gid=1557636426) ya NO se lee desde aquí —
 // lo revisa directo el backend (sai_sincronizarDEV, cada 30 min) y crea el
 // "Pendiente" en la hoja Devoluciones con fecha real. Este frontend solo lee
 // esa hoja (CSV_DEV, arriba), igual que antes.
 
 let opsData = [], actData = [], devData = [], mtcData = [], pedData = [], catalogoConfiPT = [];
+// Roster de personal. Se llena desde la pestaña "Personas" del Sheet
+// (cargarPersonas). Si esa hoja aún no está publicada, se usa este roster
+// de respaldo para no romper la app — actualízalo aquí solo mientras tanto.
+let personasData = [];
+const PERSONAS_FALLBACK = [
+  { nombre: 'Marco Reyes',      rol: 'Almacenista',     iniciales: 'MR',  puntos: true },
+  { nombre: 'Eduardo de Loera', rol: 'Jefe de almacén', iniciales: 'EDL', puntos: false },
+];
 let mtcPersona = null, mtcTipo = '';
 let destinoPedFiltro = 'todos', estadoPedFiltro = 'pendientes';
 let invPTMap = {};
@@ -1572,9 +1532,7 @@ function renderOPs() {
       ${esPend ? `<div class="prio-wrap">
         <span class="prio-lbl">ASIGNAR A</span>
         <select class="asignar-select" onchange="setAsignado('${r.op}',this.value,this)">
-          <option value="" ${!r.surtio?'selected':''}>Sin asignar</option>
-          <option value="Lupita Alferez" ${r.surtio==='Lupita Alferez'?'selected':''}>👤 Lupita Alferez</option>
-          <option value="Marco Reyes" ${r.surtio==='Marco Reyes'?'selected':''}>👤 Marco Reyes</option>
+          ${personaOptionsHTML(r.surtio || '', [{value:'', label:'Sin asignar'}])}
         </select>
       </div>
       <div class="prio-wrap">
@@ -1678,13 +1636,11 @@ function renderActividades() {
 function selectPersona(tipo, nombre) {
   if (tipo === 'op') {
     personaOP = nombre;
-    document.getElementById('op-btn-lupita').classList.toggle('selected', nombre === 'Lupita Alferez');
-    document.getElementById('op-btn-marco').classList.toggle('selected', nombre === 'Marco Reyes');
+    renderPersonaBotones('op-personas-container', 'selectPersona', nombre, 'op');
     document.getElementById('op-modal-confirm').disabled = false;
   } else {
     personaAct = nombre;
-    document.getElementById('act-btn-lupita').classList.toggle('selected', nombre === 'Lupita Alferez');
-    document.getElementById('act-btn-marco').classList.toggle('selected', nombre === 'Marco Reyes');
+    renderPersonaBotones('act-personas-container', 'selectPersona', nombre, 'act');
     document.getElementById('act-modal-confirm').disabled = false;
   }
 }
@@ -1692,8 +1648,7 @@ function selectPersona(tipo, nombre) {
 function abrirModalOP(op) {
   opSeleccionada = op; personaOP = null; incidenciaOP = 0; fifoOP = 1; completoOP = 1;
   document.getElementById('modal-op-info').textContent = `OP ${op.op} · ${op.producto}`;
-  document.getElementById('op-btn-lupita').classList.remove('selected');
-  document.getElementById('op-btn-marco').classList.remove('selected');
+  renderPersonaBotones('op-personas-container', 'selectPersona', null, 'op');
   document.getElementById('op-comp-si').classList.add('selected');
   document.getElementById('op-comp-no').classList.remove('selected');
   document.getElementById('op-inc-no').classList.add('selected');
@@ -1787,7 +1742,8 @@ function abrirModalNuevaActividad() {
   document.getElementById('newact-sol').value = '';
   document.getElementById('newact-limite').value = '';
   document.getElementById('newact-detalle').value = '';
-  ['newact-lupita','newact-marco','newact-todos'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  renderPersonaBotones('newact-personas-container', 'selectAsignadoAct', null);
+  document.getElementById('newact-todos').classList.remove('selected');
   document.getElementById('newact-modal-msg').style.display = 'none';
   document.getElementById('newact-modal-confirm').disabled = true;
   document.getElementById('modal-newact-bg').classList.add('open');
@@ -1795,8 +1751,7 @@ function abrirModalNuevaActividad() {
 
 function selectAsignadoAct(persona) {
   newActAsignado = persona;
-  document.getElementById('newact-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
-  document.getElementById('newact-marco').classList.toggle('selected', persona === 'Marco Reyes');
+  renderPersonaBotones('newact-personas-container', 'selectAsignadoAct', persona);
   document.getElementById('newact-todos').classList.toggle('selected', persona === 'Todos');
   verificarNuevaActLista();
 }
@@ -1842,8 +1797,7 @@ function abrirModalExplosion() {
   document.getElementById('exp-search').value = '';
   document.getElementById('exp-autocomplete').style.display = 'none';
   document.getElementById('exp-producto-sel').style.display = 'none';
-  document.getElementById('exp-btn-lupita').classList.remove('selected');
-  document.getElementById('exp-btn-marco').classList.remove('selected');
+  renderPersonaBotones('exp-personas-container', 'selectPersonaExp', null);
   document.getElementById('exp-obs').value = '';
   document.getElementById('exp-foto').value = '';
   document.getElementById('exp-modal-msg').style.display = 'none';
@@ -1930,8 +1884,7 @@ function seleccionarProductoExp(clave, nombre) {
 
 function selectPersonaExp(persona) {
   expPersona = persona;
-  document.getElementById('exp-btn-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
-  document.getElementById('exp-btn-marco').classList.toggle('selected', persona === 'Marco Reyes');
+  renderPersonaBotones('exp-personas-container', 'selectPersonaExp', persona);
   verificarExplosionLista();
 }
 
@@ -2037,9 +1990,7 @@ function abrirModalUbicarDevolucion(item) {
   document.getElementById('devubic-obs').value = '';
   document.getElementById('devubic-foto').value = '';
   document.getElementById('devubic-modal-msg').style.display = 'none';
-  document.getElementById('devubic-marco').classList.remove('selected');
-  document.getElementById('devubic-lupita').classList.remove('selected');
-  document.getElementById('devubic-eduardo').classList.remove('selected');
+  renderPersonaBotones('devubic-personas-container', 'selectPersonaUbicarDev', null);
   document.getElementById('devubic-tipo-no').classList.remove('selected');
   document.getElementById('devubic-tipo-des').classList.remove('selected');
   document.getElementById('modal-devubic-bg').classList.add('open');
@@ -2047,9 +1998,7 @@ function abrirModalUbicarDevolucion(item) {
 
 function selectPersonaUbicarDev(persona) {
   devUbicPersona = persona;
-  document.getElementById('devubic-marco').classList.toggle('selected', persona === 'Marco Reyes');
-  document.getElementById('devubic-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
-  document.getElementById('devubic-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
+  renderPersonaBotones('devubic-personas-container', 'selectPersonaUbicarDev', persona);
 }
 
 function seleccionarTipoUbicar(tipo) {
@@ -2115,8 +2064,7 @@ async function confirmarUbicarDevolucion() {
 function abrirModalAct(act) {
   actSeleccionada = act; personaAct = null;
   document.getElementById('modal-act-info').textContent = `${act.folio} · ${act.descripcion}`;
-  document.getElementById('act-btn-lupita').classList.remove('selected');
-  document.getElementById('act-btn-marco').classList.remove('selected');
+  renderPersonaBotones('act-personas-container', 'selectPersona', null, 'act');
   document.getElementById('act-modal-confirm').disabled = true;
   document.getElementById('act-comentario').value = '';
   document.getElementById('act-modal-msg').style.display = 'none';
@@ -2136,7 +2084,8 @@ function abrirModalMontacargas() {
   document.getElementById('mtc-obs').value = '';
   document.getElementById('mtc-foto').value = '';
   document.getElementById('mtc-modal-msg').style.display = 'none';
-  ['mtc-tipo-prev','mtc-tipo-corr','mtc-marco','mtc-lupita','mtc-eduardo'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  ['mtc-tipo-prev','mtc-tipo-corr'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  renderPersonaBotones('mtc-personas-container', 'selectPersonaMtc', null);
   verificarMontacargasLista();
   document.getElementById('modal-mtc-bg').classList.add('open');
 }
@@ -2150,9 +2099,7 @@ function seleccionarTipoMtc(tipo) {
 
 function selectPersonaMtc(persona) {
   mtcPersona = persona;
-  document.getElementById('mtc-marco').classList.toggle('selected', persona === 'Marco Reyes');
-  document.getElementById('mtc-lupita').classList.toggle('selected', persona === 'Lupita Alferez');
-  document.getElementById('mtc-eduardo').classList.toggle('selected', persona === 'Eduardo de Loera');
+  renderPersonaBotones('mtc-personas-container', 'selectPersonaMtc', persona);
   verificarMontacargasLista();
 }
 
@@ -2381,6 +2328,98 @@ async function cargarInventarioPT() {
   invPTMap = mapa;
 }
 
+// Roster de personal (hoja "Personas"). Nombre | Rol | Iniciales | Activo | Puntos.
+// Solo entran a personasData los que tengan Activo=SI, para que dar de baja
+// a alguien sea con solo editar esa columna en Sheets — sin tocar código.
+// Si el link CSV_PERSONAS todavía no está configurado (o falla la carga),
+// se usa PERSONAS_FALLBACK para que la app siga funcionando mientras tanto.
+async function cargarPersonas() {
+  if (!CSV_PERSONAS || CSV_PERSONAS.indexOf('PENDIENTE') !== -1) {
+    personasData = PERSONAS_FALLBACK.slice();
+    return;
+  }
+  try {
+    const res = await fetchConTimeout(CSV_PERSONAS + '&t=' + Date.now());
+    const txt = await res.text();
+    const rows = parseCSV(txt);
+    if (!rows.length) { personasData = PERSONAS_FALLBACK.slice(); return; }
+    const h = rows[0].map(x => cl(x).toLowerCase());
+    const idx = {
+      nombre:     h.indexOf('nombre'),
+      rol:        h.indexOf('rol'),
+      iniciales:  h.indexOf('iniciales'),
+      activo:     h.indexOf('activo'),
+      puntos:     h.indexOf('puntos'),
+    };
+    if (idx.nombre === -1) { personasData = PERSONAS_FALLBACK.slice(); return; }
+    const lista = rows.slice(1)
+      .map(r => ({
+        nombre:    cl(r[idx.nombre]),
+        rol:       idx.rol       !== -1 ? cl(r[idx.rol])       : '',
+        iniciales: idx.iniciales !== -1 ? cl(r[idx.iniciales]) : '',
+        activo:    idx.activo    !== -1 ? cl(r[idx.activo]).toUpperCase() : 'SI',
+        puntos:    idx.puntos    !== -1 ? cl(r[idx.puntos]).toUpperCase() === 'SI' : false,
+      }))
+      .filter(p => p.nombre && p.activo !== 'NO');
+    personasData = lista.length ? lista : PERSONAS_FALLBACK.slice();
+  } catch(e) {
+    console.error('Error cargando Personas, usando roster de respaldo:', e);
+    personasData = PERSONAS_FALLBACK.slice();
+  }
+}
+
+// Helper genérico: dibuja los botones de "elegir persona" dentro de un
+// contenedor, a partir de personasData. Reemplaza los botones hardcoded
+// (uno por persona) que existían antes en cada modal — así agregar o quitar
+// a alguien del roster los agrega/quita automáticamente aquí también.
+//   containerId:  id del <div> contenedor (debe estar vacío o se limpia)
+//   handlerFn:    nombre de la función a llamar onclick, ej. 'selectPersonaExp'
+//   seleccionActual: nombre actualmente seleccionado (o null)
+//   extraArg:     argumento extra que va ANTES del nombre en el onclick (ej. 'op' en selectPersona('op', nombre))
+function renderPersonaBotones(containerId, handlerFn, seleccionActual, extraArg) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+  const lista = personasData.length ? personasData : PERSONAS_FALLBACK;
+  cont.innerHTML = lista.map(p => {
+    const args = extraArg !== undefined && extraArg !== null
+      ? `'${extraArg}','${p.nombre.replace(/'/g,"\\'")}'`
+      : `'${p.nombre.replace(/'/g,"\\'")}'`;
+    const sel = p.nombre === seleccionActual ? ' selected' : '';
+    return `<div class="persona-btn${sel}" data-persona="${p.nombre}" onclick="${handlerFn}(${args})">
+      <div class="p-icon">👤</div><div class="p-name">${p.nombre}</div>
+    </div>`;
+  }).join('');
+}
+
+// Helper genérico para poblar un <select> de personas.
+//   selectId: id del <select>
+//   valorActual: value a preseleccionar
+//   opcionesAntes / opcionesDespues: arrays de opciones fijas extra, ej.
+//     [{value:'todos', label:'Todos'}] o [{value:'', label:'Sin asignar'}]
+// Igual que renderPersonaOptions pero devuelve solo el HTML de las <option>
+// (sin tocar el DOM) — para usarlo dentro de template strings que arman
+// selects fila por fila (ej. el select "Asignar a" de cada OP pendiente).
+function personaOptionsHTML(valorActual, opcionesAntes, opcionesDespues) {
+  const lista = personasData.length ? personasData : PERSONAS_FALLBACK;
+  let html = '';
+  (opcionesAntes || []).forEach(o => { html += `<option value="${o.value}" ${valorActual===o.value?'selected':''}>${o.label}</option>`; });
+  html += lista.map(p => `<option value="${p.nombre}" ${valorActual===p.nombre?'selected':''}>👤 ${p.nombre}</option>`).join('');
+  (opcionesDespues || []).forEach(o => { html += `<option value="${o.value}" ${valorActual===o.value?'selected':''}>${o.label}</option>`; });
+  return html;
+}
+
+function renderPersonaOptions(selectId, valorActual, opcionesAntes, opcionesDespues) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const lista = personasData.length ? personasData : PERSONAS_FALLBACK;
+  let html = '';
+  (opcionesAntes || []).forEach(o => { html += `<option value="${o.value}">${o.label}</option>`; });
+  html += lista.map(p => `<option value="${p.nombre}">👤 ${p.nombre}</option>`).join('');
+  (opcionesDespues || []).forEach(o => { html += `<option value="${o.value}">${o.label}</option>`; });
+  sel.innerHTML = html;
+  if (valorActual !== undefined && valorActual !== null) sel.value = valorActual;
+}
+
 function renderPedidos() {
   const cont = document.getElementById('lista-ped');
   if (!cont) return;
@@ -2587,10 +2626,13 @@ async function confirmarActividad() {
 
 // ── PUNTOS ───────────────────────────────────────────────────
 const META_FACTOR = 7; // meta = OPs del mes × factor
-const PERSONAS = [
-  { key: 'Lupita Alferez', nombre: 'Lupita Alferez', rol: 'Montacarguista', iniciales: 'LA' },
-  { key: 'Marco Reyes',    nombre: 'Marco Reyes',    rol: 'Almacenista',    iniciales: 'MR' },
-];
+// Antes era un array fijo con Lupita y Marco. Ahora sale de personasData
+// (hoja "Personas", columna Puntos=SI) — quien no deba aparecer en el
+// tablero de puntos/misiones simplemente se marca Puntos=NO en la hoja.
+function personasParaPuntos() {
+  const base = (personasData.length ? personasData : PERSONAS_FALLBACK).filter(p => p.puntos);
+  return base.map(p => ({ key: p.nombre, nombre: p.nombre, rol: p.rol, iniciales: p.iniciales }));
+}
 
 const MESES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -2824,7 +2866,7 @@ function calcStats(persona, mes, anio) {
   };
 
   // Claves de TODAS las personas del equipo (para misiones compartidas)
-  const todasLasClaves = PERSONAS.map(p => p.key);
+  const todasLasClaves = personasParaPuntos().map(p => p.key);
 
   opsData.forEach(r => {
     const fecha = parseFecha(r.fecha);
@@ -3597,7 +3639,7 @@ function renderPuntos() {
 
   // Marcador empleados
   const marc = document.getElementById('pts-marcador');
-  marc.innerHTML = PERSONAS.map(p => buildPtsCard(p, mes, anio, semFiltro)).join('');
+  marc.innerHTML = personasParaPuntos().map(p => buildPtsCard(p, mes, anio, semFiltro)).join('');
 }
 
 function renderDevolucionesPorSemana(mes, anio, semFiltro) {
@@ -4008,7 +4050,8 @@ function renderDevoluciones() {
     const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
     const cant = primera.cantidad ? ` · ${primera.cantidad} ${primera.unidad || ''}` : '';
     const itemJson = JSON.stringify({clave: primera.codigo, descripcion: primera.producto, lote: primera.lote, existencia: primera.cantidad, unidad: primera.unidad}).replace(/'/g,"&#39;");
-    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:14px 16px">
+    const cardId = 'dev-card-' + folio.replace(/[^A-Za-z0-9_-]/g, '-');
+    return `<div id="${cardId}" style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:14px 16px;transition:box-shadow .3s">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <strong style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;line-height:1.1;color:var(--g9)">${primera.codigo || 'Sin código'}</strong>
         <span style="color:var(--g4);font-size:12px;white-space:nowrap;margin-left:8px">${primera.fecha}</span>
@@ -4031,6 +4074,41 @@ function renderDevoluciones() {
       ${!ubicada ? `<button onclick='abrirModalUbicarDevolucion(${itemJson})' style="width:100%;margin-top:8px;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box">📍 Marcar como ubicada</button>` : ''}
     </div>`;
   }).join('');
+}
+
+// Lector de código de barras para Devoluciones. Un lector de barras físico (o
+// la cámara del celular con una app de escaneo) funciona como teclado: escribe
+// el valor leído y manda Enter — por eso basta escuchar el Enter en el mismo
+// buscador. Busca coincidencia EXACTA por Clave o por Lote (no parcial, para
+// no confundir un escaneo con otro código parecido), le hace scroll a esa
+// tarjeta, la resalta un momento y limpia el buscador para dejarlo listo para
+// el siguiente escaneo.
+function buscarPorEscaneoDev() {
+  const input = document.getElementById('dev-search');
+  const valor = (input?.value || '').trim().toUpperCase();
+  if (!valor) return;
+
+  const match = devData.find(r =>
+    (r.codigo || '').trim().toUpperCase() === valor ||
+    (r.lote || '').trim().toUpperCase() === valor
+  );
+
+  if (!match) {
+    // No hubo coincidencia exacta: se deja el filtro normal por texto parcial
+    // (renderDevoluciones ya corrió con oninput), no se hace nada más.
+    return;
+  }
+
+  input.value = '';
+  renderDevoluciones();
+
+  const cardId = 'dev-card-' + match.folio.replace(/[^A-Za-z0-9_-]/g, '-');
+  const card = document.getElementById(cardId);
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.style.boxShadow = '0 0 0 3px var(--orange)';
+    setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+  }
 }
 
 // Reporte imprimible de Devoluciones — pensado para que el jefe de almacén lo
@@ -4126,11 +4204,14 @@ async function recargar() {
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
     iniciarSelectorMeses();
+    renderPersonaOptions('surtio-select', surtioFiltro, [{value:'todos', label:'Todos'}], [{value:'', label:'Sin asignar'}]);
+    renderPersonaOptions('act-asignado-select', asignadoAct, [{value:'todos', label:'Todos'}], [{value:'Todos', label:'Asignado a Todos'}]);
+    renderPersonaOptions('dev-ubico-select', ubicoDevFiltro, [{value:'todos', label:'Todos'}], [{value:'', label:'Sin ubicar'}]);
     renderOPs();
     renderActividades();
     renderDevoluciones();
