@@ -834,17 +834,19 @@
 <!-- MODAL NUEVO VALE (Requisición de materiales) -->
 <div class="modal-bg" id="modal-req-bg">
   <div class="modal">
-    <div class="modal-title">Nuevo vale de requisición</div>
-    <div class="modal-sub">Folio: se asigna automático al generar</div>
+    <div class="modal-title" id="req-modal-title">Nuevo vale de requisición</div>
+    <div class="modal-sub" id="req-modal-sub">Folio: se asigna automático al generar</div>
 
-    <label class="modal-label">Cargó a</label>
-    <div class="sem-select-wrap">
-      <select class="sem-select" id="req-modal-cargoa" onchange="setCargoAModalReq(this.value)" style="width:100%">
-        <option value="">Selecciona...</option>
-      </select>
+    <div id="req-cargoa-wrap">
+      <label class="modal-label">Cargó a</label>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="req-modal-cargoa" onchange="setCargoAModalReq(this.value)" style="width:100%">
+          <option value="">Selecciona...</option>
+        </select>
+      </div>
     </div>
 
-    <label class="modal-label" style="margin-top:10px">¿Quién solicita?</label>
+    <label class="modal-label" style="margin-top:10px" id="req-persona-label">¿Quién solicita?</label>
     <div class="modal-options" id="req-personas-container"></div>
 
     <label class="modal-label" style="margin-top:10px">Agregar material</label>
@@ -1062,9 +1064,13 @@ let reqData = [];
 // Inventario (cargarInventario). matInvPorClave: { CLAVE: { descripcion, lotes:[{lote,existencia}] } }
 let matInvPorClave = {};
 let catalogoMateriales = []; // [{clave, desc}] deduplicado, para el buscador del vale
-// Estado del modal "Nuevo vale" mientras se arma línea por línea.
+// Estado del modal "Nuevo vale" / "Agregar artículo" mientras se arma línea
+// por línea. Ambos flujos comparten el mismo modal y las mismas funciones
+// de buscar/seleccionar material — solo cambia el modo al confirmar:
+// 'nuevo' crea un folio, 'agregar' añade líneas a un folio ya abierto.
 let reqLineasTemp = [];
 let reqCodigoSel = '', reqDescSel = '', reqPersonaSol = null, reqCargoASel = null;
+let reqModalModo = 'nuevo', reqModalFolioActual = '';
 let mesReqActual = 'todos', semanaReqActual = 'todas', estadoReqFiltro = 'todos', cargoAReqFiltro = 'todos';
 let mtcPersona = null, mtcTipo = '';
 let destinoPedFiltro = 'todos', estadoPedFiltro = 'pendientes';
@@ -4092,7 +4098,8 @@ function renderRequisiciones() {
         <div style="color:#1a8a50;font-weight:700">🔢 Movimiento ${primera.movimiento || 's/n'}</div>
         <div style="color:var(--g5);margin-top:2px">Cerró ${primera.cerro || ''} · ${primera.fechaCierre || ''}</div>
       </div>` : ''}
-      <div style="display:flex;gap:8px;margin-top:10px">
+      ${abierto ? `<button onclick="abrirModalAgregarArticulo('${folio}')" style="width:100%;margin-top:10px;padding:9px;background:#fff8f4;color:var(--orange);border:1.5px dashed var(--orange);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">➕ Agregar artículo</button>` : ''}
+      <div style="display:flex;gap:8px;margin-top:8px">
         <button onclick="imprimirVale('${folio}')" style="flex:1;padding:9px;background:var(--g1);color:var(--g9);border:1.5px solid var(--g2);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>
         ${abierto ? `<button onclick="abrirModalCerrarVale('${folio}')" style="flex:1;padding:9px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🔒 Cerrar vale</button>` : ''}
       </div>
@@ -4100,10 +4107,19 @@ function renderRequisiciones() {
   }).join('');
 }
 
-// ── MODAL NUEVO VALE ─────────────────────────────────────────
+// ── MODAL NUEVO VALE / AGREGAR ARTÍCULO (comparten el mismo modal) ──
 function abrirModalNuevoVale() {
+  reqModalModo = 'nuevo'; reqModalFolioActual = '';
   reqLineasTemp = []; reqCodigoSel = ''; reqDescSel = ''; reqPersonaSol = null; reqCargoASel = null;
-  document.getElementById('req-modal-cargoa').innerHTML = destinoOptionsHTML('', [{value:'', label:'Selecciona...'}]);
+
+  document.getElementById('req-modal-title').textContent = 'Nuevo vale de requisición';
+  document.getElementById('req-modal-sub').textContent = 'Folio: se asigna automático al generar';
+  document.getElementById('req-persona-label').textContent = '¿Quién solicita?';
+  document.getElementById('req-cargoa-wrap').style.display = 'block';
+  const cargoaSel = document.getElementById('req-modal-cargoa');
+  cargoaSel.innerHTML = destinoOptionsHTML('', [{value:'', label:'Selecciona...'}]);
+  cargoaSel.disabled = false;
+
   renderPersonaBotones('req-personas-container', 'selectPersonaReq', null);
   document.getElementById('req-search').value = '';
   document.getElementById('req-autocomplete').style.display = 'none';
@@ -4111,6 +4127,38 @@ function abrirModalNuevoVale() {
   document.getElementById('req-cantidad').value = '';
   document.getElementById('req-obs').value = '';
   document.getElementById('req-modal-msg').style.display = 'none';
+  document.getElementById('req-modal-confirm').textContent = '📝 Generar vale';
+  document.getElementById('req-modal-confirm').disabled = true;
+  renderTablaLineasReq();
+  document.getElementById('modal-req-bg').classList.add('open');
+}
+
+// El vale ya tiene folio/destino/estado — aquí solo se agregan líneas nuevas.
+// Se reutiliza el mismo modal que "Nuevo vale": se precarga y bloquea el
+// "Cargó a" (no tiene caso cambiar el destino a medio vale) y se pregunta
+// de nuevo "¿quién agrega?" porque puede ser alguien distinto de quien lo abrió.
+function abrirModalAgregarArticulo(folio) {
+  const existentes = reqData.filter(r => r.folio === folio);
+  if (!existentes.length) return;
+  const primera = existentes[0];
+
+  reqModalModo = 'agregar'; reqModalFolioActual = folio;
+  reqLineasTemp = []; reqCodigoSel = ''; reqDescSel = ''; reqPersonaSol = null;
+  reqCargoASel = primera.cargoA || '';
+
+  document.getElementById('req-modal-title').textContent = 'Agregar artículos';
+  document.getElementById('req-modal-sub').textContent = `Vale ${folio} · Cargó a ${primera.cargoA || ''}`;
+  document.getElementById('req-persona-label').textContent = '¿Quién agrega?';
+  document.getElementById('req-cargoa-wrap').style.display = 'none';
+
+  renderPersonaBotones('req-personas-container', 'selectPersonaReq', null);
+  document.getElementById('req-search').value = '';
+  document.getElementById('req-autocomplete').style.display = 'none';
+  document.getElementById('req-material-sel').style.display = 'none';
+  document.getElementById('req-cantidad').value = '';
+  document.getElementById('req-obs').value = '';
+  document.getElementById('req-modal-msg').style.display = 'none';
+  document.getElementById('req-modal-confirm').textContent = '➕ Agregar al vale';
   document.getElementById('req-modal-confirm').disabled = true;
   renderTablaLineasReq();
   document.getElementById('modal-req-bg').classList.add('open');
@@ -4215,24 +4263,34 @@ async function confirmarRequisicion() {
   if (!reqCargoASel || !reqPersonaSol || !reqLineasTemp.length) return;
   const btn = document.getElementById('req-modal-confirm');
   const msg = document.getElementById('req-modal-msg');
+  const esAgregar = reqModalModo === 'agregar';
   btn.disabled = true;
-  btn.textContent = 'Generando...';
+  btn.textContent = esAgregar ? 'Agregando...' : 'Generando...';
   try {
-    await sai_fetch({
-      tipo: 'requisicion',
-      cargoA: reqCargoASel,
-      solicito: reqPersonaSol,
-      observaciones: document.getElementById('req-obs').value || '',
-      lineas: reqLineasTemp,
-    });
+    if (esAgregar) {
+      await sai_fetch({
+        tipo: 'agregarLineaRequisicion',
+        folio: reqModalFolioActual,
+        agrego: reqPersonaSol,
+        lineas: reqLineasTemp,
+      });
+    } else {
+      await sai_fetch({
+        tipo: 'requisicion',
+        cargoA: reqCargoASel,
+        solicito: reqPersonaSol,
+        observaciones: document.getElementById('req-obs').value || '',
+        lineas: reqLineasTemp,
+      });
+    }
     msg.style.cssText = 'display:block;background:#e8f8f0;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-    msg.textContent = '✅ Vale generado correctamente';
+    msg.textContent = esAgregar ? '✅ Artículos agregados al vale' : '✅ Vale generado correctamente';
     setTimeout(() => { cerrarModal('req'); recargar(); }, 1200);
   } catch(e) {
     msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-    msg.textContent = '❌ Error al generar el vale';
+    msg.textContent = esAgregar ? '❌ Error al agregar los artículos' : '❌ Error al generar el vale';
     btn.disabled = false;
-    btn.textContent = '📝 Generar vale';
+    btn.textContent = esAgregar ? '➕ Agregar al vale' : '📝 Generar vale';
   }
 }
 
