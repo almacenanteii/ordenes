@@ -2655,20 +2655,6 @@ function renderPedidos() {
       else cajasTxt = `📦 ${l.cajas} caja${Number(l.cajas) !== 1 ? 's' : ''}`;
       const tarimaTxt = nTarimas > 0 ? ` · 🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''} completa${nTarimas > 1 ? 's' : ''}${nSueltas > 0 ? ` + ${nSueltas} suelta${nSueltas > 1 ? 's' : ''}` : ''}` : '';
 
-      const claveU = (l.clave || '').toUpperCase();
-      const loteU = (l.lote || '').toUpperCase();
-      let existTxt = '';
-      if (Object.keys(invPTMap).length) {
-        const key = claveU + '|' + loteU;
-        const existencia = invPTMap[key] !== undefined ? invPTMap[key] : invPTMap[claveU];
-        if (existencia !== undefined) {
-          const alcanza = existencia >= Number(l.cantidad);
-          existTxt = `<div class="ped-existencia" style="color:${alcanza ? '#1a8a50' : '#c0392b'}">${alcanza ? '✅' : '⚠️'} Existencia: ${existencia} ${l.unidad}${!alcanza ? ' — NO ALCANZA' : ''}</div>`;
-        } else {
-          existTxt = `<div class="ped-existencia" style="color:var(--g4)">Sin dato de existencia</div>`;
-        }
-      }
-
       return `<div class="ped-linea">
         <div class="ped-clave">${l.clave}</div>
         <div class="ped-desc">${l.descripcion}</div>
@@ -2676,7 +2662,6 @@ function renderPedidos() {
           <span>🏷️ Lote: <strong>${l.lote || 'S/LOTE'}</strong></span>
           <span>🔢 ${l.cantidad} ${l.unidad}</span>
         </div>
-        ${existTxt}
         <div class="ped-cajas">${cajasTxt}${tarimaTxt}</div>
       </div>`;
     }).join('');
