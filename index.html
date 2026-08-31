@@ -2681,6 +2681,12 @@ function renderPedidos() {
       </div>`;
     }).join('');
 
+    // Total de cajas de TODO el pedido (suma de todas sus líneas), aparte del
+    // desglose de tarimas que ya se muestra por línea — para no tener que
+    // sumarlas a mano y perder la cuenta.
+    const totalCajasFolio = lineas.reduce((sum, l) => sum + (Number(l.cajas) || 0), 0);
+    const hayCajasSinConfig = lineas.some(l => l.cajas === '');
+
     return `<div class="ped-card" style="border-left-color:${urgColor}">
       <div class="ped-top">
         <div>
@@ -2689,6 +2695,9 @@ function renderPedidos() {
           <div class="ped-destino-sub">${primera.fechaEntrega ? 'Entrega ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
         </div>
         <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
+      </div>
+      <div style="padding:0 14px 8px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--g9)">
+        📦 Total: ${totalCajasFolio} caja${totalCajasFolio !== 1 ? 's' : ''} del pedido${hayCajasSinConfig ? ' <span style="font-size:11px;color:#c0392b;font-weight:700">⚠️ hay líneas sin config de empaque</span>' : ''}
       </div>
       ${lineasHtml}
       <div style="display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--g1)">
