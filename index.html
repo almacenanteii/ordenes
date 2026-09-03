@@ -1037,6 +1037,11 @@ const CSV_PERSONAS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8k
 // en sai_acciones.gs): pegar aquí los links CSV en cuanto existan.
 const CSV_DESTINOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1872430265&single=true&output=csv';
 const CSV_REQ = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1519558212&single=true&output=csv';
+// Hoja "Ubicaciones" (misma spreadsheet): Id, Clave, Lote, Ubicacion, Registrado, Fecha.
+// Un mismo Clave+Lote puede tener VARIAS ubicaciones (está repartido en más de
+// una tarima/posición), y una fila de Ubicaciones puede traer varios lotes
+// juntos separados por coma — se maneja al armar el mapa en cargarUbicaciones().
+const CSV_UBICACIONES = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=478900630&single=true&output=csv';
 // Nota: el reporte del almacén DEV (gid=1557636426) ya NO se lee desde aquí —
 // lo revisa directo el backend (sai_sincronizarDEV, cada 30 min) y crea el
 // "Pendiente" en la hoja Devoluciones con fecha real. Este frontend solo lee
@@ -1063,6 +1068,14 @@ let reqData = [];
 // Inventario (cargarInventario). matInvPorClave: { CLAVE: { descripcion, lotes:[{lote,existencia}] } }
 let matInvPorClave = {};
 let catalogoMateriales = []; // [{clave, desc}] deduplicado, para el buscador del vale
+
+// Ubicaciones físicas de materiales (hoja "Ubicaciones"). Un mismo
+// Clave+Lote puede estar repartido en varias posiciones, por eso los
+// valores son arrays. ubicPorClaveLote es la búsqueda exacta (más
+// confiable); ubicPorClave es el respaldo cuando no hay match exacto de
+// lote (por ejemplo si el lote viene escrito distinto entre hojas).
+let ubicPorClaveLote = {};
+let ubicPorClave = {};
 // Estado del modal "Nuevo vale" / "Agregar artículo" mientras se arma línea
 // por línea. Ambos flujos comparten el mismo modal y las mismas funciones
 // de buscar/seleccionar material — solo cambia el modo al confirmar:
@@ -1503,10 +1516,20 @@ function buildMateriales(materialesStr) {
     const cant = parseFloat(p[1]) || 0;
     const lote = (p[2]||'').trim();
 
+    // Ubicación física (hoja Ubicaciones): primero exacta por Clave+Lote;
+    // si no hay match de lote, cae al respaldo por Clave sola (puede traer
+    // varias posiciones si el material está repartido en más de una).
+    const loteU = lote.toUpperCase();
+    const ubicaciones = (loteU && ubicPorClaveLote[cod + '|' + loteU]) || ubicPorClave[cod] || [];
+    const ubicTxt = ubicaciones.length
+      ? `<div class="mat-lote" style="color:var(--orange);font-weight:700">📍 ${ubicaciones.join(', ')}</div>`
+      : `<div class="mat-lote" style="color:var(--g4)">📍 Sin ubicación registrada</div>`;
+
     html += `<div class="mat-row">
       <div>
         <div class="mat-cod">${cod}</div>
         ${lote ? `<div class="mat-lote">Lote: ${lote}</div>` : ''}
+        ${ubicTxt}
       </div>
       <div class="mat-cant">${cant.toLocaleString()}</div>
     </div>`;
@@ -3960,6 +3983,46 @@ async function cargarDestinos() {
 // Vales de requisición de materiales (hoja "Requisiciones"). Cada renglón
 // del CSV es una línea de material; se agrupan por folio al renderizar,
 // igual que Devoluciones/Pedidos.
+// Ubicaciones físicas por Clave+Lote (hoja "Ubicaciones"). Es solo lectura
+// — no escribe nada, únicamente arma el mapa para mostrarlo en "Ver
+// materiales" de cada OP. Si falla o no está publicada, se queda vacío y
+// simplemente no se muestra ubicación (no rompe el resto de la app).
+async function cargarUbicaciones() {
+  ubicPorClaveLote = {}; ubicPorClave = {};
+  if (!CSV_UBICACIONES) return;
+  try {
+    const res = await fetchConTimeout(CSV_UBICACIONES + '&t=' + Date.now());
+    const txt = await res.text();
+    const rows = parseCSV(txt);
+    if (!rows.length) return;
+    const h = rows[0].map(x => cl(x).toLowerCase());
+    const colClave = h.indexOf('clave');
+    const colLote = h.indexOf('lote');
+    const colUbic = h.indexOf('ubicacion') !== -1 ? h.indexOf('ubicacion') : h.indexOf('ubicación');
+    if (colClave === -1 || colUbic === -1) return;
+
+    rows.slice(1).forEach(r => {
+      const clave = cl(r[colClave]).toUpperCase();
+      const ubicacion = cl(r[colUbic]);
+      if (!clave || !ubicacion) return;
+
+      if (!ubicPorClave[clave]) ubicPorClave[clave] = [];
+      if (!ubicPorClave[clave].includes(ubicacion)) ubicPorClave[clave].push(ubicacion);
+
+      // Una fila puede traer varios lotes juntos separados por coma
+      // (ej. "MEB2310054, MEB2308027, MEB2308051") — la ubicación aplica a
+      // cada uno de esos lotes por separado.
+      const lotesTxt = colLote !== -1 ? cl(r[colLote]) : '';
+      const lotes = lotesTxt.split(',').map(l => l.trim().toUpperCase()).filter(l => l);
+      lotes.forEach(lote => {
+        const key = clave + '|' + lote;
+        if (!ubicPorClaveLote[key]) ubicPorClaveLote[key] = [];
+        if (!ubicPorClaveLote[key].includes(ubicacion)) ubicPorClaveLote[key].push(ubicacion);
+      });
+    });
+  } catch(e) { console.log('Ubicaciones no cargadas:', e); }
+}
+
 async function cargarRequisiciones() {
   if (!CSV_REQ || CSV_REQ.indexOf('PENDIENTE') !== -1) { reqData = []; return; }
   const res = await fetchConTimeout(CSV_REQ + '&t=' + Date.now());
@@ -4873,7 +4936,7 @@ async function recargar() {
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas(), cargarDestinos(), cargarRequisiciones()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas(), cargarDestinos(), cargarRequisiciones(), cargarUbicaciones()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
