@@ -3534,11 +3534,18 @@ function renderPuntos() {
   const noRec = opsData.filter(r => (r.estado||'').toLowerCase().trim() === 'no recolectado');
 
   // KPI Incidencias por semana (respeta filtro)
+  // Cuenta como "surtida" cualquier OP ya trabajada — Surtido o Parcial —
+  // no solo las totalmente terminadas. Antes usaba !esEstadoActivo(), que
+  // también excluye "Parcial" (esEstadoActivo la trata como pendiente), así
+  // que una OP Parcial con incidencia marcada no se contaba ni en el total
+  // ni en las incidencias, y el % salía en 100 aunque sí hubiera incidencias
+  // esa semana. "Pendiente"/vacío sigue sin contar (no se ha tocado aún).
   const opsMes = opsData.filter(r => {
     const f = parseFecha(r.fecha);
     if (!f || f.getMonth() !== mes || f.getFullYear() !== anio) return false;
     if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return false;
-    return !esEstadoActivo(r.estado) && (r.estado||'').toLowerCase() !== 'cancelada';
+    const e = (r.estado||'').toLowerCase().trim();
+    return e !== '' && e !== 'pendiente' && e !== 'cancelada';
   });
   const totalSurtidas = opsMes.length;
   const conIncidencia = opsMes.filter(r => String(r.incidencia) === '1').length;
