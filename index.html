@@ -4142,15 +4142,22 @@ function renderRequisiciones() {
     const lineas = folios[folio];
     const primera = lineas[0];
     const abierto = (primera.estado||'').toLowerCase() === 'abierto';
-    const lineasHtml = lineas.map(l => `
+    const lineasHtml = lineas.map(l => {
+      const codU = (l.codigo || '').toUpperCase();
+      const loteU = (l.lote || '').toUpperCase();
+      const ubicaciones = (loteU && ubicPorClaveLote[codU + '|' + loteU]) || ubicPorClave[codU] || [];
+      const ubicTxt = ubicaciones.length ? ubicaciones.join(', ') : 'Sin ubicación registrada';
+      return `
       <div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--g1);font-size:13px">
         <div>
           <strong style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--g9)">${l.codigo}</strong>
           <div style="color:var(--g5);font-size:12px">${l.descripcion || ''}${l.lote ? ' · Lote ' + l.lote : ''}</div>
           <div style="color:var(--orange);font-size:11px;font-weight:700">🏭 ${l.cargoA || 's/área'}</div>
+          <div style="color:${ubicaciones.length ? 'var(--g6)' : 'var(--g4)'};font-size:11px;font-weight:700">📍 ${ubicTxt}</div>
         </div>
         <div style="font-weight:700;color:var(--g9);white-space:nowrap">${l.cantidad || '0'}</div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${abierto ? '#e08a00' : 'var(--green)'};padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -4416,13 +4423,20 @@ function imprimirVale(folio) {
   const primera = lineas[0];
   const abierto = (primera.estado || '').toLowerCase() === 'abierto';
 
-  const filasHtml = lineas.map(l => `<tr>
+  const filasHtml = lineas.map(l => {
+    const codU = (l.codigo || '').toUpperCase();
+    const loteU = (l.lote || '').toUpperCase();
+    const ubicaciones = (loteU && ubicPorClaveLote[codU + '|' + loteU]) || ubicPorClave[codU] || [];
+    const ubicTxt = ubicaciones.length ? ubicaciones.join(', ') : '';
+    return `<tr>
       <td>${l.codigo}</td>
       <td>${l.descripcion || ''}</td>
       <td style="text-align:center">${l.lote || 'S/LOTE'}</td>
       <td style="text-align:center">${l.cantidad}</td>
       <td style="text-align:center">${l.cargoA || ''}</td>
-    </tr>`).join('');
+      <td style="text-align:center">${ubicTxt}</td>
+    </tr>`;
+  }).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Vale ${folio}</title>
   <style>
@@ -4459,7 +4473,7 @@ function imprimirVale(folio) {
       <div><strong>Fecha:</strong> ${primera.fecha}</div>
     </div>
     <table>
-      <tr><th>Código</th><th>Descripción</th><th>Lote</th><th>Cantidad</th><th>Área</th></tr>
+      <tr><th>Código</th><th>Descripción</th><th>Lote</th><th>Cantidad</th><th>Área</th><th>Ubicación</th></tr>
       ${filasHtml}
     </table>
     ${primera.observaciones ? `<div class="obs">Obs: ${primera.observaciones}</div>` : ''}
