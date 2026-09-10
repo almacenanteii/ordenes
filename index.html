@@ -247,7 +247,9 @@
   .mat-row { display:grid; grid-template-columns:1fr 80px; padding:7px 14px; border-bottom:1px solid var(--g1); align-items:center; }
   .mat-row:nth-child(even) { background:#fafafa; }
   .mat-cod { font-size:11px; font-weight:600; color:var(--orange); }
-  .mat-lote { font-size:9px; color:var(--g4); margin-top:1px; }
+  .mat-lote { font-size:11px; color:var(--g6); margin-top:2px; font-weight:600; }
+  .mat-ubic-chip { display:inline-block; margin-top:4px; padding:3px 8px; background:var(--orange)15; border-radius:6px; font-size:12px; font-weight:800; color:var(--orange); }
+  .mat-ubic-vacio { display:block; margin-top:4px; font-size:11px; color:var(--g4); }
   .mat-cant { text-align:center; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:700; color:var(--g7); }
   .search-wrap { flex:1; position:relative; display:flex; align-items:center; background:var(--g1); border:1.5px solid var(--g2); border-radius:10px; padding:0 12px; }
   .search-ico { font-size:14px; margin-right:8px; }
@@ -1522,8 +1524,8 @@ function buildMateriales(materialesStr) {
     const loteU = lote.toUpperCase();
     const ubicaciones = (loteU && ubicPorClaveLote[cod + '|' + loteU]) || ubicPorClave[cod] || [];
     const ubicTxt = ubicaciones.length
-      ? `<div class="mat-lote" style="color:var(--orange);font-weight:700">📍 ${ubicaciones.join(', ')}</div>`
-      : `<div class="mat-lote" style="color:var(--g4)">📍 Sin ubicación registrada</div>`;
+      ? `<div class="mat-ubic-chip">📍 ${ubicaciones.join(', ')}</div>`
+      : `<div class="mat-ubic-vacio">📍 Sin ubicación registrada</div>`;
 
     html += `<div class="mat-row">
       <div>
