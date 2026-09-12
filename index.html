@@ -320,7 +320,6 @@
   <div class="tabs">
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
-    <div class="tab" id="tab-dev" onclick="switchTab('dev')">↩️ DEVO</div>
     <div class="tab" id="tab-mtc" onclick="switchTab('mtc')">🚜 Montacargas</div>
     <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Pedidos</div>
     <div class="tab" id="tab-req" onclick="switchTab('req')">📝 Vales</div>
@@ -582,112 +581,6 @@
   </div>
 </div>
 
-<!-- ═══════════════ SECCIÓN DEVOLUCIONES ═══════════════ -->
-<div class="section" id="section-dev">
-  <div class="filtros">
-    <div class="filter-row">
-      <div class="search-wrap">
-        <span class="search-ico">📷</span>
-        <input class="search-input" id="dev-search" type="text" placeholder="Escanea o escribe código, producto o lote..." oninput="renderDevoluciones()" onkeydown="if(event.key==='Enter') buscarPorEscaneoDev()">
-      </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-label">Mes</div>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="dev-mes-select" onchange="setMesDev(this.value)">
-          <option value="todos">Todos los meses</option>
-        </select>
-      </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-label">Semana</div>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="dev-sem-select" onchange="setSemanaDev(this.value)">
-          <option value="todas">Todas las semanas</option>
-        </select>
-      </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-label">Ubicó</div>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="dev-ubico-select" onchange="setUbicoDev(this.value)">
-          <option value="todos">Todos</option>
-        </select>
-      </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-label">Estado</div>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="dev-estado-select" onchange="setEstadoDev(this.value)">
-          <option value="todos">Todos</option>
-          <option value="Pendiente">⏳ Pendiente</option>
-          <option value="Ubicada">📍 Ubicada</option>
-        </select>
-      </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-label">Cuadre</div>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="dev-cuadre-select" onchange="setCuadreDev(this.value)">
-          <option value="todos">Todos</option>
-          <option value="cuadrado">✅ Cuadrado</option>
-          <option value="nocuadra">⚠️ No cuadra</option>
-          <option value="sinmov">⏳ Sin movimiento</option>
-        </select>
-      </div>
-    </div>
-  </div>
-  <div class="resumen">
-    <div class="res-card total"><div class="res-num" id="dev-r-total">0</div><div class="res-lbl">Pendientes</div></div>
-    <div class="res-card rojo"><div class="res-num" id="dev-r-hoy">0</div><div class="res-lbl">Ubicadas hoy</div></div>
-    <div class="res-card verde"><div class="res-num" id="dev-r-cuadrados">0</div><div class="res-lbl">Cuadrados</div></div>
-    <div class="res-card rojo"><div class="res-num" id="dev-r-nocuadran">0</div><div class="res-lbl">No cuadran</div></div>
-    <div class="res-card total"><div class="res-num" id="dev-r-sinmov">0</div><div class="res-lbl">Sin movimiento</div></div>
-  </div>
-  <button onclick="imprimirReporteDev()" style="width:100%;margin-bottom:12px;padding:11px;background:var(--white);color:var(--g9);border:1.5px solid var(--g3);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-sizing:border-box">🖨️ Imprimir reporte DEV</button>
-  <div class="lista" id="lista-dev"><div class="loading"><div class="spinner"></div>Cargando devoluciones...</div></div>
-</div>
-
-<!-- ═══════════════ MODAL MARCAR DEVOLUCIÓN COMO UBICADA ═══════════════ -->
-<div class="modal-bg" id="modal-devubic-bg">
-  <div class="modal-box">
-    <div class="modal-title">📍 Marcar como ubicada</div>
-    <div id="devubic-item-info" style="background:#1a8a5015;border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:13px">
-      <strong id="devubic-clave-txt"></strong> — <span id="devubic-desc-txt"></span><br>
-      <span style="color:var(--g4)">Lote: <strong id="devubic-lote-txt"></strong> · Existencia: <strong id="devubic-existencia-txt"></strong></span>
-    </div>
-
-    <label class="modal-label">¿Qué se marcó en la hoja?</label>
-    <div class="modal-options" style="grid-template-columns:1fr 1fr">
-      <div class="persona-btn" id="devubic-tipo-no" onclick="seleccionarTipoUbicar('No utilizado')">
-        <div class="p-icon">📦</div><div class="p-name">No utilizado</div>
-      </div>
-      <div class="persona-btn" id="devubic-tipo-des" onclick="seleccionarTipoUbicar('Para destrucción')">
-        <div class="p-icon">🗑️</div><div class="p-name">Para destrucción</div>
-      </div>
-    </div>
-
-    <label class="modal-label" style="margin-top:8px">¿Quién la ubicó?</label>
-    <div class="modal-options" id="devubic-personas-container" style="grid-template-columns:1fr 1fr 1fr">
-    </div>
-
-    <label class="modal-label" style="margin-top:8px">Foto (opcional)</label>
-    <input type="file" id="devubic-foto" accept="image/*" capture="environment"
-      style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
-
-    <label class="modal-label" style="margin-top:8px">Observaciones (opcional)</label>
-    <textarea id="devubic-obs" placeholder="Ej: Se ubicó en anaquel B3..." rows="2"
-      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
-
-    <div id="devubic-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
-
-    <button class="modal-confirm" id="devubic-modal-confirm" onclick="confirmarUbicarDevolucion()">
-      📍 Marcar como ubicada
-    </button>
-    <div class="modal-cancel" onclick="cerrarModal('devubic')">Cancelar</div>
-  </div>
-</div>
-
 <!-- ═══════════════ SECCIÓN MONTACARGAS ═══════════════ -->
 <div class="section" id="section-mtc">
   <div class="filtros" style="padding:14px 14px 0">
@@ -945,10 +838,6 @@
     <div class="loading"><div class="spinner"></div>Calculando KPI...</div>
   </div>
 
-  <div class="pts-card" id="pts-devoluciones" style="margin-top:10px">
-    <div class="loading"><div class="spinner"></div>Calculando devoluciones...</div>
-  </div>
-
   <!-- Marcador empleados -->
   <div id="pts-marcador">
     <div class="loading"><div class="spinner"></div>Calculando puntos...</div>
@@ -1025,7 +914,6 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwcWT6v9rcu3-_0_keiFZnihcXoQ5vQRT3UcIxw8u2d3wjAg4hGv3evdmKHqW1eA2M/exec';
 const CSV_OPS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1977206980&single=true&output=csv';
 const CSV_ACT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1964585030&single=true&output=csv';
-const CSV_DEV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1773791934&single=true&output=csv';
 const CSV_CONFIPT = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1762689909&single=true&output=csv';
 const CSV_MTC = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=358244993&single=true&output=csv';
 const CSV_PED = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1224567058&single=true&output=csv';
@@ -1044,12 +932,8 @@ const CSV_REQ = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4Q
 // una tarima/posición), y una fila de Ubicaciones puede traer varios lotes
 // juntos separados por coma — se maneja al armar el mapa en cargarUbicaciones().
 const CSV_UBICACIONES = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=478900630&single=true&output=csv';
-// Nota: el reporte del almacén DEV (gid=1557636426) ya NO se lee desde aquí —
-// lo revisa directo el backend (sai_sincronizarDEV, cada 30 min) y crea el
-// "Pendiente" en la hoja Devoluciones con fecha real. Este frontend solo lee
-// esa hoja (CSV_DEV, arriba), igual que antes.
 
-let opsData = [], actData = [], devData = [], mtcData = [], pedData = [], catalogoConfiPT = [];
+let opsData = [], actData = [], mtcData = [], pedData = [], catalogoConfiPT = [];
 // Roster de personal. Se llena desde la pestaña "Personas" del Sheet
 // (cargarPersonas). Si esa hoja aún no está publicada, se usa este roster
 // de respaldo para no romper la app — actualízalo aquí solo mientras tanto.
@@ -1092,7 +976,6 @@ let destinoPedFiltro = 'todos', estadoPedFiltro = 'pendientes';
 let invPTMap = {};
 let semanaActual = 'todas', estadoOP = 'pendientes';
 let asignadoAct = 'todos', statusAct = 'Pendiente';
-let mesDevActual = 'todos', semanaDevActual = 'todas', ubicoDevFiltro = 'todos', estadoDevFiltro = 'todos', cuadreDevFiltro = 'todos';
 let opSeleccionada = null, actSeleccionada = null;
 let personaOP = null, personaAct = null;
 let incidenciaOP = 0;
@@ -1266,12 +1149,11 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','dev','mtc','ped','req','pts'].forEach(t => {
+  ['ops','act','mtc','ped','req','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
   if (tab === 'pts') renderPuntos();
-  if (tab === 'dev') renderDevoluciones();
   if (tab === 'mtc') renderMontacargas();
   if (tab === 'ped') renderPedidos();
   if (tab === 'req') renderRequisiciones();
@@ -1303,30 +1185,6 @@ function setMes(val) {
 function setSurtio(val) { surtioFiltro = val; renderOPs(); }
 function setSemana(val) { semanaActual = val; renderOPs(); }
 
-// ── FILTROS DEVOLUCIONES ────────────────────────────────────
-function setMesDev(val) {
-  mesDevActual = val;
-  const sel = document.getElementById('dev-sem-select');
-  sel.innerHTML = '<option value="todas">Todas las semanas</option>';
-  let semanas;
-  if (val === 'todos') {
-    semanas = [...new Set(devData.map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
-  } else {
-    const [anio, mes] = val.split('-').map(Number);
-    semanas = [...new Set(devData.filter(r => {
-      const f = parseFecha(r.fecha);
-      return f && f.getFullYear() === anio && f.getMonth() === mes;
-    }).map(r=>r.semana).filter(s=>s))].sort((a,b)=>Number(a)-Number(b));
-  }
-  semanas.forEach(s => { const o = document.createElement('option'); o.value=s; o.textContent=`Semana ${s}`; sel.appendChild(o); });
-  semanaDevActual = 'todas';
-  sel.value = 'todas';
-  renderDevoluciones();
-}
-function setSemanaDev(val) { semanaDevActual = val; renderDevoluciones(); }
-function setUbicoDev(val)  { ubicoDevFiltro  = val; renderDevoluciones(); }
-function setEstadoDev(val) { estadoDevFiltro = val; renderDevoluciones(); }
-function setCuadreDev(val) { cuadreDevFiltro = val; renderDevoluciones(); }
 
 // ── FILTROS OPs ──────────────────────────────────────────────
 function parseFecha(v) {
@@ -2148,96 +2006,6 @@ async function confirmarExplosion() {
   }
 }
 
-// ── DEVOLUCIONES ────────────────────────────────────────────
-// Ya no hay captura manual: sai_sincronizarDEV (backend) detecta solo lo nuevo
-// en el almacén DEV y crea el "Pendiente" con fecha real. Aquí solo se
-// captura al "Marcar como ubicada".
-
-// ── MARCAR DEVOLUCIÓN COMO UBICADA ────────────────────────────
-let devUbicItem = null, devUbicPersona = null, devUbicTipo = '';
-
-function abrirModalUbicarDevolucion(item) {
-  devUbicItem = item; // { clave, descripcion, lote, existencia, unidad }
-  devUbicPersona = null;
-  devUbicTipo = '';
-  document.getElementById('devubic-clave-txt').textContent = item.clave;
-  document.getElementById('devubic-desc-txt').textContent = item.descripcion || '';
-  document.getElementById('devubic-lote-txt').textContent = item.lote || 's/lote';
-  document.getElementById('devubic-existencia-txt').textContent = `${item.existencia || 0} ${item.unidad || ''}`;
-  document.getElementById('devubic-obs').value = '';
-  document.getElementById('devubic-foto').value = '';
-  document.getElementById('devubic-modal-msg').style.display = 'none';
-  renderPersonaBotones('devubic-personas-container', 'selectPersonaUbicarDev', null);
-  document.getElementById('devubic-tipo-no').classList.remove('selected');
-  document.getElementById('devubic-tipo-des').classList.remove('selected');
-  document.getElementById('modal-devubic-bg').classList.add('open');
-}
-
-function selectPersonaUbicarDev(persona) {
-  devUbicPersona = persona;
-  renderPersonaBotones('devubic-personas-container', 'selectPersonaUbicarDev', persona);
-}
-
-function seleccionarTipoUbicar(tipo) {
-  devUbicTipo = tipo;
-  document.getElementById('devubic-tipo-no').classList.toggle('selected', tipo === 'No utilizado');
-  document.getElementById('devubic-tipo-des').classList.toggle('selected', tipo === 'Para destrucción');
-}
-
-async function confirmarUbicarDevolucion() {
-  if (!devUbicItem) return;
-  const btn = document.getElementById('devubic-modal-confirm');
-  const msg = document.getElementById('devubic-modal-msg');
-  btn.disabled = true;
-  btn.textContent = 'Guardando...';
-
-  let fotoB64 = '', fotoNombre = '', fotoMime = '';
-  const fotoInput = document.getElementById('devubic-foto');
-  if (fotoInput.files && fotoInput.files[0]) {
-    try {
-      const file = fotoInput.files[0];
-      fotoNombre = file.name;
-      fotoMime = file.type;
-      fotoB64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result.split(',')[1]);
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-    } catch(e) { console.log('Error leyendo foto:', e); }
-  }
-
-  try {
-    const resp = await sai_fetch({
-      tipo: 'ubicarDevolucion',
-      clave: devUbicItem.clave,
-      producto: devUbicItem.descripcion || '',
-      lote: devUbicItem.lote || '',
-      cantidad: devUbicItem.existencia || '',
-      unidad: devUbicItem.unidad || '',
-      tipoDevolucion: devUbicTipo,
-      ubicoPor: devUbicPersona || '',
-      observacionUbicacion: document.getElementById('devubic-obs').value,
-      fotoB64, fotoNombre, fotoMime
-    });
-    if (resp.ok) {
-      msg.style.cssText = 'display:block;background:#e8f5e9;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-      msg.textContent = '✅ Marcada como ubicada';
-      setTimeout(() => { cerrarModal('devubic'); recargar(); }, 1500);
-    } else {
-      msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-      msg.textContent = '❌ Error: ' + (resp.msg || 'intenta de nuevo');
-      btn.disabled = false;
-      btn.textContent = '📍 Marcar como ubicada';
-    }
-  } catch(e) {
-    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-    msg.textContent = '❌ Error de conexión';
-    btn.disabled = false;
-    btn.textContent = '📍 Marcar como ubicada';
-  }
-}
-
 function abrirModalAct(act) {
   actSeleccionada = act; personaAct = null;
   document.getElementById('modal-act-info').textContent = `${act.folio} · ${act.descripcion}`;
@@ -2852,13 +2620,6 @@ function ptsActividad(diasTardanza, esPendiente) {
   return -5;                             // 6+ días
 }
 
-function ptsDevolucion(horas) {
-  if (horas < 12) return 6;
-  if (horas < 24) return 3;
-  if (horas < 48) return 1;
-  return -2;                             // ubicada, pero fuera de la meta de 48h
-}
-
 function calcPuntosMes(persona, mes, anio, semFiltro = 'todas') {
   const detalles = [];
   let total = 0;
@@ -2925,34 +2686,6 @@ function calcPuntosMes(persona, mes, anio, semFiltro = 'todas') {
     detalles.push({ desc, pts, tipo: 'act' });
   });
 
-  // Devoluciones
-  devData.forEach(r => {
-    const fecha = parseFecha(r.fecha);
-    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
-    if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return;
-
-    const ubicada = (r.estado||'').toLowerCase() === 'ubicada';
-
-    if (ubicada) {
-      // Puntos individuales: solo a quien la ubicó
-      if ((r.ubico||'') !== persona.key) return;
-      const fechaUbic = parseFecha(r.fechaUbicada);
-      if (!fechaUbic) return;
-      const horas = (fechaUbic - fecha) / (1000 * 60 * 60);
-      const pts = ptsDevolucion(horas);
-      const tiempoTxt = horas < 24 ? `${Math.round(horas)} hrs` : `${(horas/24).toFixed(1)} días`;
-      total += pts;
-      detalles.push({ desc: `Devolución ${r.folio} — ubicada en ${tiempoTxt}`, pts, tipo: 'dev' });
-    } else {
-      // Pendiente y ya pasó de 48h: responsabilidad compartida de todo el equipo de almacén
-      const horasAbierta = (new Date() - fecha) / (1000 * 60 * 60);
-      if (horasAbierta > 48) {
-        total += -2;
-        detalles.push({ desc: `Devolución ${r.folio} — pendiente +48h (compartida)`, pts: -2, tipo: 'dev' });
-      }
-    }
-  });
-
   // Contar OPs surtidas del mes para meta dinámica
   const numOPs = detalles.filter(d => d.tipo === 'op' && d.pts > 0).length;
 
@@ -3014,34 +2747,7 @@ const MISIONES_ACT = [
   },
 ];
 
-const MISIONES_DEV = [
-  {
-    id: 'recolectorrapido',
-    emoji: '🏃',
-    titulo: 'Recolector Rápido',
-    desc: 'Ubicar 5 devoluciones el mismo día',
-    pts: 15,
-    check: (stats) => ({ actual: stats.devsMismoDia, meta: 5 })
-  },
-  {
-    id: 'cerorezago',
-    emoji: '🔐',
-    titulo: 'Cero Rezago',
-    desc: 'Ninguna devolución abierta más de 48h',
-    pts: 10,
-    check: (stats) => ({ actual: (stats.devsMas48 === 0 && stats.totalDevsEquipo > 0) ? 1 : 0, meta: 1, binaria: true })
-  },
-  {
-    id: 'puntualidadtotal',
-    emoji: '🎯',
-    titulo: 'Puntualidad Total',
-    desc: 'Ubicar 8 devoluciones en menos de 24h',
-    pts: 15,
-    check: (stats) => ({ actual: stats.devsEn24hrs, meta: 8 })
-  },
-];
-
-const MISIONES = [...MISIONES_OP, ...MISIONES_ACT, ...MISIONES_DEV];
+const MISIONES = [...MISIONES_OP, ...MISIONES_ACT];
 
 const MISION_REY = {
   id: 'rey',
@@ -3055,8 +2761,7 @@ function calcStats(persona, mes, anio) {
   const stats = {
     opsMismoDia: 0, opsEn2dias: 0, opsMas5: 0,
     opsMaxSemana: 0, semanaLimpia: false, opsMismoDiaSemana: 0,
-    actsAntes: 0, actsTarde: 0, totalOPs: 0, totalActs: 0,
-    devsMismoDia: 0, devsEn24hrs: 0, totalDevs: 0, devsMas48: 0, totalDevsEquipo: 0
+    actsAntes: 0, actsTarde: 0, totalOPs: 0, totalActs: 0
   };
 
   // Claves de TODAS las personas del equipo (para misiones compartidas)
@@ -3138,36 +2843,6 @@ function calcStats(persona, mes, anio) {
     else if (diasTard > 0) stats.actsTarde++;
   });
 
-  // Devoluciones
-  devData.forEach(r => {
-    const fecha = parseFecha(r.fecha);
-    if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) return;
-    const ubicada = (r.estado||'').toLowerCase() === 'ubicada';
-
-    // Rezago (>48h abierta) y total: cuentan para TODO el equipo (misión compartida)
-    if (ubicada) {
-      stats.totalDevsEquipo++;
-      const fechaUbic = parseFecha(r.fechaUbicada);
-      if (fechaUbic) {
-        const horas = (fechaUbic - fecha) / (1000 * 60 * 60);
-        if (horas > 48) stats.devsMas48++;
-      }
-    } else {
-      stats.totalDevsEquipo++;
-      const horasAbierta = (new Date() - fecha) / (1000 * 60 * 60);
-      if (horasAbierta > 48) stats.devsMas48++;
-    }
-
-    // Puntos individuales: solo devoluciones ubicadas por esta persona
-    if (!ubicada || (r.ubico||'') !== persona.key) return;
-    const fechaUbic = parseFecha(r.fechaUbicada);
-    if (!fechaUbic) return;
-    const horas = (fechaUbic - fecha) / (1000 * 60 * 60);
-    stats.totalDevs++;
-    if (horas < 24) stats.devsEn24hrs++;
-    if (Math.floor(horas / 24) === 0 && fecha.toDateString() === fechaUbic.toDateString()) stats.devsMismoDia++;
-  });
-
   return stats;
 }
 
@@ -3210,10 +2885,9 @@ function buildMisiones(persona, mes, anio) {
   let misionesCompletadas = 0;
   let misionesFaltantes = [];
 
-  // Si no hay OPs, actividades ni devoluciones reales, las misiones no suman puntos
+  // Si no hay OPs ni actividades reales, las misiones no suman puntos
   const hayActividad = (stats.opsMismoDia + stats.opsEn2dias + stats.opsMaxSemana) > 0 ||
-                       (stats.actsAntes + stats.actsTarde) > 0 ||
-                       (stats.totalDevs + stats.totalDevsEquipo) > 0;
+                       (stats.actsAntes + stats.actsTarde) > 0;
 
   let htmlOps = `<div class="pts-sep">⚡ MISIONES — ÓRDENES</div>`;
   MISIONES_OP.forEach(m => {
@@ -3227,14 +2901,6 @@ function buildMisiones(persona, mes, anio) {
   MISIONES_ACT.forEach(m => {
     const { html, completada } = buildMisionRow(m, stats);
     htmlActs += html;
-    if (completada && hayActividad) { ptsMisiones += m.pts; misionesCompletadas++; }
-    else if (!completada) misionesFaltantes.push(m.titulo);
-  });
-
-  let htmlDevs = `<div class="pts-sep">↩️ MISIONES — DEVOLUCIONES</div>`;
-  MISIONES_DEV.forEach(m => {
-    const { html, completada } = buildMisionRow(m, stats);
-    htmlDevs += html;
     if (completada && hayActividad) { ptsMisiones += m.pts; misionesCompletadas++; }
     else if (!completada) misionesFaltantes.push(m.titulo);
   });
@@ -3260,7 +2926,7 @@ function buildMisiones(persona, mes, anio) {
         <div class="mision-prog-txt" style="padding:4px 0 0 30px;color:var(--g4);font-size:11px">Falta: ${misionesFaltantes.join(', ')}</div>
       </div>`;
 
-  return { html: `${htmlOps}${htmlActs}${htmlDevs}${reyRow}`, ptsMisiones };
+  return { html: `${htmlOps}${htmlActs}${reyRow}`, ptsMisiones };
 }
 
 function buildKpiTable(persona, mes, anio) {
@@ -3835,72 +3501,9 @@ function renderPuntos() {
       ${semanasRows || '<div class="pts-det-row"><div class="pts-det-txt" style="color:var(--g4)">Sin datos este mes</div></div>'}
     </div>`;
 
-  // Devoluciones por semana (mismo filtro de mes/semana que las OPs)
-  renderDevolucionesPorSemana(mes, anio, semFiltro);
-
   // Marcador empleados
   const marc = document.getElementById('pts-marcador');
   marc.innerHTML = personasParaPuntos().map(p => buildPtsCard(p, mes, anio, semFiltro)).join('');
-}
-
-function renderDevolucionesPorSemana(mes, anio, semFiltro) {
-  const cont = document.getElementById('pts-devoluciones');
-  if (!cont) return;
-
-  // Una semana puede caer a caballo entre dos meses (ej. semana 32 con días de julio
-  // y de agosto). Para que no se vea "partida", primero se decide QUÉ semanas
-  // pertenecen a este mes/filtro, y luego se toman TODAS las devoluciones de esas
-  // semanas completas, sin importar en qué mes cae cada fecha individual.
-  let semanasObjetivo;
-  if (semFiltro !== 'todas') {
-    semanasObjetivo = [semFiltro];
-  } else {
-    semanasObjetivo = [...new Set(devData.filter(r => {
-      const f = parseFecha(r.fecha);
-      return f && f.getMonth() === mes && f.getFullYear() === anio;
-    }).map(r => r.semana).filter(s => s))];
-  }
-  const devMes = devData.filter(r => semanasObjetivo.includes(r.semana));
-
-  const totalMes = devMes.length;
-  const pendMes  = devMes.filter(r => (r.estado||'').toLowerCase() !== 'ubicada').length;
-  const ubicMes  = totalMes - pendMes;
-  const pendColor = pendMes > 0 ? 'var(--red)' : 'var(--green)';
-
-  // Agrupar por semana
-  const porSemana = {};
-  devMes.forEach(r => {
-    const sem = r.semana || 'S/N';
-    if (!porSemana[sem]) porSemana[sem] = { total: 0, pend: 0, ubic: 0 };
-    porSemana[sem].total++;
-    if ((r.estado||'').toLowerCase() === 'ubicada') porSemana[sem].ubic++;
-    else porSemana[sem].pend++;
-  });
-  const semanas = Object.keys(porSemana).sort((a,b) => Number(a)-Number(b));
-
-  const filas = semanas.map(sem => {
-    const d = porSemana[sem];
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:1px solid var(--g1)">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--g9)">SEMANA ${sem}</div>
-      <div style="display:flex;gap:14px;font-size:12px">
-        <span style="color:var(--g4)">Total: <strong style="color:var(--g9)">${d.total}</strong></span>
-        <span style="color:var(--red)">Pendientes: <strong>${d.pend}</strong></span>
-        <span style="color:var(--green)">Ubicadas: <strong>${d.ubic}</strong></span>
-      </div>
-    </div>`;
-  }).join('');
-
-  cont.innerHTML = `
-    <div class="pts-card-hdr">
-      <div class="pts-iniciales" style="background:#c0392b;font-size:18px">↩️</div>
-      <div><div class="pts-nombre">Devoluciones</div><div class="pts-rol">Pendientes de ubicar por almacén</div></div>
-      <div class="pts-score" style="color:${pendColor}">${pendMes}</div>
-    </div>
-    ${filas || '<div class="pts-det-row" style="padding:10px 14px"><div class="pts-det-txt" style="color:var(--g4)">Sin devoluciones este mes</div></div>'}
-    <div class="pts-total-row">
-      <div class="pts-total-lbl">Ubicadas / Total</div>
-      <div class="pts-total-val" style="color:var(--green)">${ubicMes} / ${totalMes}</div>
-    </div>`;
 }
 
 function iniciarSelectorMeses() {
@@ -3991,7 +3594,7 @@ async function cargarDestinos() {
 
 // Vales de requisición de materiales (hoja "Requisiciones"). Cada renglón
 // del CSV es una línea de material; se agrupan por folio al renderizar,
-// igual que Devoluciones/Pedidos.
+// igual que Pedidos.
 // Ubicaciones físicas por Clave+Lote (hoja "Ubicaciones"). Es solo lectura
 // — no escribe nada, únicamente arma el mapa para mostrarlo en "Ver
 // materiales" de cada OP. Si falla o no está publicada, se queda vacío y
@@ -4070,7 +3673,7 @@ async function cargarRequisiciones() {
     semana:     idx.semana      !== -1 ? cl(r[idx.semana])      : '',
   })).filter(r => r.folio);
 
-  // Poblar selector de meses (mismo patrón que Devoluciones)
+  // Poblar selector de meses
   const mesesSet = new Map();
   reqData.forEach(r => {
     const f = parseFecha(r.fecha);
@@ -4617,341 +4220,10 @@ async function cargarCatalogoConfiPT() {
     .filter(p => p.clave);
 }
 
-async function cargarDevoluciones() {
-  const res = await fetchConTimeout(CSV_DEV + '&t=' + Date.now());
-  const txt = await res.text();
-  const rows = parseCSV(txt);
-  const h = rows[0].map(x => cl(x).toLowerCase());
-  const idx = {
-    folio:     h.indexOf('folio'),
-    fecha:     h.indexOf('fecha'),
-    codigo:    h.indexOf('codigo'),
-    producto:  h.indexOf('producto'),
-    lote:      h.indexOf('lote'),
-    cantidad:  h.indexOf('cantidad'),
-    unidad:    h.indexOf('unidad'),
-    tipo:      h.indexOf('tipo'),
-    registro:  h.indexOf('registró') !== -1 ? h.indexOf('registró') : h.indexOf('registro'),
-    foto:      h.indexOf('foto'),
-    observaciones: h.indexOf('observaciones'),
-    estado:    h.indexOf('estado'),
-    ubico:     h.indexOf('ubicó') !== -1 ? h.indexOf('ubicó') : h.indexOf('ubico'),
-    fechaUbicada: h.indexOf('fecha ubicada'),
-    obsUbicacion: h.indexOf('obs ubicación') !== -1 ? h.indexOf('obs ubicación') : h.indexOf('obs ubicacion'),
-    semana:    h.indexOf('semana'),
-    movimiento: h.indexOf('movimiento'),
-    cantidadMovimiento: h.indexOf('cantidad movimiento'),
-    cuadre:    h.indexOf('cuadre'),
-    diferencia: h.indexOf('diferencia'),
-    sucMovimiento: h.indexOf('suc. movimiento') !== -1 ? h.indexOf('suc. movimiento') : h.indexOf('suc movimiento'),
-  };
-  devData = rows.slice(1).map(r => ({
-    folio:     cl(r[idx.folio]),
-    fecha:     cl(r[idx.fecha]),
-    codigo:    cl(r[idx.codigo]),
-    producto:  cl(r[idx.producto]),
-    lote:      cl(r[idx.lote]),
-    cantidad:  cl(r[idx.cantidad]),
-    unidad:    cl(r[idx.unidad]),
-    tipo:      cl(r[idx.tipo]),
-    registro:  idx.registro !== -1 ? cl(r[idx.registro]) : '',
-    foto:      idx.foto !== -1 ? cl(r[idx.foto]) : '',
-    observaciones: idx.observaciones !== -1 ? cl(r[idx.observaciones]) : '',
-    estado:    idx.estado !== -1 ? cl(r[idx.estado]) : '',
-    ubico:     idx.ubico !== -1 ? cl(r[idx.ubico]) : '',
-    fechaUbicada: idx.fechaUbicada !== -1 ? cl(r[idx.fechaUbicada]) : '',
-    obsUbicacion: idx.obsUbicacion !== -1 ? cl(r[idx.obsUbicacion]) : '',
-    semana:    idx.semana !== -1 ? cl(r[idx.semana]) : '',
-    movimiento: idx.movimiento !== -1 ? cl(r[idx.movimiento]) : '',
-    cantidadMovimiento: idx.cantidadMovimiento !== -1 ? cl(r[idx.cantidadMovimiento]) : '',
-    cuadre:    idx.cuadre !== -1 ? cl(r[idx.cuadre]) : '',
-    diferencia: idx.diferencia !== -1 ? cl(r[idx.diferencia]) : '',
-    sucMovimiento: idx.sucMovimiento !== -1 ? cl(r[idx.sucMovimiento]) : '',
-  })).filter(r => r.folio);
-
-  // Poblar selector de meses (arranca en "Todos los meses")
-  const mesesSet = new Map();
-  devData.forEach(r => {
-    const f = parseFecha(r.fecha);
-    if (!f) return;
-    const key = `${f.getFullYear()}-${f.getMonth()}`;
-    if (!mesesSet.has(key)) mesesSet.set(key, `${MESES_NOMBRES[f.getMonth()]} ${f.getFullYear()}`);
-  });
-  const mesSelDev = document.getElementById('dev-mes-select');
-  if (mesSelDev) {
-    const valorPrevio = mesSelDev.value || 'todos';
-    mesSelDev.innerHTML = '<option value="todos">Todos los meses</option>';
-    [...mesesSet.entries()].sort().forEach(([val, lbl]) => {
-      const o = document.createElement('option'); o.value = val; o.textContent = lbl; mesSelDev.appendChild(o);
-    });
-    if ([...mesesSet.keys()].includes(valorPrevio)) mesSelDev.value = valorPrevio;
-  }
-}
-
-// Nota: el registro "Pendiente" en la hoja Devoluciones ahora lo crea solo el
-// backend (sai_sincronizarDEV, corre cada 30 min) en cuanto detecta algo nuevo
-// en el reporte del almacén DEV — por eso ya no hace falta leer ese CSV aquí
-// ni armar una lista combinada: devData (cargarDevoluciones) ya trae todo,
-// con Fecha real, así que la barra de 48h vuelve a funcionar igual que antes.
-
-function buildTimeBarDev(primera) {
-  const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
-  const ini = parseFecha(primera.fecha);
-  if (!ini || isNaN(ini)) return '';
-
-  if (ubicada) {
-    const fin = parseFecha(primera.fechaUbicada) || new Date();
-    const horas = Math.max(0, (fin - ini) / (1000 * 60 * 60));
-    const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
-    const txt = dias === 0 ? `Ubicada en ${hrsResto} hrs` : `Ubicada en ${dias} día${dias>1?'s':''} ${hrsResto} hrs`;
-    return `<div class="time-surtida">📍 <strong>${txt}</strong>${primera.ubico ? ' por ' + primera.ubico : ''}${primera.obsUbicacion ? `<br>📋 ${primera.obsUbicacion}` : ''}</div>`;
-  }
-
-  const horas = (new Date() - ini) / (1000 * 60 * 60);
-  const dias = Math.floor(horas / 24), hrsResto = Math.floor(horas % 24);
-  let cls = 'c0';
-  if (horas >= 48) cls = 'c4';
-  else if (horas >= 36) cls = 'c3';
-  else if (horas >= 24) cls = 'c2';
-  else if (horas >= 12) cls = 'c1';
-  const pct = Math.min((horas / 48) * 100, 100);
-  const txt = dias === 0 ? `${hrsResto} hrs abierta` : `${dias} día${dias>1?'s':''} ${hrsResto} hrs abierta`;
-  return `<div class="time-bar-wrap">
-    <div class="time-bar-label">
-      <span class="time-bar-txt">⏱ Tiempo abierta</span>
-      <span class="time-bar-days ${cls}">${txt}</span>
-    </div>
-    <div class="time-bar"><div class="time-bar-fill ${cls}" style="width:${pct}%"></div></div>
-  </div>`;
-}
-
-// Aplica todos los filtros activos de Devoluciones (búsqueda, mes, semana,
-// ubicó, estado, cuadre) y agrupa por folio. La usan tanto renderDevoluciones
-// (pantalla) como imprimirReporteDev (impresión), para que ambas siempre
-// muestren exactamente lo mismo.
-function filtrarDevolucionesActuales() {
-  const q = (document.getElementById('dev-search')?.value || '').toLowerCase().trim();
-  let filas = devData;
-  if (q) filas = filas.filter(r =>
-    r.codigo.toLowerCase().includes(q) || r.producto.toLowerCase().includes(q) || r.lote.toLowerCase().includes(q) || (r.movimiento||'').toLowerCase().includes(q)
-  );
-
-  if (mesDevActual !== 'todos') {
-    const [anio, mes] = mesDevActual.split('-').map(Number);
-    filas = filas.filter(r => {
-      const f = parseFecha(r.fecha);
-      return f && f.getFullYear() === anio && f.getMonth() === mes;
-    });
-  }
-  if (semanaDevActual !== 'todas') filas = filas.filter(r => (r.semana||'') === semanaDevActual);
-  if (ubicoDevFiltro !== 'todos') filas = filas.filter(r => (r.ubico||'') === ubicoDevFiltro);
-  if (estadoDevFiltro !== 'todos') {
-    filas = filas.filter(r => {
-      const est = (r.estado||'').toLowerCase();
-      return estadoDevFiltro === 'Ubicada' ? est === 'ubicada' : est !== 'ubicada';
-    });
-  }
-
-  // Contadores de cuadre (sobre el set ya filtrado por mes/semana/ubicó/estado,
-  // pero ANTES del propio filtro de cuadre) para que el resumen sirva de
-  // referencia mientras usas el filtro para buscar solo los que no cuadran.
-  const foliosCuadre = {};
-  filas.forEach(r => { (foliosCuadre[r.folio] = foliosCuadre[r.folio] || []).push(r); });
-  const folioKeysCuadre = Object.keys(foliosCuadre);
-  const cuadrados  = folioKeysCuadre.filter(f => (foliosCuadre[f][0].cuadre||'').includes('Cuadrado')).length;
-  const noCuadran  = folioKeysCuadre.filter(f => (foliosCuadre[f][0].cuadre||'').includes('No cuadra')).length;
-  const sinMov     = folioKeysCuadre.filter(f => !foliosCuadre[f][0].movimiento).length;
-
-  if (cuadreDevFiltro !== 'todos') {
-    filas = filas.filter(r => {
-      if (cuadreDevFiltro === 'cuadrado') return (r.cuadre||'').includes('Cuadrado');
-      if (cuadreDevFiltro === 'nocuadra') return (r.cuadre||'').includes('No cuadra');
-      if (cuadreDevFiltro === 'sinmov')   return !r.movimiento;
-      return true;
-    });
-  }
-
-  // Agrupar por folio (uno por Clave+Lote, generado por la sincronización)
-  const folios = {};
-  filas.forEach(r => { (folios[r.folio] = folios[r.folio] || []).push(r); });
-  const folioKeys = Object.keys(folios).sort().reverse();
-
-  const pendientesCount = folioKeys.filter(f => (folios[f][0].estado||'').toLowerCase() !== 'ubicada').length;
-  const hoyStr = new Date().toLocaleDateString('es-MX');
-  const ubicadasHoy = folioKeys.filter(f => {
-    const p = folios[f][0];
-    return (p.estado||'').toLowerCase() === 'ubicada' && parseFecha(p.fechaUbicada) && parseFecha(p.fechaUbicada).toLocaleDateString('es-MX') === hoyStr;
-  }).length;
-
-  return { folios, folioKeys, resumen: { pendientes: pendientesCount, ubicadasHoy, cuadrados, noCuadran, sinMov } };
-}
-
-function renderDevoluciones() {
-  const cont = document.getElementById('lista-dev');
-  if (!cont) return;
-
-  const { folios, folioKeys, resumen } = filtrarDevolucionesActuales();
-  document.getElementById('dev-r-total').textContent = resumen.pendientes;
-  document.getElementById('dev-r-hoy').textContent = resumen.ubicadasHoy;
-  document.getElementById('dev-r-cuadrados').textContent = resumen.cuadrados;
-  document.getElementById('dev-r-nocuadran').textContent = resumen.noCuadran;
-  document.getElementById('dev-r-sinmov').textContent = resumen.sinMov;
-
-  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">↩️</div>Sin devoluciones pendientes</div>`; return; }
-
-  cont.innerHTML = folioKeys.map(folio => {
-    const lineas = folios[folio];
-    const primera = lineas[0];
-    const ubicada = (primera.estado || '').toLowerCase() === 'ubicada';
-    const cant = primera.cantidad ? ` · ${primera.cantidad} ${primera.unidad || ''}` : '';
-    const itemJson = JSON.stringify({clave: primera.codigo, descripcion: primera.producto, lote: primera.lote, existencia: primera.cantidad, unidad: primera.unidad}).replace(/'/g,"&#39;");
-    const cardId = 'dev-card-' + folio.replace(/[^A-Za-z0-9_-]/g, '-');
-    return `<div id="${cardId}" style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${ubicada ? 'var(--green)' : '#c0392b'};padding:14px 16px;transition:box-shadow .3s">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;line-height:1.1;color:var(--g9)">${primera.codigo || 'Sin código'}</strong>
-        <span style="color:var(--g4);font-size:12px;white-space:nowrap;margin-left:8px">${primera.fecha}</span>
-      </div>
-      <div style="font-size:16px;font-weight:600;margin-top:4px;color:var(--g9)">${primera.producto || ''}</div>
-      <div style="background:#fff3f3;border-radius:10px;padding:8px 12px;margin-top:8px;display:inline-block">
-        <span style="font-size:13px;color:var(--g4);font-weight:600">LOTE:</span>
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--g9);margin-left:4px">${primera.lote || 'S/LOTE'}</span>
-        ${cant ? `<span style="font-size:15px;font-weight:700;color:var(--g9);margin-left:8px">${cant.replace(' · ','')}</span>` : ''}
-      </div>
-      ${ubicada ? `<div style="color:var(--g4);font-size:12px;margin-top:6px">${primera.tipo === 'Para destrucción' ? '🗑️ Para destrucción' : '📦 No utilizado'}</div>` : ''}
-      ${primera.movimiento ? `<div style="background:${(primera.cuadre||'').includes('No cuadra') ? '#fff3f3' : '#e8f8f0'};border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12px">
-        <div style="font-weight:700;color:${(primera.cuadre||'').includes('No cuadra') ? '#c0392b' : '#1a8a50'}">${primera.cuadre || ''}</div>
-        <div style="color:var(--g5);margin-top:2px">🔢 Movimiento <strong>${primera.movimiento}</strong> · ${primera.cantidadMovimiento || '?'} ${primera.unidad || ''}${primera.sucMovimiento ? ' · Suc. ' + primera.sucMovimiento : ''}</div>
-        ${primera.diferencia ? `<div style="color:#c0392b;margin-top:2px">Diferencia vs. papeleta: ${primera.diferencia}</div>` : ''}
-      </div>` : !ubicada ? `<div style="color:var(--g4);font-size:11px;margin-top:6px">⏳ Esperando traspaso en MOVREP</div>` : ''}
-      ${primera.observaciones ? `<div style="font-size:12px;color:var(--g4);margin-top:4px">📋 ${primera.observaciones}</div>` : ''}
-      ${primera.foto ? `<div style="margin-top:4px"><a href="${primera.foto}" target="_blank" style="font-size:12px;color:var(--orange)">📷 Ver foto</a></div>` : ''}
-      ${buildTimeBarDev(primera)}
-      ${!ubicada ? `<button onclick='abrirModalUbicarDevolucion(${itemJson})' style="width:100%;margin-top:8px;padding:10px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-sizing:border-box">📍 Marcar como ubicada</button>` : ''}
-    </div>`;
-  }).join('');
-}
-
-// Lector de código de barras para Devoluciones. Un lector de barras físico (o
-// la cámara del celular con una app de escaneo) funciona como teclado: escribe
-// el valor leído y manda Enter — por eso basta escuchar el Enter en el mismo
-// buscador. Busca coincidencia EXACTA por Clave o por Lote (no parcial, para
-// no confundir un escaneo con otro código parecido), le hace scroll a esa
-// tarjeta, la resalta un momento y limpia el buscador para dejarlo listo para
-// el siguiente escaneo.
-function buscarPorEscaneoDev() {
-  const input = document.getElementById('dev-search');
-  const valor = (input?.value || '').trim().toUpperCase();
-  if (!valor) return;
-
-  const match = devData.find(r =>
-    (r.codigo || '').trim().toUpperCase() === valor ||
-    (r.lote || '').trim().toUpperCase() === valor
-  );
-
-  if (!match) {
-    // No hubo coincidencia exacta: se deja el filtro normal por texto parcial
-    // (renderDevoluciones ya corrió con oninput), no se hace nada más.
-    return;
-  }
-
-  input.value = '';
-  renderDevoluciones();
-
-  const cardId = 'dev-card-' + match.folio.replace(/[^A-Za-z0-9_-]/g, '-');
-  const card = document.getElementById(cardId);
-  if (card) {
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    card.style.boxShadow = '0 0 0 3px var(--orange)';
-    setTimeout(() => { card.style.boxShadow = ''; }, 1800);
-  }
-}
-
-// Reporte imprimible de Devoluciones — pensado para que el jefe de almacén lo
-// use en la revisión diaria: respeta los filtros activos en pantalla (si
-// filtras "No cuadra" e imprimes, solo salen esas), resalta en rojo las que
-// no cuadran para verlas de un vistazo, y trae línea de firma abajo porque es
-// el mismo tipo de papeleta que ya se revisa y firma a mano.
-function imprimirReporteDev() {
-  const { folios, folioKeys, resumen } = filtrarDevolucionesActuales();
-  const ahora = new Date();
-  const fechaTxt = ahora.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
-  const horaTxt  = ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-
-  const CUADRE_LBL = { cuadrado: '✅ Cuadrado', nocuadra: '⚠️ No cuadra', sinmov: '⏳ Sin movimiento' };
-  const filtrosTxt = [];
-  if (estadoDevFiltro !== 'todos') filtrosTxt.push('Estado: ' + estadoDevFiltro);
-  if (cuadreDevFiltro !== 'todos') filtrosTxt.push('Cuadre: ' + (CUADRE_LBL[cuadreDevFiltro] || cuadreDevFiltro));
-  if (ubicoDevFiltro !== 'todos') filtrosTxt.push('Ubicó: ' + (ubicoDevFiltro || 'Sin ubicar'));
-  if (mesDevActual !== 'todos') filtrosTxt.push('Mes filtrado');
-  if (semanaDevActual !== 'todas') filtrosTxt.push('Semana ' + semanaDevActual);
-
-  const filasHtml = folioKeys.map(folio => {
-    const p = folios[folio][0];
-    const ubicada = (p.estado || '').toLowerCase() === 'ubicada';
-    const f = parseFecha(p.fecha);
-    const dias = f ? Math.floor((new Date() - f) / (1000 * 60 * 60 * 24)) : '';
-    const noCuadra = (p.cuadre || '').includes('No cuadra');
-    return `<tr style="${noCuadra ? 'background:#fdecec' : ''}">
-      <td>${p.codigo || ''}</td>
-      <td>${p.producto || ''}</td>
-      <td>${p.lote || 'S/LOTE'}</td>
-      <td style="text-align:right">${p.cantidad || ''} ${p.unidad || ''}</td>
-      <td>${p.fecha || ''}</td>
-      <td style="text-align:center">${dias !== '' ? dias + 'd' : ''}</td>
-      <td>${ubicada ? '📍 Ubicada' : '⏳ Pendiente'}</td>
-      <td>${p.movimiento || '—'}</td>
-      <td>${p.cuadre || (p.movimiento ? '' : '⏳ Sin mov.')}</td>
-      <td style="color:#c0392b">${p.diferencia || ''}</td>
-    </tr>`;
-  }).join('');
-
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte de Devoluciones - DEV</title>
-<style>
-  body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#1a1a1a}
-  h1{font-size:19px;margin:0 0 2px}
-  .sub{color:#666;font-size:12px;margin-bottom:16px}
-  .resumen{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
-  .res{border:1px solid #ddd;border-radius:8px;padding:8px 14px;text-align:center;min-width:88px}
-  .res b{display:block;font-size:20px}
-  table{width:100%;border-collapse:collapse;font-size:11px}
-  th,td{border:1px solid #ddd;padding:5px 7px;text-align:left}
-  th{background:#f2f2f2}
-  .firma{margin-top:40px;display:flex;gap:60px}
-  .firma div{border-top:1px solid #333;padding-top:4px;width:220px;font-size:12px;text-align:center}
-  @media print { body{padding:10px} }
-</style></head><body>
-  <h1>Laboratorios Anteii — Reporte de Devoluciones (Almacén DEV)</h1>
-  <div class="sub">Generado el ${fechaTxt} a las ${horaTxt}${filtrosTxt.length ? ' · Filtros: ' + filtrosTxt.join(', ') : ''}</div>
-  <div class="resumen">
-    <div class="res"><b>${resumen.pendientes}</b>Pendientes</div>
-    <div class="res"><b>${resumen.ubicadasHoy}</b>Ubicadas hoy</div>
-    <div class="res"><b>${resumen.cuadrados}</b>Cuadrados</div>
-    <div class="res"><b>${resumen.noCuadran}</b>No cuadran</div>
-    <div class="res"><b>${resumen.sinMov}</b>Sin movimiento</div>
-  </div>
-  <table>
-    <thead><tr>
-      <th>Código</th><th>Producto</th><th>Lote</th><th>Cantidad</th><th>Fecha</th><th>Días</th><th>Estado</th><th>Movimiento</th><th>Cuadre</th><th>Diferencia</th>
-    </tr></thead>
-    <tbody>${filasHtml || '<tr><td colspan="10" style="text-align:center;color:#888">Sin registros con estos filtros</td></tr>'}</tbody>
-  </table>
-  <div class="firma">
-    <div>Revisó — Jefe de almacén</div>
-    <div>Recibió — Acondicionado</div>
-  </div>
-  <script>window.onload = () => window.print();<\/script>
-</body></html>`;
-
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-}
-
 async function recargar() {
   document.getElementById('upd-txt').textContent = 'Actualizando...';
   document.getElementById('lista-ops').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-act').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
-  document.getElementById('lista-dev').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-mtc').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   document.getElementById('lista-ped').innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
   await load();
@@ -4959,18 +4231,16 @@ async function recargar() {
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarDevoluciones(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas(), cargarDestinos(), cargarRequisiciones(), cargarUbicaciones()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas(), cargarDestinos(), cargarRequisiciones(), cargarUbicaciones()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
     iniciarSelectorMeses();
     renderPersonaOptions('surtio-select', surtioFiltro, [{value:'todos', label:'Todos'}], [{value:'', label:'Sin asignar'}]);
     renderPersonaOptions('act-asignado-select', asignadoAct, [{value:'todos', label:'Todos'}], [{value:'Todos', label:'Asignado a Todos'}]);
-    renderPersonaOptions('dev-ubico-select', ubicoDevFiltro, [{value:'todos', label:'Todos'}], [{value:'', label:'Sin ubicar'}]);
     renderDestinoOptions('req-cargoa-select', cargoAReqFiltro, [{value:'todos', label:'Todos'}]);
     renderOPs();
     renderActividades();
-    renderDevoluciones();
     renderMontacargas();
     renderPedidos();
     renderRequisiciones();
