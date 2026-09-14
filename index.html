@@ -311,6 +311,18 @@
   .ped-cajas { margin-top:6px; font-size:14px; font-weight:700; color:var(--g9); }
   .ped-existencia { font-size:12px; font-weight:700; margin-top:3px; }
 
+  /* CARGA DE TRABAJO */
+  .carga-card { background:var(--white); border-radius:14px; padding:14px 16px; box-shadow:0 1px 4px rgba(0,0,0,.07); border-left:4px solid var(--g2); cursor:pointer; transition:box-shadow .15s; }
+  .carga-card:hover { box-shadow:0 2px 10px rgba(0,0,0,.12); }
+  .carga-card.sinasignar { border-left-color:var(--red); background:#fff8f8; }
+  .carga-top { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .carga-nombre { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:800; color:var(--g9); }
+  .carga-total { font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:800; color:var(--orange); line-height:1; }
+  .carga-total-lbl { font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); text-align:right; margin-top:1px; }
+  .carga-detalle { display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:10px; font-size:12px; color:var(--g6); font-weight:600; }
+  .carga-rezago { color:var(--red); }
+  .carga-vacio { text-align:center; padding:30px 10px; color:var(--g4); font-size:13px; }
+
   /* ═══════════════ DESKTOP / LAPTOP (pantallas anchas) ═══════════════
      Todo lo de abajo vive dentro de este media query, así que en el
      celular (pantallas angostas) nada cambia: sigue exactamente igual
@@ -319,8 +331,8 @@
   @media (min-width: 900px) {
     body { max-width:1280px; }
 
-    /* Tabs en una sola fila en vez de 2 filas de 3 */
-    .tabs { grid-template-columns: repeat(6, 1fr); }
+    /* Tabs en una sola fila en vez de varias */
+    .tabs { grid-template-columns: repeat(7, 1fr); }
 
     /* Filtros en fila, uno junto a otro, en vez de apilados */
     .filtros { flex-direction:row; flex-wrap:wrap; align-items:flex-end; }
@@ -351,6 +363,7 @@
     <div class="tab" id="tab-mtc" onclick="switchTab('mtc')">🚜 Montacargas</div>
     <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Pedidos</div>
     <div class="tab" id="tab-req" onclick="switchTab('req')">📝 Vales</div>
+    <div class="tab" id="tab-carga" onclick="switchTab('carga')">📊 Carga</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -829,6 +842,16 @@
   </div>
 </div>
 
+<!-- ═══════════════ SECCIÓN CARGA DE TRABAJO ═══════════════ -->
+<div class="section" id="section-carga">
+  <div class="resumen" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="res-card total"><div class="res-num" id="carga-r-total">0</div><div class="res-lbl">OPs pendientes</div></div>
+    <div class="res-card rojo"><div class="res-num" id="carga-r-sinasignar">0</div><div class="res-lbl">Sin asignar</div></div>
+    <div class="res-card rojo"><div class="res-num" id="carga-r-rezago">0</div><div class="res-lbl">+5 días abiertas</div></div>
+  </div>
+  <div class="lista" id="lista-carga"><div class="loading"><div class="spinner"></div>Calculando carga...</div></div>
+</div>
+
 <!-- ═══════════════ SECCIÓN PUNTOS ═══════════════ -->
 <div class="section" id="section-pts">
 
@@ -1177,11 +1200,12 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','mtc','ped','req','pts'].forEach(t => {
+  ['ops','act','mtc','ped','req','carga','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
   if (tab === 'pts') renderPuntos();
+  if (tab === 'carga') renderCarga();
   if (tab === 'mtc') renderMontacargas();
   if (tab === 'ped') renderPedidos();
   if (tab === 'req') renderRequisiciones();
@@ -2622,6 +2646,114 @@ const META_FACTOR = 7; // meta = OPs del mes × factor
 function personasParaPuntos() {
   const base = (personasData.length ? personasData : PERSONAS_FALLBACK).filter(p => p.puntos);
   return base.map(p => ({ key: p.nombre, nombre: p.nombre, rol: p.rol, iniciales: p.iniciales }));
+}
+
+// ── CARGA DE TRABAJO ──────────────────────────────────────────
+// A diferencia de personasParaPuntos() (que solo incluye a quien participa
+// en el sistema de puntos), aquí se usa el roster completo de Personas
+// activas, porque cualquiera puede traer OPs o actividades asignadas.
+function computeCargaData() {
+  const ahora = new Date();
+  const roster = (personasData.length ? personasData : PERSONAS_FALLBACK);
+  const porPersona = {};
+  roster.forEach(p => { porPersona[p.nombre] = { nombre: p.nombre, opsPend: 0, opsRezago: 0, actPend: 0 }; });
+
+  let totalPend = 0, sinAsignar = 0, totalRezago = 0;
+
+  opsData.forEach(r => {
+    const estado = (r.estado || '').toLowerCase().trim();
+    if (estado === 'cancelada') return;
+    if (!esEstadoActivo(r.estado)) return; // solo pendiente/parcial/en blanco
+    totalPend++;
+
+    const fecha = parseFecha(r.fecha);
+    const diasAbierta = fecha ? Math.floor((ahora - fecha) / (1000 * 60 * 60 * 24)) : 0;
+    const esRezago = diasAbierta > 5;
+    if (esRezago) totalRezago++;
+
+    const asig = (r.surtio || '').trim();
+    if (!asig) { sinAsignar++; return; }
+    if (!porPersona[asig]) porPersona[asig] = { nombre: asig, opsPend: 0, opsRezago: 0, actPend: 0 };
+    porPersona[asig].opsPend++;
+    if (esRezago) porPersona[asig].opsRezago++;
+  });
+
+  actData.forEach(r => {
+    const estado = (r.estado || '').toLowerCase().trim();
+    if (estado === 'completado') return;
+    const asig = (r.asignado || '').trim();
+    if (!asig) return;
+    if (asig.toLowerCase() === 'todos') {
+      Object.keys(porPersona).forEach(k => porPersona[k].actPend++);
+    } else {
+      if (!porPersona[asig]) porPersona[asig] = { nombre: asig, opsPend: 0, opsRezago: 0, actPend: 0 };
+      porPersona[asig].actPend++;
+    }
+  });
+
+  const filas = Object.values(porPersona)
+    .map(d => ({ ...d, total: d.opsPend + d.actPend }))
+    .sort((a, b) => b.total - a.total);
+
+  return { totalPend, sinAsignar, totalRezago, filas };
+}
+
+function renderCarga() {
+  const data = computeCargaData();
+  document.getElementById('carga-r-total').textContent = data.totalPend;
+  document.getElementById('carga-r-sinasignar').textContent = data.sinAsignar;
+  document.getElementById('carga-r-rezago').textContent = data.totalRezago;
+
+  const cont = document.getElementById('lista-carga');
+  let html = '';
+
+  if (data.sinAsignar > 0) {
+    html += `<div class="carga-card sinasignar" onclick="irACargaPersona('')">
+      <div class="carga-top">
+        <div class="carga-nombre">⚠️ Sin asignar</div>
+        <div><div class="carga-total">${data.sinAsignar}</div><div class="carga-total-lbl">OPs</div></div>
+      </div>
+      <div class="carga-detalle">Nadie las trae todavía — repártelas cuanto antes</div>
+    </div>`;
+  }
+
+  // Solo se listan personas con algo pendiente — quien está en 0 no aporta
+  // nada a un tablero de carga de trabajo, solo sería ruido.
+  const conCarga = data.filas.filter(p => p.total > 0);
+
+  html += conCarga.map(p => `<div class="carga-card" onclick="irACargaPersona('${p.nombre.replace(/'/g,"\\'")}')">
+      <div class="carga-top">
+        <div class="carga-nombre">${p.nombre}</div>
+        <div><div class="carga-total">${p.total}</div><div class="carga-total-lbl">Carga total</div></div>
+      </div>
+      <div class="carga-detalle">
+        <span>📦 ${p.opsPend} OP${p.opsPend===1?'':'s'} pendiente${p.opsPend===1?'':'s'}</span>
+        ${p.opsRezago > 0 ? `<span class="carga-rezago">⏳ ${p.opsRezago} con +5 días</span>` : ''}
+        <span>✅ ${p.actPend} actividad${p.actPend===1?'':'es'} pendiente${p.actPend===1?'':'es'}</span>
+      </div>
+    </div>`).join('');
+
+  if (!data.sinAsignar && !conCarga.length) {
+    html = `<div class="carga-vacio">Sin datos de carga todavía</div>`;
+  }
+
+  cont.innerHTML = html;
+}
+
+// Al hacer clic en una tarjeta de Carga, salta a Órdenes ya filtrado por
+// esa persona (o "Sin asignar") y en estado Pendientes, reusando los
+// mismos filtros que ya existen en la pestaña de Órdenes.
+function irACargaPersona(nombre) {
+  surtioFiltro = nombre;
+  const selSurtio = document.getElementById('surtio-select');
+  if (selSurtio) selSurtio.value = nombre;
+
+  estadoOP = 'pendientes';
+  const selEstado = document.getElementById('op-est-select');
+  if (selEstado) selEstado.value = 'pendientes';
+
+  switchTab('ops');
+  renderOPs();
 }
 
 const MESES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
