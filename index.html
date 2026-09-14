@@ -322,7 +322,8 @@
   .carga-detalle { display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:10px; font-size:12px; color:var(--g6); font-weight:600; }
   .carga-rezago { color:var(--red); }
   .carga-vacio { text-align:center; padding:30px 10px; color:var(--g4); font-size:13px; }
-  .carga-ops { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+  .carga-subtitulo { font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--g4); margin-top:12px; margin-bottom:6px; }
+  .carga-ops { display:flex; flex-direction:column; gap:8px; }
   .carga-op-row { background:var(--g1); border-radius:10px; padding:9px 11px; cursor:pointer; transition:background .15s; }
   .carga-op-row:hover { background:var(--g2); }
   .carga-op-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -1495,6 +1496,21 @@ async function setAsignado(op, surtio, sel) {
   }
 }
 
+// Igual que setAsignado(), pero un vale puede tener varias líneas (varios
+// renglones con el mismo folio), así que se actualiza el campo local en
+// TODAS las líneas de ese folio, no solo una.
+async function setAsignadoReq(folio, asignado, sel) {
+  sel.disabled = true;
+  try {
+    await sai_fetch({ tipo: 'asignarRequisicion', folio, asignado });
+    reqData.forEach(r => { if (r.folio === folio) r.asignado = asignado; });
+    setTimeout(() => renderRequisiciones(), 400);
+  } catch(e) {
+    sel.disabled = false;
+    alert('❌ Error al asignar el vale');
+  }
+}
+
 async function setPrioridad(op, prioridad, btn) {
   const wrap = btn.closest('.prio-btns');
   wrap.querySelectorAll('.prio-btn').forEach(b => b.className = 'prio-btn');
@@ -1708,7 +1724,8 @@ function renderActividades() {
       </div>`;
     }
 
-    return `<div class="act-card ${cls}">
+    const actCardId = 'act-card-' + String(r.folio||'').replace(/[^A-Za-z0-9_-]/g, '-');
+    return `<div class="act-card ${cls}" id="${actCardId}">
       <div class="act-top">
         <div><div class="act-folio">${r.folio}</div><div class="act-fecha-lim">Límite: ${fmtFecha(r.fechaLimite)}</div></div>
         <div class="act-badge ${cls}">${esPend ? '⏳ Pendiente' : '✓ Completado'}</div>
@@ -2663,15 +2680,21 @@ function personasParaPuntos() {
 // activas, porque cualquiera puede traer OPs o actividades asignadas.
 const CARGA_PRIO_ORDEN = { 'Alta': 0, 'Media': 1, 'Baja': 2, '': 2 };
 
+function nuevaFilaCarga(nombre) {
+  return { nombre, ops: [], opsRezago: 0, actividades: [], vales: [] };
+}
+
 function computeCargaData() {
   const ahora = new Date();
   const roster = (personasData.length ? personasData : PERSONAS_FALLBACK);
   const porPersona = {};
-  roster.forEach(p => { porPersona[p.nombre] = { nombre: p.nombre, ops: [], opsRezago: 0, actPend: 0 }; });
+  roster.forEach(p => { porPersona[p.nombre] = nuevaFilaCarga(p.nombre); });
 
   let totalPend = 0, totalRezago = 0;
   const sinAsignarOps = [];
+  const sinAsignarVales = [];
 
+  // ── OPs ──
   opsData.forEach(r => {
     const estado = (r.estado || '').toLowerCase().trim();
     if (estado === 'cancelada') return;
@@ -2685,22 +2708,37 @@ function computeCargaData() {
 
     const asig = (r.surtio || '').trim();
     if (!asig) { sinAsignarOps.push(r); return; }
-    if (!porPersona[asig]) porPersona[asig] = { nombre: asig, ops: [], opsRezago: 0, actPend: 0 };
+    if (!porPersona[asig]) porPersona[asig] = nuevaFilaCarga(asig);
     porPersona[asig].ops.push(r);
     if (esRezago) porPersona[asig].opsRezago++;
   });
 
+  // ── Actividades (se guarda el objeto completo, no solo un conteo) ──
   actData.forEach(r => {
     const estado = (r.estado || '').toLowerCase().trim();
     if (estado === 'completado') return;
     const asig = (r.asignado || '').trim();
-    if (!asig) return;
+    if (!asig) return; // las actividades siempre deben llevar alguien desde que se crean
     if (asig.toLowerCase() === 'todos') {
-      Object.keys(porPersona).forEach(k => porPersona[k].actPend++);
+      Object.keys(porPersona).forEach(k => porPersona[k].actividades.push(r));
     } else {
-      if (!porPersona[asig]) porPersona[asig] = { nombre: asig, ops: [], opsRezago: 0, actPend: 0 };
-      porPersona[asig].actPend++;
+      if (!porPersona[asig]) porPersona[asig] = nuevaFilaCarga(asig);
+      porPersona[asig].actividades.push(r);
     }
+  });
+
+  // ── Vales (Requisiciones) — un folio puede tener varias líneas, se cuenta
+  // UNA vez por folio (no por línea) usando el estado/asignado de la primera. ──
+  const valesPorFolio = {};
+  reqData.forEach(r => { (valesPorFolio[r.folio] = valesPorFolio[r.folio] || []).push(r); });
+  Object.values(valesPorFolio).forEach(lineas => {
+    const primera = lineas[0];
+    if ((primera.estado || '').toLowerCase() !== 'abierto') return; // solo vales abiertos son carga pendiente
+    const item = { ...primera, lineas: lineas.length };
+    const asig = (primera.asignado || '').trim();
+    if (!asig) { sinAsignarVales.push(item); return; }
+    if (!porPersona[asig]) porPersona[asig] = nuevaFilaCarga(asig);
+    porPersona[asig].vales.push(item);
   });
 
   // Mismo orden que en Órdenes: prioridad y luego la más antigua primero.
@@ -2710,13 +2748,25 @@ function computeCargaData() {
     if (pA !== pB) return pA - pB;
     return (parseFecha(a.fecha)||0) - (parseFecha(b.fecha)||0);
   };
+  const porFechaAsc = (a, b) => (parseFecha(a.fecha)||0) - (parseFecha(b.fecha)||0);
   sinAsignarOps.sort(ordenarOps);
+  sinAsignarVales.sort(porFechaAsc);
 
   const filas = Object.values(porPersona)
-    .map(d => { d.ops.sort(ordenarOps); return { ...d, opsPend: d.ops.length, total: d.ops.length + d.actPend }; })
+    .map(d => {
+      d.ops.sort(ordenarOps);
+      d.vales.sort(porFechaAsc);
+      d.actividades.sort((a, b) => (parseFechaAct(a.fechaLimite)||0) - (parseFechaAct(b.fechaLimite)||0));
+      return { ...d, total: d.ops.length + d.vales.length + d.actividades.length };
+    })
     .sort((a, b) => b.total - a.total);
 
-  return { totalPend, sinAsignar: sinAsignarOps.length, sinAsignarOps, totalRezago, filas };
+  return {
+    totalPend, totalRezago,
+    sinAsignar: sinAsignarOps.length + sinAsignarVales.length,
+    sinAsignarOps, sinAsignarVales,
+    filas,
+  };
 }
 
 // Fila de una OP dentro de una tarjeta de Carga — folio, producto, badge de
@@ -2734,6 +2784,34 @@ function buildCargaOpRow(r) {
   </div>`;
 }
 
+// Fila de una actividad dentro de una tarjeta de Carga.
+function buildCargaActRow(r) {
+  return `<div class="carga-op-row" onclick="event.stopPropagation(); irActividadDesdeCarga('${String(r.folio).replace(/'/g,"\\'")}')">
+    <div class="carga-op-top">
+      <span class="carga-op-num">${r.folio}</span>
+      <span class="act-badge pendiente">⏳ Pendiente</span>
+    </div>
+    <div class="carga-op-prod">${r.descripcion || ''}${r.fechaLimite ? ' · Límite: ' + fmtFecha(r.fechaLimite) : ''}</div>
+  </div>`;
+}
+
+// Fila de un vale (Requisición) dentro de una tarjeta de Carga.
+function buildCargaValeRow(item) {
+  return `<div class="carga-op-row" onclick="event.stopPropagation(); irValeDesdeCarga('${String(item.folio).replace(/'/g,"\\'")}')">
+    <div class="carga-op-top">
+      <span class="carga-op-num">${item.folio}</span>
+      <span class="op-badge badge-pendiente">⏳ Abierto</span>
+    </div>
+    <div class="carga-op-prod">${item.descripcion || ''}${item.lineas > 1 ? ` · ${item.lineas} materiales` : ''} · 🏭 ${item.cargoA || 's/área'}</div>
+  </div>`;
+}
+
+// Bloque reutilizable: subtítulo + lista de filas, solo si hay algo que mostrar.
+function buildCargaBloque(icono, etiqueta, items, builder) {
+  if (!items.length) return '';
+  return `<div class="carga-subtitulo">${icono} ${etiqueta} (${items.length})</div><div class="carga-ops">${items.map(builder).join('')}</div>`;
+}
+
 function renderCarga() {
   const data = computeCargaData();
   document.getElementById('carga-r-total').textContent = data.totalPend;
@@ -2745,11 +2823,12 @@ function renderCarga() {
 
   if (data.sinAsignar > 0) {
     html += `<div class="carga-card sinasignar">
-      <div class="carga-top" onclick="irACargaPersona('')" style="cursor:pointer">
+      <div class="carga-top">
         <div class="carga-nombre">⚠️ Sin asignar</div>
-        <div><div class="carga-total">${data.sinAsignar}</div><div class="carga-total-lbl">OPs</div></div>
+        <div><div class="carga-total">${data.sinAsignar}</div><div class="carga-total-lbl">Total</div></div>
       </div>
-      <div class="carga-ops">${data.sinAsignarOps.map(buildCargaOpRow).join('')}</div>
+      ${buildCargaBloque('📦', 'OPs', data.sinAsignarOps, buildCargaOpRow)}
+      ${buildCargaBloque('📝', 'Vales', data.sinAsignarVales, buildCargaValeRow)}
     </div>`;
   }
 
@@ -2762,8 +2841,9 @@ function renderCarga() {
         <div class="carga-nombre">${p.nombre}</div>
         <div><div class="carga-total">${p.total}</div><div class="carga-total-lbl">Carga total</div></div>
       </div>
-      <div class="carga-ops">${p.ops.map(buildCargaOpRow).join('')}</div>
-      ${p.actPend > 0 ? `<div class="carga-detalle">✅ ${p.actPend} actividad${p.actPend===1?'':'es'} pendiente${p.actPend===1?'':'es'}</div>` : ''}
+      ${buildCargaBloque('📦', 'OPs', p.ops, buildCargaOpRow)}
+      ${buildCargaBloque('📝', 'Vales', p.vales, buildCargaValeRow)}
+      ${buildCargaBloque('✅', 'Actividades', p.actividades, buildCargaActRow)}
     </div>`).join('');
 
   if (!data.sinAsignar && !conCarga.length) {
@@ -2771,6 +2851,61 @@ function renderCarga() {
   }
 
   cont.innerHTML = html;
+}
+
+// Salta a Actividades, resetea filtros que podrían esconderla, y resalta
+// la tarjeta de esa actividad específica.
+function irActividadDesdeCarga(folio) {
+  semanaAct = 'todas';
+  const selSem = document.getElementById('act-sem-select');
+  if (selSem) selSem.value = 'todas';
+  asignadoAct = 'todos';
+  const selAsig = document.getElementById('act-asignado-select');
+  if (selAsig) selAsig.value = 'todos';
+  const buscador = document.getElementById('act-search');
+  if (buscador) buscador.value = '';
+
+  switchTab('act');
+  setStatusAct('todos'); // ya llama renderActividades()
+
+  const cardId = 'act-card-' + String(folio).replace(/[^A-Za-z0-9_-]/g, '-');
+  setTimeout(() => {
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.boxShadow = '0 0 0 3px var(--orange)';
+      setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+    }
+  }, 50);
+}
+
+// Salta a Vales, resetea filtros que podrían esconderlo, y resalta la
+// tarjeta de ese vale específico.
+function irValeDesdeCarga(folio) {
+  mesReqActual = 'todos';
+  const selMes = document.getElementById('req-mes-select');
+  if (selMes) selMes.value = 'todos';
+  semanaReqActual = 'todas';
+  const selSem = document.getElementById('req-sem-select');
+  if (selSem) selSem.value = 'todas';
+  cargoAReqFiltro = 'todos';
+  const selCargo = document.getElementById('req-cargoa-select');
+  if (selCargo) selCargo.value = 'todos';
+  estadoReqFiltro = 'todos';
+  const selEstado = document.getElementById('req-estado-select');
+  if (selEstado) selEstado.value = 'todos';
+
+  switchTab('req'); // ya llama renderRequisiciones()
+
+  const cardId = 'req-card-' + String(folio).replace(/[^A-Za-z0-9_-]/g, '-');
+  setTimeout(() => {
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.boxShadow = '0 0 0 3px var(--orange)';
+      setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+    }
+  }, 50);
 }
 
 // Salta a Órdenes y resalta la tarjeta de esa OP específica (reutiliza el
@@ -3870,6 +4005,7 @@ async function cargarRequisiciones() {
     cantidad:   h.indexOf('cantidad'),
     cargoA:     h.indexOf('cargó a') !== -1 ? h.indexOf('cargó a') : h.indexOf('cargo a'),
     solicito:   h.indexOf('solicitó') !== -1 ? h.indexOf('solicitó') : h.indexOf('solicito'),
+    asignado:   h.indexOf('asignado'),
     estado:     h.indexOf('estado'),
     movimiento: h.indexOf('movimiento'),
     fechaCierre:h.indexOf('fecha cierre'),
@@ -3885,6 +4021,7 @@ async function cargarRequisiciones() {
     cantidad:   idx.cantidad    !== -1 ? cl(r[idx.cantidad])    : '',
     cargoA:     idx.cargoA      !== -1 ? cl(r[idx.cargoA])      : '',
     solicito:   idx.solicito    !== -1 ? cl(r[idx.solicito])    : '',
+    asignado:   idx.asignado    !== -1 ? cl(r[idx.asignado])    : '',
     estado:     idx.estado      !== -1 ? cl(r[idx.estado])      : '',
     movimiento: idx.movimiento  !== -1 ? cl(r[idx.movimiento])  : '',
     fechaCierre:idx.fechaCierre !== -1 ? cl(r[idx.fechaCierre]) : '',
@@ -3983,12 +4120,19 @@ function renderRequisiciones() {
       </div>`;
     }).join('');
 
-    return `<div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${abierto ? '#e08a00' : 'var(--green)'};padding:14px 16px">
+    const reqCardId = 'req-card-' + folio.replace(/[^A-Za-z0-9_-]/g, '-');
+    return `<div id="${reqCardId}" style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${abierto ? '#e08a00' : 'var(--green)'};padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <strong style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--g9)">${folio}</strong>
         <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;color:#fff;background:${abierto ? '#e08a00' : 'var(--green)'}">${abierto ? '⏳ ABIERTO' : '✅ CERRADO'}</span>
       </div>
       <div style="font-size:12px;color:var(--g4);margin-top:2px">${primera.fecha}</div>
+      ${abierto ? `<div class="prio-wrap" style="margin-top:8px">
+        <span class="prio-lbl">ASIGNAR A</span>
+        <select class="asignar-select" onchange="setAsignadoReq('${folio}',this.value,this)">
+          ${personaOptionsHTML(primera.asignado || '', [{value:'', label:'Sin asignar'}])}
+        </select>
+      </div>` : ''}
       <div style="margin-top:8px">${lineasHtml}</div>
       ${!abierto ? `<div style="background:#e8f8f0;border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12px">
         <div style="color:#1a8a50;font-weight:700">🔢 Movimiento ${primera.movimiento || 's/n'}</div>
