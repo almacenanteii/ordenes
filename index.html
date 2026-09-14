@@ -322,6 +322,14 @@
   .carga-detalle { display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:10px; font-size:12px; color:var(--g6); font-weight:600; }
   .carga-rezago { color:var(--red); }
   .carga-vacio { text-align:center; padding:30px 10px; color:var(--g4); font-size:13px; }
+  .carga-ops { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+  .carga-op-row { background:var(--g1); border-radius:10px; padding:9px 11px; cursor:pointer; transition:background .15s; }
+  .carga-op-row:hover { background:var(--g2); }
+  .carga-op-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .carga-op-num { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:800; color:var(--g9); }
+  .carga-op-prod { font-size:11px; color:var(--g6); margin-top:2px; line-height:1.3; }
+  .carga-op-row .time-bar-wrap { padding:6px 0 0; border-top:none; }
+  .carga-op-row .time-surtida { padding:6px 0 0; border-top:none; }
 
   /* ═══════════════ DESKTOP / LAPTOP (pantallas anchas) ═══════════════
      Todo lo de abajo vive dentro de este media query, así que en el
@@ -1607,7 +1615,8 @@ function renderOPs() {
     const esExplo = String(r.op||'').trim().toUpperCase().startsWith('EXPLO');
     const badge = getEstadoBadge(r.estado);
     const borderCls = getCardBorder(r.estado);
-    return `<div class="op-card ${borderCls}">
+    const opCardId = 'op-card-' + String(r.op||'').replace(/[^A-Za-z0-9_-]/g, '-');
+    return `<div class="op-card ${borderCls}" id="${opCardId}">
       <div class="op-top">
         <div><div class="op-num">OP ${r.op}</div><div class="op-fecha">${fmtFecha(r.fecha)}</div></div>
         <div class="op-badge ${badge.cls}">${badge.txt}</div>
@@ -2652,13 +2661,16 @@ function personasParaPuntos() {
 // A diferencia de personasParaPuntos() (que solo incluye a quien participa
 // en el sistema de puntos), aquí se usa el roster completo de Personas
 // activas, porque cualquiera puede traer OPs o actividades asignadas.
+const CARGA_PRIO_ORDEN = { 'Alta': 0, 'Media': 1, 'Baja': 2, '': 2 };
+
 function computeCargaData() {
   const ahora = new Date();
   const roster = (personasData.length ? personasData : PERSONAS_FALLBACK);
   const porPersona = {};
-  roster.forEach(p => { porPersona[p.nombre] = { nombre: p.nombre, opsPend: 0, opsRezago: 0, actPend: 0 }; });
+  roster.forEach(p => { porPersona[p.nombre] = { nombre: p.nombre, ops: [], opsRezago: 0, actPend: 0 }; });
 
-  let totalPend = 0, sinAsignar = 0, totalRezago = 0;
+  let totalPend = 0, totalRezago = 0;
+  const sinAsignarOps = [];
 
   opsData.forEach(r => {
     const estado = (r.estado || '').toLowerCase().trim();
@@ -2672,9 +2684,9 @@ function computeCargaData() {
     if (esRezago) totalRezago++;
 
     const asig = (r.surtio || '').trim();
-    if (!asig) { sinAsignar++; return; }
-    if (!porPersona[asig]) porPersona[asig] = { nombre: asig, opsPend: 0, opsRezago: 0, actPend: 0 };
-    porPersona[asig].opsPend++;
+    if (!asig) { sinAsignarOps.push(r); return; }
+    if (!porPersona[asig]) porPersona[asig] = { nombre: asig, ops: [], opsRezago: 0, actPend: 0 };
+    porPersona[asig].ops.push(r);
     if (esRezago) porPersona[asig].opsRezago++;
   });
 
@@ -2686,16 +2698,40 @@ function computeCargaData() {
     if (asig.toLowerCase() === 'todos') {
       Object.keys(porPersona).forEach(k => porPersona[k].actPend++);
     } else {
-      if (!porPersona[asig]) porPersona[asig] = { nombre: asig, opsPend: 0, opsRezago: 0, actPend: 0 };
+      if (!porPersona[asig]) porPersona[asig] = { nombre: asig, ops: [], opsRezago: 0, actPend: 0 };
       porPersona[asig].actPend++;
     }
   });
 
+  // Mismo orden que en Órdenes: prioridad y luego la más antigua primero.
+  const ordenarOps = (a, b) => {
+    const pA = CARGA_PRIO_ORDEN[a.prioridad] ?? 2;
+    const pB = CARGA_PRIO_ORDEN[b.prioridad] ?? 2;
+    if (pA !== pB) return pA - pB;
+    return (parseFecha(a.fecha)||0) - (parseFecha(b.fecha)||0);
+  };
+  sinAsignarOps.sort(ordenarOps);
+
   const filas = Object.values(porPersona)
-    .map(d => ({ ...d, total: d.opsPend + d.actPend }))
+    .map(d => { d.ops.sort(ordenarOps); return { ...d, opsPend: d.ops.length, total: d.ops.length + d.actPend }; })
     .sort((a, b) => b.total - a.total);
 
-  return { totalPend, sinAsignar, totalRezago, filas };
+  return { totalPend, sinAsignar: sinAsignarOps.length, sinAsignarOps, totalRezago, filas };
+}
+
+// Fila de una OP dentro de una tarjeta de Carga — folio, producto, badge de
+// estado y la misma barra de tiempo que ya se usa en Órdenes, para que se
+// vea de un vistazo cuál trae prisa (estilo tracking de pedido).
+function buildCargaOpRow(r) {
+  const badge = getEstadoBadge(r.estado);
+  return `<div class="carga-op-row" onclick="event.stopPropagation(); buscarYVerOP('${String(r.op).replace(/'/g,"\\'")}')">
+    <div class="carga-op-top">
+      <span class="carga-op-num">OP ${r.op}</span>
+      <span class="op-badge ${badge.cls}">${badge.txt}</span>
+    </div>
+    <div class="carga-op-prod">${r.producto || ''}</div>
+    ${buildTimeBar(r)}
+  </div>`;
 }
 
 function renderCarga() {
@@ -2708,12 +2744,12 @@ function renderCarga() {
   let html = '';
 
   if (data.sinAsignar > 0) {
-    html += `<div class="carga-card sinasignar" onclick="irACargaPersona('')">
-      <div class="carga-top">
+    html += `<div class="carga-card sinasignar">
+      <div class="carga-top" onclick="irACargaPersona('')" style="cursor:pointer">
         <div class="carga-nombre">⚠️ Sin asignar</div>
         <div><div class="carga-total">${data.sinAsignar}</div><div class="carga-total-lbl">OPs</div></div>
       </div>
-      <div class="carga-detalle">Nadie las trae todavía — repártelas cuanto antes</div>
+      <div class="carga-ops">${data.sinAsignarOps.map(buildCargaOpRow).join('')}</div>
     </div>`;
   }
 
@@ -2721,16 +2757,13 @@ function renderCarga() {
   // nada a un tablero de carga de trabajo, solo sería ruido.
   const conCarga = data.filas.filter(p => p.total > 0);
 
-  html += conCarga.map(p => `<div class="carga-card" onclick="irACargaPersona('${p.nombre.replace(/'/g,"\\'")}')">
-      <div class="carga-top">
+  html += conCarga.map(p => `<div class="carga-card">
+      <div class="carga-top" onclick="irACargaPersona('${p.nombre.replace(/'/g,"\\'")}')" style="cursor:pointer">
         <div class="carga-nombre">${p.nombre}</div>
         <div><div class="carga-total">${p.total}</div><div class="carga-total-lbl">Carga total</div></div>
       </div>
-      <div class="carga-detalle">
-        <span>📦 ${p.opsPend} OP${p.opsPend===1?'':'s'} pendiente${p.opsPend===1?'':'s'}</span>
-        ${p.opsRezago > 0 ? `<span class="carga-rezago">⏳ ${p.opsRezago} con +5 días</span>` : ''}
-        <span>✅ ${p.actPend} actividad${p.actPend===1?'':'es'} pendiente${p.actPend===1?'':'es'}</span>
-      </div>
+      <div class="carga-ops">${p.ops.map(buildCargaOpRow).join('')}</div>
+      ${p.actPend > 0 ? `<div class="carga-detalle">✅ ${p.actPend} actividad${p.actPend===1?'':'es'} pendiente${p.actPend===1?'':'es'}</div>` : ''}
     </div>`).join('');
 
   if (!data.sinAsignar && !conCarga.length) {
@@ -2738,6 +2771,32 @@ function renderCarga() {
   }
 
   cont.innerHTML = html;
+}
+
+// Salta a Órdenes y resalta la tarjeta de esa OP específica (reutiliza el
+// mismo buscador de la pestaña Órdenes en vez de un filtro nuevo).
+function buscarYVerOP(op) {
+  surtioFiltro = 'todos';
+  const selSurtio = document.getElementById('surtio-select');
+  if (selSurtio) selSurtio.value = 'todos';
+  estadoOP = 'todos';
+  const selEstado = document.getElementById('op-est-select');
+  if (selEstado) selEstado.value = 'todos';
+
+  switchTab('ops');
+  const buscador = document.getElementById('op-search');
+  if (buscador) buscador.value = op;
+  renderOPs();
+
+  const cardId = 'op-card-' + String(op).replace(/[^A-Za-z0-9_-]/g, '-');
+  setTimeout(() => {
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.boxShadow = '0 0 0 3px var(--orange)';
+      setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+    }
+  }, 50);
 }
 
 // Al hacer clic en una tarjeta de Carga, salta a Órdenes ya filtrado por
