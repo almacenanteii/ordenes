@@ -310,6 +310,34 @@
   .ped-info-row { display:flex; gap:16px; margin-top:6px; font-size:13px; font-weight:600; color:var(--g7); }
   .ped-cajas { margin-top:6px; font-size:14px; font-weight:700; color:var(--g9); }
   .ped-existencia { font-size:12px; font-weight:700; margin-top:3px; }
+
+  /* ═══════════════ DESKTOP / LAPTOP (pantallas anchas) ═══════════════
+     Todo lo de abajo vive dentro de este media query, así que en el
+     celular (pantallas angostas) nada cambia: sigue exactamente igual
+     que antes. Arriba de 900px de ancho se aprovecha el espacio con
+     varias columnas en vez de la columna única estilo app móvil. */
+  @media (min-width: 900px) {
+    body { max-width:1280px; }
+
+    /* Tabs en una sola fila en vez de 2 filas de 3 */
+    .tabs { grid-template-columns: repeat(6, 1fr); }
+
+    /* Filtros en fila, uno junto a otro, en vez de apilados */
+    .filtros { flex-direction:row; flex-wrap:wrap; align-items:flex-end; }
+    .filter-row { flex:1 1 220px; min-width:200px; }
+
+    /* Tarjetas (OPs, actividades, pedidos, vales, montacargas) en
+       tablero de varias columnas — se acomodan solas según el ancho. */
+    .lista { display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); align-items:start; gap:14px; }
+
+    /* Marcador de empleados (pestaña Avance) también en columnas */
+    .pts-marcador { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); align-items:start; gap:14px; }
+
+    /* Modales: en vez de la hoja que sube desde abajo (estilo celular),
+       una ventana centrada normal de escritorio. */
+    .modal-bg { align-items:center; }
+    .modal, .modal-box { border-radius:20px; max-width:560px; max-height:88vh; }
+  }
 </style>
 </head>
 <body>
