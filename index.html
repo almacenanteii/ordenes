@@ -1511,6 +1511,20 @@ async function setAsignadoReq(folio, asignado, sel) {
   }
 }
 
+// Igual que setAsignadoReq(), pero para Pedidos — un Folio Remisión también
+// tiene varias líneas (una por producto).
+async function setAsignadoPed(folio, asignado, sel) {
+  sel.disabled = true;
+  try {
+    await sai_fetch({ tipo: 'asignarPedido', folio, asignado });
+    pedData.forEach(r => { if (r.folio === folio) r.asignado = asignado; });
+    setTimeout(() => renderPedidos(), 400);
+  } catch(e) {
+    sel.disabled = false;
+    alert('❌ Error al asignar el pedido');
+  }
+}
+
 async function setPrioridad(op, prioridad, btn) {
   const wrap = btn.closest('.prio-btns');
   wrap.querySelectorAll('.prio-btn').forEach(b => b.className = 'prio-btn');
@@ -2301,6 +2315,7 @@ async function cargarPedidos() {
     cajasSueltas:    h.indexOf('cajas sueltas'),
     completado:      h.indexOf('completado'),
     fechaCompletado: h.indexOf('fecha completado'),
+    asignado:        h.indexOf('asignado'),
   };
   pedData = rows.slice(1).map(r => ({
     fechaRemision:   cl(r[idx.fechaRemision]),
@@ -2317,6 +2332,7 @@ async function cargarPedidos() {
     cajasSueltas:    cl(r[idx.cajasSueltas]),
     completado:      String(cl(r[idx.completado])).trim().toUpperCase() === 'TRUE',
     fechaCompletado: idx.fechaCompletado !== -1 ? cl(r[idx.fechaCompletado]) : '',
+    asignado:        idx.asignado !== -1 ? cl(r[idx.asignado]) : '',
   })).filter(r => r.clave);
 }
 
@@ -2543,7 +2559,8 @@ function renderPedidos() {
     const totalCajasFolio = lineas.reduce((sum, l) => sum + (Number(l.cajas) || 0), 0);
     const hayCajasSinConfig = lineas.some(l => l.cajas === '');
 
-    return `<div class="ped-card" style="border-left-color:${urgColor}">
+    const pedCardId = 'ped-card-' + folio.replace(/[^A-Za-z0-9_-]/g, '-');
+    return `<div class="ped-card" id="${pedCardId}" style="border-left-color:${urgColor}">
       <div class="ped-top">
         <div>
           <span class="ped-destino-badge" style="background:${colorDestino[primera.destino] || '#7f8c8d'}">🚚 ${primera.destino}</span>
@@ -2552,6 +2569,12 @@ function renderPedidos() {
         </div>
         <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
       </div>
+      ${!completado ? `<div class="prio-wrap">
+        <span class="prio-lbl">ASIGNAR A</span>
+        <select class="asignar-select" onchange="setAsignadoPed('${folio}',this.value,this)">
+          ${personaOptionsHTML(primera.asignado || '', [{value:'', label:'Sin asignar'}])}
+        </select>
+      </div>` : ''}
       <div style="padding:0 14px 8px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--g9)">
         📦 Total: ${totalCajasFolio} caja${totalCajasFolio !== 1 ? 's' : ''} del pedido${hayCajasSinConfig ? ' <span style="font-size:11px;color:#c0392b;font-weight:700">⚠️ hay líneas sin config de empaque</span>' : ''}
       </div>
@@ -2681,7 +2704,7 @@ function personasParaPuntos() {
 const CARGA_PRIO_ORDEN = { 'Alta': 0, 'Media': 1, 'Baja': 2, '': 2 };
 
 function nuevaFilaCarga(nombre) {
-  return { nombre, ops: [], opsRezago: 0, actividades: [], vales: [] };
+  return { nombre, ops: [], opsRezago: 0, actividades: [], vales: [], pedidos: [] };
 }
 
 function computeCargaData() {
@@ -2693,6 +2716,7 @@ function computeCargaData() {
   let totalPend = 0, totalRezago = 0;
   const sinAsignarOps = [];
   const sinAsignarVales = [];
+  const sinAsignarPedidos = [];
 
   // ── OPs ──
   opsData.forEach(r => {
@@ -2741,6 +2765,21 @@ function computeCargaData() {
     porPersona[asig].vales.push(item);
   });
 
+  // ── Pedidos — un Folio Remisión también tiene varias líneas, se cuenta
+  // UNA vez por folio, y solo si NO están todas sus líneas completadas. ──
+  const pedidosPorFolio = {};
+  pedData.forEach(r => { (pedidosPorFolio[r.folio] = pedidosPorFolio[r.folio] || []).push(r); });
+  Object.values(pedidosPorFolio).forEach(lineas => {
+    const completado = lineas.every(l => l.completado);
+    if (completado) return; // ya no es carga pendiente
+    const primera = lineas[0];
+    const item = { ...primera, lineas: lineas.length };
+    const asig = (primera.asignado || '').trim();
+    if (!asig) { sinAsignarPedidos.push(item); return; }
+    if (!porPersona[asig]) porPersona[asig] = nuevaFilaCarga(asig);
+    porPersona[asig].pedidos.push(item);
+  });
+
   // Mismo orden que en Órdenes: prioridad y luego la más antigua primero.
   const ordenarOps = (a, b) => {
     const pA = CARGA_PRIO_ORDEN[a.prioridad] ?? 2;
@@ -2751,20 +2790,22 @@ function computeCargaData() {
   const porFechaAsc = (a, b) => (parseFecha(a.fecha)||0) - (parseFecha(b.fecha)||0);
   sinAsignarOps.sort(ordenarOps);
   sinAsignarVales.sort(porFechaAsc);
+  sinAsignarPedidos.sort((a, b) => (parseFecha(a.fechaEntrega)||0) - (parseFecha(b.fechaEntrega)||0));
 
   const filas = Object.values(porPersona)
     .map(d => {
       d.ops.sort(ordenarOps);
       d.vales.sort(porFechaAsc);
       d.actividades.sort((a, b) => (parseFechaAct(a.fechaLimite)||0) - (parseFechaAct(b.fechaLimite)||0));
-      return { ...d, total: d.ops.length + d.vales.length + d.actividades.length };
+      d.pedidos.sort((a, b) => (parseFecha(a.fechaEntrega)||0) - (parseFecha(b.fechaEntrega)||0));
+      return { ...d, total: d.ops.length + d.vales.length + d.actividades.length + d.pedidos.length };
     })
     .sort((a, b) => b.total - a.total);
 
   return {
     totalPend, totalRezago,
-    sinAsignar: sinAsignarOps.length + sinAsignarVales.length,
-    sinAsignarOps, sinAsignarVales,
+    sinAsignar: sinAsignarOps.length + sinAsignarVales.length + sinAsignarPedidos.length,
+    sinAsignarOps, sinAsignarVales, sinAsignarPedidos,
     filas,
   };
 }
@@ -2806,6 +2847,17 @@ function buildCargaValeRow(item) {
   </div>`;
 }
 
+// Fila de un pedido (Folio Remisión) dentro de una tarjeta de Carga.
+function buildCargaPedRow(item) {
+  return `<div class="carga-op-row" onclick="event.stopPropagation(); irPedidoDesdeCarga('${String(item.folio).replace(/'/g,"\\'")}')">
+    <div class="carga-op-top">
+      <span class="carga-op-num">${item.folio}</span>
+      <span class="op-badge badge-pendiente">⏳ Pendiente</span>
+    </div>
+    <div class="carga-op-prod">🚚 ${item.destino || ''}${item.lineas > 1 ? ` · ${item.lineas} productos` : ''}${item.fechaEntrega ? ' · Entrega ' + item.fechaEntrega : ''}</div>
+  </div>`;
+}
+
 // Bloque reutilizable: subtítulo + lista de filas, solo si hay algo que mostrar.
 function buildCargaBloque(icono, etiqueta, items, builder) {
   if (!items.length) return '';
@@ -2829,6 +2881,7 @@ function renderCarga() {
       </div>
       ${buildCargaBloque('📦', 'OPs', data.sinAsignarOps, buildCargaOpRow)}
       ${buildCargaBloque('📝', 'Vales', data.sinAsignarVales, buildCargaValeRow)}
+      ${buildCargaBloque('🚚', 'Pedidos', data.sinAsignarPedidos, buildCargaPedRow)}
     </div>`;
   }
 
@@ -2844,6 +2897,7 @@ function renderCarga() {
       ${buildCargaBloque('📦', 'OPs', p.ops, buildCargaOpRow)}
       ${buildCargaBloque('📝', 'Vales', p.vales, buildCargaValeRow)}
       ${buildCargaBloque('✅', 'Actividades', p.actividades, buildCargaActRow)}
+      ${buildCargaBloque('🚚', 'Pedidos', p.pedidos, buildCargaPedRow)}
     </div>`).join('');
 
   if (!data.sinAsignar && !conCarga.length) {
@@ -2898,6 +2952,29 @@ function irValeDesdeCarga(folio) {
   switchTab('req'); // ya llama renderRequisiciones()
 
   const cardId = 'req-card-' + String(folio).replace(/[^A-Za-z0-9_-]/g, '-');
+  setTimeout(() => {
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.boxShadow = '0 0 0 3px var(--orange)';
+      setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+    }
+  }, 50);
+}
+
+// Salta a Pedidos, resetea filtros que podrían esconderlo, y resalta la
+// tarjeta de ese pedido específico.
+function irPedidoDesdeCarga(folio) {
+  destinoPedFiltro = 'todos';
+  const selDestino = document.getElementById('ped-destino-select');
+  if (selDestino) selDestino.value = 'todos';
+  estadoPedFiltro = 'todos';
+  const selEstado = document.getElementById('ped-estado-select');
+  if (selEstado) selEstado.value = 'todos';
+
+  switchTab('ped'); // ya llama renderPedidos()
+
+  const cardId = 'ped-card-' + String(folio).replace(/[^A-Za-z0-9_-]/g, '-');
   setTimeout(() => {
     const card = document.getElementById(cardId);
     if (card) {
