@@ -1678,6 +1678,7 @@ function renderOPs() {
       ${buildTimeBar(r)}
       ${r.observaciones ? `<div style="padding:8px 12px;background:#f8f4ff;border-radius:8px;margin-bottom:8px;font-size:12px;color:#8e44ad"><strong>📋 Obs:</strong> ${r.observaciones}</div>` : ''}
       ${r.pdf ? `<a href="${convertirLinkPDF(r.pdf)}" target="_blank" class="btn-accion btn-pdf">📄 Ver Orden</a>` : ''}
+      ${r.materiales ? `<button class="btn-accion btn-pdf" onclick="imprimirOPUbicacion('${r.op}')">📍 OP c/Ubicación</button>` : ''}
       ${esExplo ? `<button class="btn-accion btn-surtir" style="background:#8e44ad" onclick='abrirModalActualizarExplosion(${JSON.stringify(r).replace(/'/g,"&#39;")})'>🔄 Actualizar</button>` :
         esPend ? `<button class="btn-accion btn-surtir" onclick='abrirModalOP(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📦 Marcar como Surtido</button>` :
         `<button class="btn-accion btn-incidencia" onclick='reportarIncidencia("${r.op}")'>⚠️ Reportar incidencia</button>`}
@@ -2596,6 +2597,54 @@ async function confirmarPedido(folio) {
   } catch (e) {
     alert('Error de conexión, intenta de nuevo');
   }
+}
+
+// Hoja de la OP para surtir en piso, con la ubicación física de cada
+// material (misma fuente que el chip 📍 de "Ver materiales": hoja
+// Ubicaciones, por Clave+Lote y si no por Clave sola).
+function imprimirOPUbicacion(op) {
+  const r = opsData.find(x => x.op === op);
+  if (!r) return;
+
+  const items = (r.materiales || '').split(',').map(s => s.trim()).filter(s => s);
+  const filasHtml = items.length ? items.map(item => {
+    const p = item.split(':');
+    const cod  = (p[0]||'').trim().toUpperCase();
+    const cant = parseFloat(p[1]) || 0;
+    const lote = (p[2]||'').trim();
+    const loteU = lote.toUpperCase();
+    const ubicaciones = (loteU && ubicPorClaveLote[cod + '|' + loteU]) || ubicPorClave[cod] || [];
+    const ubicTxt = ubicaciones.length ? ubicaciones.join(', ') : 'SIN UBICACIÓN REGISTRADA';
+    return `<tr>
+      <td>${cod}</td>
+      <td style="text-align:center">${lote || 'S/LOTE'}</td>
+      <td style="text-align:center">${cant.toLocaleString()}</td>
+      <td style="font-weight:bold">${ubicTxt}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" style="text-align:center;color:#777">Sin materiales registrados</td></tr>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OP ${r.op} - Ubicaciones</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#111}
+    h1{font-size:44px;margin:0 0 6px;letter-spacing:1px}
+    .sub{font-size:15px;color:#555;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #333;padding:10px;font-size:15px;text-align:left}
+    th{background:#eee}
+  </style></head>
+  <body>
+    <h1>OP ${r.op}</h1>
+    <div class="sub">${r.codigo || ''}${r.producto ? ' — ' + r.producto : ''}${r.fecha ? ' &nbsp;·&nbsp; ' + fmtFecha(r.fecha) : ''}</div>
+    <table>
+      <tr><th>Material</th><th>Lote</th><th>Cant. OP</th><th>📍 Ubicación</th></tr>
+      ${filasHtml}
+    </table>
+    <script>window.onload = () => window.print();<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 function imprimirCaratula(folio) {
