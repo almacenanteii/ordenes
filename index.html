@@ -851,6 +851,40 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR LÍNEA DE VALE -->
+<div class="modal-bg" id="modal-editreq-bg">
+  <div class="modal">
+    <div class="modal-title">Editar línea</div>
+    <div class="modal-sub" id="editreq-modal-info"></div>
+
+    <label class="modal-label">Código</label>
+    <input type="text" id="editreq-codigo" style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;text-transform:uppercase">
+
+    <label class="modal-label" style="margin-top:10px">Descripción</label>
+    <input type="text" id="editreq-descripcion" style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:10px">Lote</label>
+    <input type="text" id="editreq-lote" style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;text-transform:uppercase">
+
+    <label class="modal-label" style="margin-top:10px">Cantidad</label>
+    <input type="number" id="editreq-cantidad" style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+
+    <label class="modal-label" style="margin-top:10px">Cargar a (área)</label>
+    <div class="sem-select-wrap">
+      <select class="sem-select" id="editreq-cargoa" style="width:100%">
+        <option value="">Selecciona...</option>
+      </select>
+    </div>
+
+    <div id="editreq-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+
+    <button class="modal-confirm" id="editreq-modal-confirm" onclick="confirmarEditarLinea()">
+      💾 Guardar cambios
+    </button>
+    <div class="modal-cancel" onclick="cerrarModal('editreq')">Cancelar</div>
+  </div>
+</div>
+
 <!-- ═══════════════ SECCIÓN CARGA DE TRABAJO ═══════════════ -->
 <div class="section" id="section-carga">
   <div class="resumen" style="grid-template-columns:1fr 1fr 1fr">
@@ -4138,7 +4172,8 @@ async function cargarRequisiciones() {
     cerro:      h.indexOf('cerró') !== -1 ? h.indexOf('cerró') : h.indexOf('cerro'),
     semana:     h.indexOf('semana'),
   };
-  reqData = rows.slice(1).map(r => ({
+  reqData = rows.slice(1).map((r, i) => ({
+    _fila:      i + 2, // renglón real en la hoja (fila 1 = encabezados) — se usa para editar la línea exacta
     folio:      cl(r[idx.folio]),
     fecha:      cl(r[idx.fecha]),
     codigo:     idx.codigo      !== -1 ? cl(r[idx.codigo])      : '',
@@ -4242,7 +4277,10 @@ function renderRequisiciones() {
           <div style="color:var(--orange);font-size:11px;font-weight:700">🏭 ${l.cargoA || 's/área'}</div>
           <div style="color:${ubicaciones.length ? 'var(--g6)' : 'var(--g4)'};font-size:11px;font-weight:700">📍 ${ubicTxt}</div>
         </div>
-        <div style="font-weight:700;color:var(--g9);white-space:nowrap">${l.cantidad || '0'}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-weight:700;color:var(--g9);white-space:nowrap">${l.cantidad || '0'}</div>
+          ${abierto ? `<button onclick="abrirModalEditarLinea('${folio}',${l._fila})" title="Editar línea" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px">✏️</button>` : ''}
+        </div>
       </div>`;
     }).join('');
 
@@ -4506,6 +4544,56 @@ async function confirmarCerrarVale() {
   }
 }
 
+// ── MODAL EDITAR LÍNEA DE VALE ────────────────────────────────
+let editReqFolio = '', editReqFila = 0;
+
+function abrirModalEditarLinea(folio, fila) {
+  const linea = reqData.find(r => r.folio === folio && r._fila === fila);
+  if (!linea) return;
+
+  editReqFolio = folio; editReqFila = fila;
+  document.getElementById('editreq-modal-info').textContent = `Vale ${folio}`;
+  document.getElementById('editreq-codigo').value = linea.codigo || '';
+  document.getElementById('editreq-descripcion').value = linea.descripcion || '';
+  document.getElementById('editreq-lote').value = linea.lote || '';
+  document.getElementById('editreq-cantidad').value = linea.cantidad || '';
+  document.getElementById('editreq-cargoa').innerHTML = destinoOptionsHTML(linea.cargoA || '', [{value:'', label:'Selecciona...'}]);
+  document.getElementById('editreq-modal-msg').style.display = 'none';
+  document.getElementById('editreq-modal-confirm').disabled = false;
+  document.getElementById('editreq-modal-confirm').textContent = '💾 Guardar cambios';
+  document.getElementById('modal-editreq-bg').classList.add('open');
+}
+
+async function confirmarEditarLinea() {
+  const btn = document.getElementById('editreq-modal-confirm');
+  const msg = document.getElementById('editreq-modal-msg');
+  const codigo = (document.getElementById('editreq-codigo').value || '').trim();
+  if (!codigo) { document.getElementById('editreq-codigo').focus(); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  try {
+    await sai_fetch({
+      tipo: 'editarLineaRequisicion',
+      folio: editReqFolio,
+      fila: editReqFila,
+      codigo,
+      descripcion: document.getElementById('editreq-descripcion').value || '',
+      lote: document.getElementById('editreq-lote').value || '',
+      cantidad: document.getElementById('editreq-cantidad').value || '',
+      cargoA: document.getElementById('editreq-cargoa').value || '',
+    });
+    msg.style.cssText = 'display:block;background:#e8f8f0;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '✅ Línea actualizada';
+    setTimeout(() => { cerrarModal('editreq'); recargar(); }, 1000);
+  } catch(e) {
+    msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
+    msg.textContent = '❌ Error al guardar — puede que el vale ya esté cerrado';
+    btn.disabled = false;
+    btn.textContent = '💾 Guardar cambios';
+  }
+}
+
 // ── IMPRIMIR VALE (media hoja de máquina/oficio, vertical) ────
 // El vale físico se queda abierto durante el día y se cierra hasta que se
 // carga el movimiento en el sistema — por eso el número de movimiento sale
@@ -4760,6 +4848,7 @@ async function sai_fetch(payload) {
 document.getElementById('modal-mtc-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('mtc'); });
 document.getElementById('modal-req-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('req'); });
 document.getElementById('modal-cerrarreq-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('cerrarreq'); });
+document.getElementById('modal-editreq-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('editreq'); });
 
 load();
 </script>
