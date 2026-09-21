@@ -787,6 +787,24 @@
       <div class="modal-options" id="req-personas-container"></div>
     </div>
 
+    <label class="modal-label" style="margin-top:10px">Cargar materiales desde una OP (opcional)</label>
+    <div style="position:relative">
+      <input type="text" id="req-op-search" placeholder="Número de OP o lote del PT..." oninput="filtrarOPsReq(this.value)"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+      <div id="req-op-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--g2);border-radius:10px;max-height:180px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
+    </div>
+    <div id="req-op-materiales-box" style="display:none;margin-top:8px;padding:10px 12px;background:var(--orange)15;border-radius:10px">
+      <div style="font-size:13px;font-weight:700" id="req-op-titulo"></div>
+      <div id="req-op-lista" style="margin-top:6px"></div>
+      <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Cargar a (área)</label>
+      <div class="sem-select-wrap">
+        <select class="sem-select" id="req-op-cargoa" style="width:100%">
+          <option value="">Selecciona...</option>
+        </select>
+      </div>
+      <button onclick="agregarSeleccionOP()" style="width:100%;margin-top:8px;padding:9px;background:var(--g9);color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer">＋ Agregar seleccionados al vale</button>
+    </div>
+
     <label class="modal-label" style="margin-top:10px">Agregar material</label>
     <div style="position:relative">
       <input type="text" id="req-search" placeholder="Escribe código o nombre del material..." oninput="filtrarCatalogoReq(this.value)"
@@ -1063,6 +1081,10 @@ let ubicPorClave = {};
 let reqLineasTemp = [];
 let reqCodigoSel = '', reqDescSel = '', reqPersonaSol = null;
 let reqModalModo = 'nuevo', reqModalFolioActual = '';
+// Materiales de la OP que se está usando como plantilla para cargar el vale
+// (ver "Cargar materiales desde una OP"). Se llena al elegir la OP y se
+// vacía al agregar la selección o al reabrir el modal.
+let reqOPMateriales = [];
 let reqUltimaAreaSel = ''; // recuerda la última área elegida entre líneas del mismo vale
 let mesReqActual = 'todos', semanaReqActual = 'todas', estadoReqFiltro = 'todos', cargoAReqFiltro = 'todos';
 let mtcPersona = null, mtcTipo = '';
@@ -4329,6 +4351,10 @@ function abrirModalNuevoVale() {
   document.getElementById('req-material-sel').style.display = 'none';
   document.getElementById('req-cantidad').value = '';
   document.getElementById('req-obs').value = '';
+  reqOPMateriales = [];
+  document.getElementById('req-op-search').value = '';
+  document.getElementById('req-op-autocomplete').style.display = 'none';
+  document.getElementById('req-op-materiales-box').style.display = 'none';
   document.getElementById('req-modal-msg').style.display = 'none';
   document.getElementById('req-modal-confirm').textContent = '📝 Generar vale';
   document.getElementById('req-modal-confirm').disabled = true;
@@ -4356,6 +4382,10 @@ function abrirModalAgregarArticulo(folio) {
   document.getElementById('req-material-sel').style.display = 'none';
   document.getElementById('req-cantidad').value = '';
   document.getElementById('req-obs').value = '';
+  reqOPMateriales = [];
+  document.getElementById('req-op-search').value = '';
+  document.getElementById('req-op-autocomplete').style.display = 'none';
+  document.getElementById('req-op-materiales-box').style.display = 'none';
   document.getElementById('req-modal-msg').style.display = 'none';
   document.getElementById('req-modal-confirm').textContent = '➕ Agregar al vale';
   document.getElementById('req-modal-confirm').disabled = true;
@@ -4367,6 +4397,101 @@ function selectPersonaReq(persona) {
   reqPersonaSol = persona;
   renderPersonaBotones('req-personas-container', 'selectPersonaReq', persona);
   verificarRequisicionLista();
+}
+
+// ── CARGAR MATERIALES DESDE UNA OP (plantilla para el vale) ────
+// Reutiliza opsData (ya cargado para la pestaña Órdenes) y el mismo formato
+// "cod:cant:lote" que parsea buildMateriales — así el vale se puede llenar
+// con lo mismo que trae la OP en vez de buscar cada material a mano.
+function filtrarOPsReq(q) {
+  const ac = document.getElementById('req-op-autocomplete');
+  document.getElementById('req-op-materiales-box').style.display = 'none';
+  reqOPMateriales = [];
+  if (!q || q.length < 2) { ac.style.display = 'none'; return; }
+  const termino = q.toLowerCase();
+  const resultados = opsData.filter(r => r.materiales && (
+    String(r.op||'').toLowerCase().includes(termino) ||
+    (r.codigo||'').toLowerCase().includes(termino) ||
+    (r.producto||'').toLowerCase().includes(termino) ||
+    (r.lote||'').toLowerCase().includes(termino) // lote del PT que salió de esa OP
+  )).slice(0, 8);
+  if (!resultados.length) { ac.style.display = 'none'; return; }
+  ac.innerHTML = resultados.map(r =>
+    `<div onclick="seleccionarOPReq('${String(r.op).replace(/'/g,"\\'")}')"
+      style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--g2);font-size:13px"
+      onmouseover="this.style.background='var(--g1)'" onmouseout="this.style.background=''">
+      <strong>OP ${r.op}</strong> — ${r.codigo || ''} ${r.producto || ''}${r.lote ? ` · Lote PT: ${r.lote}` : ''}
+    </div>`
+  ).join('');
+  ac.style.display = 'block';
+}
+
+function seleccionarOPReq(op) {
+  document.getElementById('req-op-search').value = op;
+  document.getElementById('req-op-autocomplete').style.display = 'none';
+  const r = opsData.find(x => x.op === op);
+  if (!r) return;
+
+  const items = (r.materiales || '').split(',').map(s => s.trim()).filter(s => s);
+  reqOPMateriales = items.map(item => {
+    const p = item.split(':');
+    const codigo = (p[0]||'').trim().toUpperCase();
+    const cantidad = parseFloat(p[1]) || 0;
+    const lote = (p[2]||'').trim();
+    const info = matInvPorClave[codigo];
+    return { codigo, descripcion: info ? info.descripcion : '', lote, cantidad };
+  });
+
+  if (!reqOPMateriales.length) {
+    document.getElementById('req-op-materiales-box').style.display = 'none';
+    alert('Esa OP no tiene materiales registrados');
+    return;
+  }
+
+  document.getElementById('req-op-titulo').textContent = `OP ${r.op} — ${r.codigo || ''} ${r.producto || ''}`;
+  document.getElementById('req-op-cargoa').innerHTML = destinoOptionsHTML(reqUltimaAreaSel, [{value:'', label:'Selecciona...'}]);
+  renderListaOPReq();
+  document.getElementById('req-op-materiales-box').style.display = 'block';
+}
+
+function renderListaOPReq() {
+  const cont = document.getElementById('req-op-lista');
+  cont.innerHTML = reqOPMateriales.map((m, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.08)">
+      <input type="checkbox" id="req-op-chk-${i}" checked style="width:16px;height:16px;flex-shrink:0">
+      <div style="flex:1;font-size:12px">
+        <strong>${m.codigo}</strong>${m.descripcion ? ' — ' + m.descripcion : ''}${m.lote ? ' · Lote ' + m.lote : ''}
+      </div>
+      <input type="number" id="req-op-cant-${i}" value="${m.cantidad}" min="0" step="any"
+        style="width:70px;padding:6px 8px;border:1.5px solid var(--g2);border-radius:8px;font-size:12px;box-sizing:border-box;outline:none">
+    </div>`).join('');
+}
+
+// Empuja a reqLineasTemp (el mismo array que llena el buscador manual) las
+// líneas marcadas, con la cantidad que haya quedado en cada input — no
+// necesariamente la original de la OP, por si hay que ajustarla.
+function agregarSeleccionOP() {
+  const cargoA = document.getElementById('req-op-cargoa').value || '';
+  if (!cargoA) { alert('Selecciona el área (Cargar a)'); return; }
+
+  let agregadas = 0;
+  reqOPMateriales.forEach((m, i) => {
+    const chk = document.getElementById('req-op-chk-' + i);
+    if (!chk || !chk.checked) return;
+    const cantidad = parseFloat(document.getElementById('req-op-cant-' + i).value) || 0;
+    if (!cantidad) return;
+    reqLineasTemp.push({ codigo: m.codigo, descripcion: m.descripcion, lote: m.lote, cantidad, cargoA });
+    agregadas++;
+  });
+  if (!agregadas) return;
+
+  reqUltimaAreaSel = cargoA;
+  renderTablaLineasReq();
+  verificarRequisicionLista();
+
+  document.getElementById('req-op-search').value = '';
+  document.getElementById('req-op-materiales-box').style.display = 'none';
+  reqOPMateriales = [];
 }
 
 function filtrarCatalogoReq(q) {
