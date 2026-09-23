@@ -374,7 +374,7 @@
     <div class="tab" id="tab-mtc" onclick="switchTab('mtc')">🚜 Montacargas</div>
     <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Pedidos</div>
     <div class="tab" id="tab-req" onclick="switchTab('req')">📝 Vales</div>
-    <div class="tab" id="tab-carga" onclick="switchTab('carga')">📊 Carga</div>
+    <div class="tab" id="tab-carga" onclick="switchTab('carga')">📊 Carga de Trabajo</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -2744,39 +2744,68 @@ function imprimirOPUbicacion(op) {
   if (!r) return;
 
   const items = (r.materiales || '').split(',').map(s => s.trim()).filter(s => s);
-  const filasHtml = items.length ? items.map(item => {
+  const filas = items.map(item => {
     const p = item.split(':');
     const cod  = (p[0]||'').trim().toUpperCase();
     const cant = parseFloat(p[1]) || 0;
     const lote = (p[2]||'').trim();
     const loteU = lote.toUpperCase();
     const ubicaciones = (loteU && ubicPorClaveLote[cod + '|' + loteU]) || ubicPorClave[cod] || [];
-    const ubicTxt = ubicaciones.length ? ubicaciones.join(', ') : 'SIN UBICACIÓN REGISTRADA';
-    return `<tr>
-      <td>${cod}</td>
-      <td style="text-align:center">${lote || 'S/LOTE'}</td>
-      <td style="text-align:center">${cant.toLocaleString()}</td>
-      <td style="font-weight:bold">${ubicTxt}</td>
-    </tr>`;
-  }).join('') : `<tr><td colspan="4" style="text-align:center;color:#777">Sin materiales registrados</td></tr>`;
+    const sinUbic = !ubicaciones.length;
+    const ubicTxt = sinUbic ? 'SIN UBICACIÓN' : ubicaciones.join(', ');
+    return { cod, cant, lote, ubicTxt, sinUbic, ubicOrden: sinUbic ? 'ZZZZ' : ubicTxt };
+  });
+  // Orden por ubicación para que el almacenista recorra el almacén en un solo sentido
+  filas.sort((a, b) => a.ubicOrden.localeCompare(b.ubicOrden));
+
+  const totalRenglones = filas.length;
+  const faltantes = filas.filter(f => f.sinUbic).length;
+
+  const filasHtml = filas.length ? filas.map(f => `<tr${f.sinUbic ? ' style="background:#fdecea"' : ''}>
+      <td style="text-align:center">☐</td>
+      <td style="font-size:20px;font-weight:bold">${f.sinUbic ? '⚠️ SIN UBICACIÓN' : f.ubicTxt}</td>
+      <td>${f.cod}</td>
+      <td style="text-align:center">${f.lote || 'S/LOTE'}</td>
+      <td style="text-align:center;font-weight:bold">${f.cant.toLocaleString()}</td>
+    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:#777">Sin materiales registrados</td></tr>`;
+
+  const ahora = new Date();
+  const fechaImpresion = ahora.toLocaleDateString('es-MX') + ' ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OP ${r.op} - Ubicaciones</title>
   <style>
     @page { size: landscape; margin: 12mm; }
     body{font-family:Arial,sans-serif;padding:30px;color:#111}
     h1{font-size:44px;margin:0 0 6px;letter-spacing:1px}
-    .sub{font-size:15px;color:#555;margin-bottom:24px}
+    .sub{font-size:15px;color:#555;margin-bottom:4px}
+    .meta{font-size:13px;color:#777;margin-bottom:20px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid #333;padding:10px;font-size:15px;text-align:left}
     th{background:#eee}
+    .resumen{margin-top:14px;font-size:14px;display:flex;gap:30px}
+    .resumen b{font-size:16px}
+    .alerta{color:#c0392b}
+    .firmas{margin-top:50px;display:flex;gap:60px}
+    .firma-box{flex:1;text-align:center}
+    .firma-linea{border-top:1px solid #333;margin-top:40px;padding-top:6px;font-size:13px}
   </style></head>
   <body>
     <h1>OP ${r.op}</h1>
     <div class="sub">${r.codigo || ''}${r.producto ? ' — ' + r.producto : ''}${r.fecha ? ' &nbsp;·&nbsp; ' + fmtFecha(r.fecha) : ''}</div>
+    <div class="meta">Impreso: ${fechaImpresion} &nbsp;·&nbsp; Ordenado por ubicación para facilitar el recorrido</div>
     <table>
-      <tr><th>Material</th><th>Lote</th><th>Cant. OP</th><th>📍 Ubicación</th></tr>
+      <tr><th>✔</th><th>📍 Ubicación</th><th>Material</th><th>Lote</th><th>Cant. OP</th></tr>
       ${filasHtml}
     </table>
+    <div class="resumen">
+      <div>Renglones: <b>${totalRenglones}</b></div>
+      ${faltantes ? `<div class="alerta">⚠️ Sin ubicación: <b>${faltantes}</b></div>` : ''}
+    </div>
+    <div class="firmas">
+      <div class="firma-box"><div class="firma-linea">Surtido por</div></div>
+      <div class="firma-box"><div class="firma-linea">Hora de término</div></div>
+      <div class="firma-box"><div class="firma-linea">Revisó / Firma</div></div>
+    </div>
     <script>window.onload = () => window.print();<\/script>
   </body></html>`;
 
