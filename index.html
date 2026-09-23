@@ -789,6 +789,17 @@
       <div class="modal-options" id="req-personas-container"></div>
     </div>
 
+    <!-- Tipo de vale: solo se pregunta al CREAR uno nuevo — un vale que ya
+         existe (modo "agregar") hereda el tipo con el que se creó. -->
+    <div id="req-tipo-wrap" style="display:none">
+      <label class="modal-label">Tipo de vale</label>
+      <div class="prio-btns" style="gap:8px">
+        <button type="button" class="prio-btn req-tipo-btn" style="width:auto;flex:1;border-radius:10px;padding:9px 0;font-size:12px" onclick="setTipoVale('Normal',this)">📝 Normal</button>
+        <button type="button" class="prio-btn req-tipo-btn" style="width:auto;flex:1;border-radius:10px;padding:9px 0;font-size:12px" onclick="setTipoVale('Explosion',this)">🧭 Explosión</button>
+      </div>
+      <div style="font-size:11px;color:var(--g5);margin-top:4px">Explosión es solo para ubicar dónde está el material — no lleva número de movimiento.</div>
+    </div>
+
     <label class="modal-label" style="margin-top:10px">Buscar por OP, lote de PT, código o producto</label>
     <div style="position:relative">
       <input type="text" id="req-buscar" placeholder="Escribe para buscar..." oninput="filtrarBuscadorReq(this.value)"
@@ -801,11 +812,13 @@
          Devoluciones, pero sin necesitar arrastrar — con tap basta, mejor en celular). -->
     <div id="req-op-materiales-box" style="display:none;margin-top:8px;padding:10px 12px;background:var(--orange)15;border-radius:10px">
       <div style="font-size:13px;font-weight:700" id="req-op-titulo"></div>
-      <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Cargar a (área)</label>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="req-op-cargoa" style="width:100%">
-          <option value="">Selecciona...</option>
-        </select>
+      <div id="req-op-cargoa-wrap">
+        <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Cargar a (área)</label>
+        <div class="sem-select-wrap">
+          <select class="sem-select" id="req-op-cargoa" style="width:100%">
+            <option value="">Selecciona...</option>
+          </select>
+        </div>
       </div>
       <div style="font-size:11px;color:var(--g5);margin-top:8px">Toca un material para agregarlo al vale ⤵</div>
       <div id="req-op-lista" style="margin-top:4px"></div>
@@ -814,11 +827,13 @@
     <!-- Resultado: material elegido directamente (sin pasar por una OP) -->
     <div id="req-material-sel" style="display:none;margin-top:8px;padding:10px 12px;background:var(--orange)15;border-radius:10px">
       <div style="font-size:13px"><strong id="req-codigo-txt"></strong> — <span id="req-nombre-txt"></span></div>
-      <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Cargar a (área)</label>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="req-linea-cargoa" style="width:100%">
-          <option value="">Selecciona...</option>
-        </select>
+      <div id="req-linea-cargoa-wrap">
+        <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Cargar a (área)</label>
+        <div class="sem-select-wrap">
+          <select class="sem-select" id="req-linea-cargoa" style="width:100%">
+            <option value="">Selecciona...</option>
+          </select>
+        </div>
       </div>
       <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Lote disponible</label>
       <div class="sem-select-wrap">
@@ -847,17 +862,19 @@
   </div>
 </div>
 
-<!-- MODAL CERRAR VALE -->
+<!-- MODAL CERRAR VALE (también se usa para "Ya lo ubiqué" de vales Explosión) -->
 <div class="modal-bg" id="modal-cerrarreq-bg">
   <div class="modal">
-    <div class="modal-title">Cerrar vale</div>
+    <div class="modal-title" id="cerrarreq-modal-title">Cerrar vale</div>
     <div class="modal-sub" id="cerrarreq-modal-info"></div>
 
-    <label class="modal-label">Número de movimiento</label>
-    <input type="text" id="cerrarreq-movimiento" placeholder="Ej. 181343"
-      style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+    <div id="cerrarreq-movimiento-wrap">
+      <label class="modal-label">Número de movimiento</label>
+      <input type="text" id="cerrarreq-movimiento" placeholder="Ej. 181343"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
+    </div>
 
-    <label class="modal-label" style="margin-top:10px">¿Quién cierra?</label>
+    <label class="modal-label" style="margin-top:10px" id="cerrarreq-quien-lbl">¿Quién cierra?</label>
     <div class="modal-options" id="cerrarreq-personas-container"></div>
 
     <div id="cerrarreq-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
@@ -865,6 +882,7 @@
     <button class="modal-confirm" id="cerrarreq-modal-confirm" onclick="confirmarCerrarVale()" disabled>
       🔒 Cerrar vale
     </button>
+    <!-- El texto del botón se sobreescribe en abrirModalCerrarVale() según el tipo de vale -->
     <div class="modal-cancel" onclick="cerrarModal('cerrarreq')">Cancelar</div>
   </div>
 </div>
@@ -1086,6 +1104,10 @@ let reqModalModo = 'nuevo', reqModalFolioActual = '';
 // vacía al agregar la selección o al reabrir el modal.
 let reqOPMateriales = [];
 let reqUltimaAreaSel = ''; // recuerda la última área elegida entre líneas del mismo vale
+// Tipo del vale que se está creando: 'Normal' (con movimiento, como siempre)
+// o 'Explosion' (solo ubicar material, no pide área ni movimiento). Solo se
+// elige al crear un vale nuevo — al agregar líneas a uno ya abierto se hereda.
+let reqTipoVale = 'Normal';
 let mesReqActual = 'todos', semanaReqActual = 'todas', estadoReqFiltro = 'todos', cargoAReqFiltro = 'todos';
 let mtcPersona = null, mtcTipo = '';
 let destinoPedFiltro = 'todos', estadoPedFiltro = 'pendientes';
@@ -1587,6 +1609,22 @@ async function setAsignadoReq(folio, asignado, sel) {
   }
 }
 
+async function setPrioridadReq(folio, prioridad, btn) {
+  const original = btn.textContent;
+  const wrap = btn.closest('.prio-btns');
+  wrap.querySelectorAll('.prio-btn').forEach(b => b.className = 'prio-btn');
+  btn.classList.add(`prio-${prioridad}-act`);
+  btn.textContent = '⏳';
+  try {
+    await sai_fetch({ tipo: 'prioridadRequisicion', folio, prioridad });
+    reqData.forEach(r => { if (r.folio === folio) r.prioridad = prioridad; });
+    btn.textContent = original;
+    setTimeout(() => renderRequisiciones(), 400);
+  } catch(e) {
+    btn.textContent = '❌';
+  }
+}
+
 // Igual que setAsignadoReq(), pero para Pedidos — un Folio Remisión también
 // tiene varias líneas (una por producto).
 async function setAsignadoPed(folio, asignado, sel) {
@@ -1598,6 +1636,22 @@ async function setAsignadoPed(folio, asignado, sel) {
   } catch(e) {
     sel.disabled = false;
     alert('❌ Error al asignar el pedido');
+  }
+}
+
+async function setPrioridadPed(folio, prioridad, btn) {
+  const original = btn.textContent;
+  const wrap = btn.closest('.prio-btns');
+  wrap.querySelectorAll('.prio-btn').forEach(b => b.className = 'prio-btn');
+  btn.classList.add(`prio-${prioridad}-act`);
+  btn.textContent = '⏳';
+  try {
+    await sai_fetch({ tipo: 'prioridadPedido', folio, prioridad });
+    pedData.forEach(r => { if (r.folio === folio) r.prioridad = prioridad; });
+    btn.textContent = original;
+    setTimeout(() => renderPedidos(), 400);
+  } catch(e) {
+    btn.textContent = '❌';
   }
 }
 
@@ -2392,6 +2446,7 @@ async function cargarPedidos() {
     completado:      h.indexOf('completado'),
     fechaCompletado: h.indexOf('fecha completado'),
     asignado:        h.indexOf('asignado'),
+    prioridad:       h.indexOf('prioridad'),
   };
   pedData = rows.slice(1).map(r => ({
     fechaRemision:   cl(r[idx.fechaRemision]),
@@ -2409,6 +2464,7 @@ async function cargarPedidos() {
     completado:      String(cl(r[idx.completado])).trim().toUpperCase() === 'TRUE',
     fechaCompletado: idx.fechaCompletado !== -1 ? cl(r[idx.fechaCompletado]) : '',
     asignado:        idx.asignado !== -1 ? cl(r[idx.asignado]) : '',
+    prioridad:       idx.prioridad !== -1 ? cl(r[idx.prioridad]) : '',
   })).filter(r => r.clave);
 }
 
@@ -2650,6 +2706,12 @@ function renderPedidos() {
         <select class="asignar-select" onchange="setAsignadoPed('${folio}',this.value,this)">
           ${personaOptionsHTML(primera.asignado || '', [{value:'', label:'Sin asignar'}])}
         </select>
+      </div>
+      <div class="prio-wrap">
+        <span class="prio-lbl">PRIORIDAD (1 = más urgente, 5 = menos)</span>
+        <div class="prio-btns">
+          ${[1,2,3,4,5].map(n => `<button class="prio-btn ${prioridadValor(primera.prioridad)===n?'prio-'+n+'-act':''}" onclick="setPrioridadPed('${folio}','${n}',this)">${n}</button>`).join('')}
+        </div>
       </div>` : ''}
       <div style="padding:0 14px 8px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--g9)">
         📦 Total: ${totalCajasFolio} caja${totalCajasFolio !== 1 ? 's' : ''} del pedido${hayCajasSinConfig ? ' <span style="font-size:11px;color:#c0392b;font-weight:700">⚠️ hay líneas sin config de empaque</span>' : ''}
@@ -2903,32 +2965,42 @@ function computeCargaData() {
     porPersona[asig].pedidos.push(item);
   });
 
-  // Mismo orden que en Órdenes: prioridad (1 = más urgente) y luego la más antigua primero.
-  const ordenarOps = (a, b) => {
+  // OPs, Vales y Pedidos ahora comparten una sola escala de prioridad
+  // (1 = más urgente, 5 = menos), así que se fusionan en una sola lista
+  // ordenada por urgencia en vez de tres bloques separados — el almacenista
+  // ve de arriba a abajo qué atender primero sin importar de qué tipo sea.
+  // Cada tipo usa su propia fecha de referencia (fecha de creación para
+  // OPs/Vales, fecha de entrega para Pedidos) como desempate.
+  const fechaOrdenItem = item => {
+    const f = item._tipo === 'pedido' ? item.fechaEntrega : item.fecha;
+    return parseFecha(f) || 0;
+  };
+  const ordenarUnificado = (a, b) => {
     const pA = prioridadValor(a.prioridad);
     const pB = prioridadValor(b.prioridad);
     if (pA !== pB) return pA - pB;
-    return (parseFecha(a.fecha)||0) - (parseFecha(b.fecha)||0);
+    return fechaOrdenItem(a) - fechaOrdenItem(b);
   };
-  const porFechaAsc = (a, b) => (parseFecha(a.fecha)||0) - (parseFecha(b.fecha)||0);
-  sinAsignarOps.sort(ordenarOps);
-  sinAsignarVales.sort(porFechaAsc);
-  sinAsignarPedidos.sort((a, b) => (parseFecha(a.fechaEntrega)||0) - (parseFecha(b.fechaEntrega)||0));
+  sinAsignarOps.forEach(r => r._tipo = 'op');
+  sinAsignarVales.forEach(r => r._tipo = 'vale');
+  sinAsignarPedidos.forEach(r => r._tipo = 'pedido');
+  const sinAsignarPendientes = [...sinAsignarOps, ...sinAsignarVales, ...sinAsignarPedidos].sort(ordenarUnificado);
 
   const filas = Object.values(porPersona)
     .map(d => {
-      d.ops.sort(ordenarOps);
-      d.vales.sort(porFechaAsc);
+      d.ops.forEach(r => r._tipo = 'op');
+      d.vales.forEach(r => r._tipo = 'vale');
+      d.pedidos.forEach(r => r._tipo = 'pedido');
+      const pendientes = [...d.ops, ...d.vales, ...d.pedidos].sort(ordenarUnificado);
       d.actividades.sort((a, b) => (parseFechaAct(a.fechaLimite)||0) - (parseFechaAct(b.fechaLimite)||0));
-      d.pedidos.sort((a, b) => (parseFecha(a.fechaEntrega)||0) - (parseFecha(b.fechaEntrega)||0));
-      return { ...d, total: d.ops.length + d.vales.length + d.actividades.length + d.pedidos.length };
+      return { ...d, pendientes, total: d.ops.length + d.vales.length + d.actividades.length + d.pedidos.length };
     })
     .sort((a, b) => b.total - a.total);
 
   return {
     totalPend, totalRezago,
     sinAsignar: sinAsignarOps.length + sinAsignarVales.length + sinAsignarPedidos.length,
-    sinAsignarOps, sinAsignarVales, sinAsignarPedidos,
+    sinAsignarPendientes,
     filas,
   };
 }
@@ -2940,7 +3012,7 @@ function buildCargaOpRow(r) {
   const badge = getEstadoBadge(r.estado);
   return `<div class="carga-op-row" onclick="event.stopPropagation(); buscarYVerOP('${String(r.op).replace(/'/g,"\\'")}')">
     <div class="carga-op-top">
-      <span class="carga-op-num">${getPrioridadBadge(r.prioridad)} OP ${r.op}</span>
+      <span class="carga-op-num">${getPrioridadBadge(r.prioridad)} 📦 OP ${r.op}</span>
       <span class="op-badge ${badge.cls}">${badge.txt}</span>
     </div>
     <div class="carga-op-prod">${r.producto || ''}</div>
@@ -2961,12 +3033,13 @@ function buildCargaActRow(r) {
 
 // Fila de un vale (Requisición) dentro de una tarjeta de Carga.
 function buildCargaValeRow(item) {
+  const esExplosion = String(item.tipo||'').toLowerCase().startsWith('explo');
   return `<div class="carga-op-row" onclick="event.stopPropagation(); irValeDesdeCarga('${String(item.folio).replace(/'/g,"\\'")}')">
     <div class="carga-op-top">
-      <span class="carga-op-num">${item.folio}</span>
-      <span class="op-badge badge-pendiente">⏳ Abierto</span>
+      <span class="carga-op-num">${getPrioridadBadge(item.prioridad)} 📝 ${item.folio}</span>
+      <span class="op-badge badge-pendiente">${esExplosion ? '🧭 Ubicar' : '⏳ Abierto'}</span>
     </div>
-    <div class="carga-op-prod">${item.descripcion || ''}${item.lineas > 1 ? ` · ${item.lineas} materiales` : ''} · 🏭 ${item.cargoA || 's/área'}</div>
+    <div class="carga-op-prod">${item.descripcion || ''}${item.lineas > 1 ? ` · ${item.lineas} materiales` : ''}${esExplosion ? '' : ' · 🏭 ' + (item.cargoA || 's/área')}</div>
   </div>`;
 }
 
@@ -2974,11 +3047,20 @@ function buildCargaValeRow(item) {
 function buildCargaPedRow(item) {
   return `<div class="carga-op-row" onclick="event.stopPropagation(); irPedidoDesdeCarga('${String(item.folio).replace(/'/g,"\\'")}')">
     <div class="carga-op-top">
-      <span class="carga-op-num">${item.folio}</span>
+      <span class="carga-op-num">${getPrioridadBadge(item.prioridad)} 🚚 ${item.folio}</span>
       <span class="op-badge badge-pendiente">⏳ Pendiente</span>
     </div>
-    <div class="carga-op-prod">🚚 ${item.destino || ''}${item.lineas > 1 ? ` · ${item.lineas} productos` : ''}${item.fechaEntrega ? ' · Entrega ' + item.fechaEntrega : ''}</div>
+    <div class="carga-op-prod">${item.destino || ''}${item.lineas > 1 ? ` · ${item.lineas} productos` : ''}${item.fechaEntrega ? ' · Entrega ' + item.fechaEntrega : ''}</div>
   </div>`;
+}
+
+// Dispatcher: la lista de "pendientes" de una persona mezcla OPs, Vales y
+// Pedidos (ver computeCargaData) porque ahora comparten una sola escala de
+// prioridad — cada quien se dibuja con su propio builder según _tipo.
+function buildCargaItemRow(item) {
+  if (item._tipo === 'vale')   return buildCargaValeRow(item);
+  if (item._tipo === 'pedido') return buildCargaPedRow(item);
+  return buildCargaOpRow(item);
 }
 
 // Bloque reutilizable: subtítulo + lista de filas, solo si hay algo que mostrar.
@@ -3002,9 +3084,7 @@ function renderCarga() {
         <div class="carga-nombre">⚠️ Sin asignar</div>
         <div><div class="carga-total">${data.sinAsignar}</div><div class="carga-total-lbl">Total</div></div>
       </div>
-      ${buildCargaBloque('📦', 'OPs', data.sinAsignarOps, buildCargaOpRow)}
-      ${buildCargaBloque('📝', 'Vales', data.sinAsignarVales, buildCargaValeRow)}
-      ${buildCargaBloque('🚚', 'Pedidos', data.sinAsignarPedidos, buildCargaPedRow)}
+      ${buildCargaBloque('⚡', 'Pendientes', data.sinAsignarPendientes, buildCargaItemRow)}
     </div>`;
   }
 
@@ -3017,10 +3097,8 @@ function renderCarga() {
         <div class="carga-nombre">${p.nombre}</div>
         <div><div class="carga-total">${p.total}</div><div class="carga-total-lbl">Carga total</div></div>
       </div>
-      ${buildCargaBloque('📦', 'OPs', p.ops, buildCargaOpRow)}
-      ${buildCargaBloque('📝', 'Vales', p.vales, buildCargaValeRow)}
+      ${buildCargaBloque('⚡', 'Pendientes (OPs, Vales y Pedidos)', p.pendientes, buildCargaItemRow)}
       ${buildCargaBloque('✅', 'Actividades', p.actividades, buildCargaActRow)}
-      ${buildCargaBloque('🚚', 'Pedidos', p.pedidos, buildCargaPedRow)}
     </div>`).join('');
 
   if (!data.sinAsignar && !conCarga.length) {
@@ -4211,6 +4289,8 @@ async function cargarRequisiciones() {
     fechaCierre:h.indexOf('fecha cierre'),
     cerro:      h.indexOf('cerró') !== -1 ? h.indexOf('cerró') : h.indexOf('cerro'),
     semana:     h.indexOf('semana'),
+    prioridad:  h.indexOf('prioridad'),
+    tipo:       h.indexOf('tipo'),
   };
   reqData = rows.slice(1).map((r, i) => ({
     _fila:      i + 2, // renglón real en la hoja (fila 1 = encabezados) — se usa para editar la línea exacta
@@ -4228,6 +4308,8 @@ async function cargarRequisiciones() {
     fechaCierre:idx.fechaCierre !== -1 ? cl(r[idx.fechaCierre]) : '',
     cerro:      idx.cerro       !== -1 ? cl(r[idx.cerro])       : '',
     semana:     idx.semana      !== -1 ? cl(r[idx.semana])      : '',
+    prioridad:  idx.prioridad   !== -1 ? cl(r[idx.prioridad])   : '',
+    tipo:       idx.tipo        !== -1 ? cl(r[idx.tipo])        : 'Normal',
   })).filter(r => r.folio);
 
   // Poblar selector de meses
@@ -4304,6 +4386,7 @@ function renderRequisiciones() {
     const lineas = folios[folio];
     const primera = lineas[0];
     const abierto = (primera.estado||'').toLowerCase() === 'abierto';
+    const esExplosion = String(primera.tipo||'').toLowerCase().startsWith('explo');
     const lineasHtml = lineas.map(l => {
       const codU = (l.codigo || '').toUpperCase();
       const loteU = (l.lote || '').toUpperCase();
@@ -4327,8 +4410,11 @@ function renderRequisiciones() {
     const reqCardId = 'req-card-' + folio.replace(/[^A-Za-z0-9_-]/g, '-');
     return `<div id="${reqCardId}" style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:6px solid ${abierto ? '#e08a00' : 'var(--green)'};padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--g9)">${folio}</strong>
-        <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;color:#fff;background:${abierto ? '#e08a00' : 'var(--green)'}">${abierto ? '⏳ ABIERTO' : '✅ CERRADO'}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <strong style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--g9)">${folio}</strong>
+          ${esExplosion ? `<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;color:#fff;background:#8e44ad">🧭 EXPLOSIÓN</span>` : ''}
+        </div>
+        <span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;color:#fff;background:${abierto ? '#e08a00' : 'var(--green)'}">${abierto ? '⏳ ABIERTO' : (esExplosion ? '✅ UBICADO' : '✅ CERRADO')}</span>
       </div>
       <div style="font-size:12px;color:var(--g4);margin-top:2px">${primera.fecha}</div>
       ${abierto ? `<div class="prio-wrap" style="margin-top:8px">
@@ -4336,16 +4422,23 @@ function renderRequisiciones() {
         <select class="asignar-select" onchange="setAsignadoReq('${folio}',this.value,this)">
           ${personaOptionsHTML(primera.asignado || '', [{value:'', label:'Sin asignar'}])}
         </select>
+      </div>
+      <div class="prio-wrap">
+        <span class="prio-lbl">PRIORIDAD (1 = más urgente, 5 = menos)</span>
+        <div class="prio-btns">
+          ${[1,2,3,4,5].map(n => `<button class="prio-btn ${prioridadValor(primera.prioridad)===n?'prio-'+n+'-act':''}" onclick="setPrioridadReq('${folio}','${n}',this)">${n}</button>`).join('')}
+        </div>
       </div>` : ''}
       <div style="margin-top:8px">${lineasHtml}</div>
       ${!abierto ? `<div style="background:#e8f8f0;border-radius:10px;padding:8px 12px;margin-top:8px;font-size:12px">
-        <div style="color:#1a8a50;font-weight:700">🔢 Movimiento ${primera.movimiento || 's/n'}</div>
-        <div style="color:var(--g5);margin-top:2px">Cerró ${primera.cerro || ''} · ${primera.fechaCierre || ''}</div>
+        ${esExplosion
+          ? `<div style="color:#1a8a50;font-weight:700">✅ Material ubicado</div><div style="color:var(--g5);margin-top:2px">${primera.cerro || ''} · ${primera.fechaCierre || ''}</div>`
+          : `<div style="color:#1a8a50;font-weight:700">🔢 Movimiento ${primera.movimiento || 's/n'}</div><div style="color:var(--g5);margin-top:2px">Cerró ${primera.cerro || ''} · ${primera.fechaCierre || ''}</div>`}
       </div>` : ''}
       ${abierto ? `<button onclick="abrirModalAgregarArticulo('${folio}')" style="width:100%;margin-top:10px;padding:9px;background:#fff8f4;color:var(--orange);border:1.5px dashed var(--orange);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">➕ Agregar artículo</button>` : ''}
       <div style="display:flex;gap:8px;margin-top:8px">
         <button onclick="imprimirVale('${folio}')" style="flex:1;padding:9px;background:var(--g1);color:var(--g9);border:1.5px solid var(--g2);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>
-        ${abierto ? `<button onclick="abrirModalCerrarVale('${folio}')" style="flex:1;padding:9px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">🔒 Cerrar vale</button>` : ''}
+        ${abierto ? `<button onclick="abrirModalCerrarVale('${folio}')" style="flex:1;padding:9px;background:#1a8a50;color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer">${esExplosion ? '✅ Ya lo ubiqué' : '🔒 Cerrar vale'}</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -4363,6 +4456,10 @@ function abrirModalNuevoVale() {
   document.getElementById('req-modal-title').textContent = 'Nuevo vale de requisición';
   document.getElementById('req-modal-sub').textContent = 'Folio: se asigna automático al generar';
   document.getElementById('req-persona-wrap').style.display = 'none';
+
+  document.getElementById('req-tipo-wrap').style.display = 'block';
+  document.querySelectorAll('.req-tipo-btn').forEach(b => b.classList.remove('prio-1-act'));
+  setTipoVale('Normal', document.querySelector('.req-tipo-btn'));
 
   document.getElementById('req-buscar').value = '';
   document.getElementById('req-buscar-autocomplete').style.display = 'none';
@@ -4393,6 +4490,14 @@ function abrirModalAgregarArticulo(folio) {
   document.getElementById('req-persona-wrap').style.display = 'block';
   renderPersonaBotones('req-personas-container', 'selectPersonaReq', null);
 
+  // El tipo ya quedó fijo desde que se creó el vale — aquí no se pregunta,
+  // solo se hereda para saber si hay que pedir área o no.
+  reqTipoVale = existentes[0].tipo || 'Normal';
+  document.getElementById('req-tipo-wrap').style.display = 'none';
+  const mostrarArea = reqTipoVale !== 'Explosion';
+  document.getElementById('req-op-cargoa-wrap').style.display = mostrarArea ? '' : 'none';
+  document.getElementById('req-linea-cargoa-wrap').style.display = mostrarArea ? '' : 'none';
+
   document.getElementById('req-buscar').value = '';
   document.getElementById('req-buscar-autocomplete').style.display = 'none';
   document.getElementById('req-material-sel').style.display = 'none';
@@ -4405,6 +4510,18 @@ function abrirModalAgregarArticulo(folio) {
   document.getElementById('req-modal-confirm').disabled = true;
   renderTablaLineasReq();
   document.getElementById('modal-req-bg').classList.add('open');
+}
+
+// Solo aplica al crear un vale nuevo. Explosión oculta el selector de área
+// en ambos flujos (desde OP y material directo) porque no hay un destino
+// real — solo se está ubicando dónde está el material.
+function setTipoVale(tipo, btn) {
+  reqTipoVale = tipo;
+  document.querySelectorAll('.req-tipo-btn').forEach(b => b.classList.remove('prio-1-act'));
+  btn.classList.add('prio-1-act');
+  const mostrarArea = tipo !== 'Explosion';
+  document.getElementById('req-op-cargoa-wrap').style.display = mostrarArea ? '' : 'none';
+  document.getElementById('req-linea-cargoa-wrap').style.display = mostrarArea ? '' : 'none';
 }
 
 function selectPersonaReq(persona) {
@@ -4518,8 +4635,9 @@ function renderListaOPReq() {
 }
 
 function agregarMaterialDeOP(i) {
-  const cargoA = document.getElementById('req-op-cargoa').value || '';
-  if (!cargoA) { alert('Selecciona el área (Cargar a) antes de agregar materiales'); return; }
+  const esExplosion = reqTipoVale === 'Explosion';
+  const cargoA = esExplosion ? '' : (document.getElementById('req-op-cargoa').value || '');
+  if (!esExplosion && !cargoA) { alert('Selecciona el área (Cargar a) antes de agregar materiales'); return; }
   const m = reqOPMateriales[i];
   if (!m) return;
 
@@ -4566,8 +4684,9 @@ function agregarLineaReq() {
   const cantidad = parseFloat(document.getElementById('req-cantidad').value) || 0;
   const loteSel = document.getElementById('req-lote-select');
   const lote = loteSel && loteSel.value !== undefined ? loteSel.value : '';
-  const cargoA = document.getElementById('req-linea-cargoa').value || '';
-  if (!reqCodigoSel || !cantidad || !cargoA) return;
+  const esExplosion = reqTipoVale === 'Explosion';
+  const cargoA = esExplosion ? '' : (document.getElementById('req-linea-cargoa').value || '');
+  if (!reqCodigoSel || !cantidad || (!esExplosion && !cargoA)) return;
   reqUltimaAreaSel = cargoA;
   reqLineasTemp.push({ codigo: reqCodigoSel, descripcion: reqDescSel, lote: lote, cantidad: cantidad, cargoA: cargoA });
   renderTablaLineasReq();
@@ -4648,6 +4767,7 @@ async function confirmarRequisicion() {
       // registrado a mano con la firma "Solicitado Por:" en el vale impreso.
       await sai_fetch({
         tipo: 'requisicion',
+        tipoVale: reqTipoVale,
         observaciones: document.getElementById('req-obs').value || '',
         lineas: reqLineasTemp,
       });
@@ -4666,12 +4786,21 @@ async function confirmarRequisicion() {
 // ── MODAL CERRAR VALE ────────────────────────────────────────
 let cerrarReqFolio = '', cerrarReqPersona = null;
 
+let cerrarReqEsExplosion = false;
+
 function abrirModalCerrarVale(folio) {
   cerrarReqFolio = folio; cerrarReqPersona = null;
+  const linea = reqData.find(r => r.folio === folio);
+  cerrarReqEsExplosion = !!linea && String(linea.tipo||'').toLowerCase().startsWith('explo');
+
+  document.getElementById('cerrarreq-modal-title').textContent = cerrarReqEsExplosion ? 'Marcar material ubicado' : 'Cerrar vale';
   document.getElementById('cerrarreq-modal-info').textContent = `Vale ${folio}`;
+  document.getElementById('cerrarreq-movimiento-wrap').style.display = cerrarReqEsExplosion ? 'none' : 'block';
   document.getElementById('cerrarreq-movimiento').value = '';
+  document.getElementById('cerrarreq-quien-lbl').textContent = cerrarReqEsExplosion ? '¿Quién lo ubicó?' : '¿Quién cierra?';
   renderPersonaBotones('cerrarreq-personas-container', 'selectPersonaCerrarReq', null);
   document.getElementById('cerrarreq-modal-msg').style.display = 'none';
+  document.getElementById('cerrarreq-modal-confirm').textContent = cerrarReqEsExplosion ? '✅ Ya lo ubiqué' : '🔒 Cerrar vale';
   document.getElementById('cerrarreq-modal-confirm').disabled = true;
   document.getElementById('modal-cerrarreq-bg').classList.add('open');
 }
@@ -4687,22 +4816,24 @@ async function confirmarCerrarVale() {
   const btn = document.getElementById('cerrarreq-modal-confirm');
   const msg = document.getElementById('cerrarreq-modal-msg');
   btn.disabled = true;
-  btn.textContent = 'Cerrando...';
+  btn.textContent = cerrarReqEsExplosion ? 'Guardando...' : 'Cerrando...';
   try {
+    // El vale Explosión reutiliza el mismo cierre, solo que sin movimiento —
+    // sai_cerrarRequisicion acepta movimiento vacío sin problema.
     await sai_fetch({
       tipo: 'cerrarRequisicion',
       folio: cerrarReqFolio,
-      movimiento: document.getElementById('cerrarreq-movimiento').value || '',
+      movimiento: cerrarReqEsExplosion ? '' : (document.getElementById('cerrarreq-movimiento').value || ''),
       cerro: cerrarReqPersona,
     });
     msg.style.cssText = 'display:block;background:#e8f8f0;color:#1a8a50;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-    msg.textContent = '✅ Vale cerrado correctamente';
+    msg.textContent = cerrarReqEsExplosion ? '✅ Material marcado como ubicado' : '✅ Vale cerrado correctamente';
     setTimeout(() => { cerrarModal('cerrarreq'); recargar(); }, 1200);
   } catch(e) {
     msg.style.cssText = 'display:block;background:#fdecea;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center';
-    msg.textContent = '❌ Error al cerrar el vale';
+    msg.textContent = cerrarReqEsExplosion ? '❌ Error al guardar' : '❌ Error al cerrar el vale';
     btn.disabled = false;
-    btn.textContent = '🔒 Cerrar vale';
+    btn.textContent = cerrarReqEsExplosion ? '✅ Ya lo ubiqué' : '🔒 Cerrar vale';
   }
 }
 
