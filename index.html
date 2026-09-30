@@ -361,9 +361,44 @@
     .modal-bg { align-items:center; }
     .modal, .modal-box { border-radius:20px; max-width:560px; max-height:88vh; }
   }
+
+  /* CANDADO DE ACCESO */
+  #lock-screen {
+    position:fixed; inset:0; z-index:9999; background:var(--g9);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  #lock-screen .lock-box { width:100%; max-width:320px; text-align:center; }
+  #lock-screen .lock-icon { font-size:40px; margin-bottom:14px; }
+  #lock-screen h2 { font-family:'Barlow Condensed',sans-serif; color:var(--white); font-size:22px; font-weight:800; margin-bottom:6px; }
+  #lock-screen p { color:var(--g4); font-size:13px; margin-bottom:20px; }
+  #lock-screen input {
+    width:100%; padding:14px; border-radius:10px; border:1px solid var(--g7);
+    background:var(--g8); color:var(--white); font-size:16px; text-align:center;
+    letter-spacing:2px; margin-bottom:12px;
+  }
+  #lock-screen button {
+    width:100%; padding:14px; border-radius:10px; border:none;
+    background:var(--orange); color:var(--white); font-family:'Barlow Condensed',sans-serif;
+    font-size:15px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; cursor:pointer;
+  }
+  #lock-error { color:var(--red); font-size:13px; margin-top:10px; min-height:16px; }
 </style>
 </head>
 <body>
+
+<!-- CANDADO DE ACCESO: bloquea la app hasta escribir la clave correcta.
+     Cambia APP_PASSWORD (abajo en el <script>) cuando alguien deje de tener
+     acceso — eso invalida de golpe la clave guardada en todos los teléfonos. -->
+<div id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <h2>Acceso restringido</h2>
+    <p>Escribe la clave para entrar al Almacén</p>
+    <input type="password" id="lock-input" placeholder="Clave" autocomplete="off" onkeydown="if(event.key==='Enter') intentarAcceso()">
+    <button onclick="intentarAcceso()">Entrar</button>
+    <div id="lock-error"></div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="hdr">
@@ -835,12 +870,8 @@
           </select>
         </div>
       </div>
-      <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Lote disponible</label>
-      <div class="sem-select-wrap">
-        <select class="sem-select" id="req-lote-select" onchange="mostrarExistenciaLoteReq()" style="width:100%">
-        </select>
-      </div>
-      <div id="req-existencia-txt" style="font-size:12px;color:var(--g5);margin-top:4px"></div>
+      <div id="req-existencia-txt" style="font-size:12px;color:var(--g5);margin-top:6px"></div>
+      <div style="font-size:11px;color:var(--g5);margin-top:2px">📦 El lote se elige solo (PEPS: primero sale el más antiguo)</div>
       <label class="modal-label" style="margin-top:8px;margin-bottom:4px">Cantidad</label>
       <input type="number" id="req-cantidad" min="0" step="any" placeholder="0"
         style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
@@ -4685,32 +4716,79 @@ function seleccionarMaterialReq(clave, nombre) {
   document.getElementById('req-linea-cargoa').innerHTML = destinoOptionsHTML(reqUltimaAreaSel, [{value:'', label:'Selecciona...'}]);
 
   const info = matInvPorClave[clave.toUpperCase()];
-  const loteSel = document.getElementById('req-lote-select');
-  const lotes = info ? info.lotes : [];
-  if (!lotes.length) {
-    loteSel.innerHTML = '<option value="">Sin lote / sin existencia registrada</option>';
-  } else {
-    loteSel.innerHTML = lotes.map(l => `<option value="${l.lote}" data-exist="${l.existencia}">${l.lote || 'S/LOTE'} — existencia: ${l.existencia}</option>`).join('');
-  }
-  mostrarExistenciaLoteReq();
+  const lotes = info ? info.lotes.filter(l => l.existencia > 0) : [];
+  const totalExist = lotes.reduce((s, l) => s + l.existencia, 0);
+  document.getElementById('req-existencia-txt').textContent = lotes.length
+    ? `Existencia disponible: ${totalExist} (en ${lotes.length} lote${lotes.length > 1 ? 's' : ''})`
+    : 'Sin existencia registrada';
 }
 
-function mostrarExistenciaLoteReq() {
-  const sel = document.getElementById('req-lote-select');
-  const opt = sel.options[sel.selectedIndex];
-  const exist = opt ? opt.getAttribute('data-exist') : null;
-  document.getElementById('req-existencia-txt').textContent = exist !== null ? `Existencia disponible: ${exist}` : '';
+// Un código de lote como ME0726043 se lee: ME = prefijo del material, 07 =
+// mes, 26 = año, 043 = consecutivo. De ahí sacamos una clave numérica
+// ordenable por antigüedad real (año, luego mes, luego consecutivo) para
+// poder aplicar PEPS automáticamente sin pedirle el lote al usuario. Si un
+// lote no trae ese formato, regresa null y ese lote se manda al final del
+// orden (se prefiere gastar primero lo que sí se puede fechar con certeza).
+function pepsClaveOrden(lote) {
+  const m = String(lote || '').toUpperCase().match(/^[A-Z]+(\d{2})(\d{2})(\d+)$/);
+  if (!m) return null;
+  const mes = parseInt(m[1], 10);
+  const anio = parseInt(m[2], 10);
+  const cons = parseInt(m[3], 10);
+  if (mes < 1 || mes > 12) return null;
+  return anio * 1000000 + mes * 10000 + cons;
+}
+
+// Reparte la cantidad pedida entre los lotes disponibles de una clave,
+// siempre empezando por el más antiguo (PEPS). Si el lote más viejo no
+// alcanza, sigue con el siguiente hasta completar la cantidad — por eso una
+// sola "línea" pedida por el usuario puede terminar generando varias líneas
+// en el vale (una por cada lote usado). Si ni sumando todo alcanza, reparte
+// lo que hay y regresa el faltante para avisar al usuario.
+function asignarLotesPEPS(clave, cantidadNecesaria) {
+  const info = matInvPorClave[clave.toUpperCase()];
+  const lotes = (info ? info.lotes : []).filter(l => l.existencia > 0);
+  const ordenados = lotes.slice().sort((a, b) => {
+    const ca = pepsClaveOrden(a.lote), cb = pepsClaveOrden(b.lote);
+    if (ca === null && cb === null) return (a.lote || '').localeCompare(b.lote || '');
+    if (ca === null) return 1;
+    if (cb === null) return -1;
+    return ca - cb;
+  });
+
+  const asignadas = [];
+  let restante = cantidadNecesaria;
+  for (const l of ordenados) {
+    if (restante <= 0) break;
+    const tomar = Math.min(restante, l.existencia);
+    if (tomar <= 0) continue;
+    asignadas.push({ lote: l.lote, cantidad: tomar });
+    restante -= tomar;
+  }
+  return { asignadas, faltante: Math.max(0, restante) };
 }
 
 function agregarLineaReq() {
   const cantidad = parseFloat(document.getElementById('req-cantidad').value) || 0;
-  const loteSel = document.getElementById('req-lote-select');
-  const lote = loteSel && loteSel.value !== undefined ? loteSel.value : '';
   const esExplosion = reqTipoVale === 'Explosion';
   const cargoA = esExplosion ? '' : (document.getElementById('req-linea-cargoa').value || '');
   if (!reqCodigoSel || !cantidad || (!esExplosion && !cargoA)) return;
   reqUltimaAreaSel = cargoA;
-  reqLineasTemp.push({ codigo: reqCodigoSel, descripcion: reqDescSel, lote: lote, cantidad: cantidad, cargoA: cargoA });
+
+  const { asignadas, faltante } = asignarLotesPEPS(reqCodigoSel, cantidad);
+  if (!asignadas.length) {
+    // Sin lotes con existencia registrada — se agrega igual sin lote para no
+    // bloquear el vale (pasa con materiales que no se capturan por lote).
+    reqLineasTemp.push({ codigo: reqCodigoSel, descripcion: reqDescSel, lote: '', cantidad: cantidad, cargoA: cargoA });
+  } else {
+    asignadas.forEach(a => {
+      reqLineasTemp.push({ codigo: reqCodigoSel, descripcion: reqDescSel, lote: a.lote, cantidad: a.cantidad, cargoA: cargoA });
+    });
+  }
+  if (faltante > 0) {
+    alert(`Ojo: la existencia de ${reqCodigoSel} no alcanza. Se agregaron ${asignadas.length} lote(s) cubriendo ${cantidad - faltante} de ${cantidad} pedidas — faltan ${faltante}.`);
+  }
+
   renderTablaLineasReq();
   // Limpiar el buscador para la siguiente línea (el área NO se limpia — lo
   // más común es seguir cargando varias líneas seguidas a la misma área)
@@ -4919,6 +4997,7 @@ function imprimirVale(folio) {
   if (!lineas.length) return;
   const primera = lineas[0];
   const abierto = (primera.estado || '').toLowerCase() === 'abierto';
+  const esExplosion = String(primera.tipo || '').toLowerCase().startsWith('explo');
 
   const filasHtml = lineas.map(l => {
     const codU = (l.codigo || '').toUpperCase();
@@ -4930,12 +5009,16 @@ function imprimirVale(folio) {
       <td>${l.descripcion || ''}</td>
       <td style="text-align:center">${l.lote || 'S/LOTE'}</td>
       <td style="text-align:center">${l.cantidad}</td>
-      <td style="text-align:center">${l.cargoA || ''}</td>
-      <td style="text-align:center">${ubicTxt}</td>
+      ${esExplosion ? '' : `<td style="text-align:center">${l.cargoA || ''}</td>`}
+      <td style="text-align:center;font-weight:bold">${ubicTxt || 'SIN UBICACIÓN'}</td>
     </tr>`;
   }).join('');
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Vale ${folio}</title>
+  const tituloDoc = esExplosion ? 'Ubicación de Material' : 'Vale';
+  const tituloGrande = esExplosion ? 'BÚSQUEDA DE UBICACIÓN DE MATERIAL' : 'NOTA DE REQUISICIÓN DE MATERIALES';
+  const subtitulo = esExplosion ? 'Solo para localizar material — no es salida de almacén' : 'Vale de salida de almacén';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${tituloDoc} ${folio}</title>
   <style>
     @page { size: 16.5cm 21.6cm portrait; margin: 10mm; }
     * { box-sizing: border-box; }
@@ -4958,27 +5041,32 @@ function imprimirVale(folio) {
   <body>
     <div class="hdr">
       <div>
-        <h1>NOTA DE REQUISICIÓN DE MATERIALES</h1>
-        <div style="font-size:12px;color:#555">Vale de salida de almacén</div>
+        <h1>${tituloGrande}</h1>
+        <div style="font-size:12px;color:#555">${subtitulo}</div>
       </div>
       <div>
         <div class="folio">Folio<br>${folio}</div>
-        <div class="cod-formato">F-RP-038</div>
+        ${esExplosion ? '' : '<div class="cod-formato">F-RP-038</div>'}
       </div>
     </div>
     <div class="datos">
       <div><strong>Fecha:</strong> ${primera.fecha}</div>
     </div>
     <table>
-      <tr><th>Código</th><th>Descripción</th><th>Lote</th><th>Cantidad</th><th>Área</th><th>Ubicación</th></tr>
+      <tr><th>Código</th><th>Descripción</th><th>Lote</th><th>Cantidad</th>${esExplosion ? '' : '<th>Área</th>'}<th>Ubicación</th></tr>
       ${filasHtml}
     </table>
     ${primera.observaciones ? `<div class="obs">Obs: ${primera.observaciones}</div>` : ''}
+    ${esExplosion ? `
+    <div class="firmas">
+      <div class="firma"><div class="linea">Ubicado por:</div></div>
+      <div class="firma"><div class="linea">Solicitó:</div></div>
+    </div>` : `
     <div class="campo-mov">No. de movimiento:${abierto ? '<span class="linea">&nbsp;</span>' : ' <strong>' + (primera.movimiento || '') + '</strong>'}</div>
     <div class="firmas">
       <div class="firma"><div class="linea">Surtido y Entregado por:</div></div>
       <div class="firma"><div class="linea">Solicitado Por:</div></div>
-    </div>
+    </div>`}
     <script>window.onload = () => window.print();<\/script>
   </body></html>`;
 
@@ -5165,7 +5253,35 @@ document.getElementById('modal-req-bg').addEventListener('click', function(e) { 
 document.getElementById('modal-cerrarreq-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('cerrarreq'); });
 document.getElementById('modal-editreq-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('editreq'); });
 
-load();
+// ── CANDADO DE ACCESO ──────────────────────────────────────────────
+// Cambia esta clave cuando alguien deje de ser supervisor/usuario autorizado.
+// En cuanto la cambias y vuelves a publicar, a TODOS los que tengan la clave
+// vieja guardada en su teléfono se les vuelve a pedir la clave (y a la
+// persona que ya no debe entrar, simplemente no se la das).
+const APP_PASSWORD = 'ANTEII2026';
+const LOCK_KEY = 'sai_access_key';
+
+function intentarAcceso() {
+  const val = document.getElementById('lock-input').value;
+  if (val === APP_PASSWORD) {
+    localStorage.setItem(LOCK_KEY, val);
+    desbloquear();
+  } else {
+    document.getElementById('lock-error').textContent = 'Clave incorrecta';
+    document.getElementById('lock-input').value = '';
+  }
+}
+
+function desbloquear() {
+  document.getElementById('lock-screen').style.display = 'none';
+  load();
+}
+
+if (localStorage.getItem(LOCK_KEY) === APP_PASSWORD) {
+  desbloquear();
+} else {
+  document.getElementById('lock-input').focus();
+}
 </script>
 </body>
 </html>
