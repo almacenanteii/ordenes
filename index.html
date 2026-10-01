@@ -1686,6 +1686,23 @@ async function setPrioridadPed(folio, prioridad, btn) {
   }
 }
 
+async function setPrioridadAct(folio, prioridad, btn) {
+  const original = btn.textContent;
+  const wrap = btn.closest('.prio-btns');
+  wrap.querySelectorAll('.prio-btn').forEach(b => b.className = 'prio-btn');
+  btn.classList.add(`prio-${prioridad}-act`);
+  btn.textContent = '⏳';
+  try {
+    await sai_fetch({ tipo: 'prioridadActividad', folio, prioridad });
+    const item = actData.find(r => r.folio === folio);
+    if (item) item.prioridad = prioridad;
+    btn.textContent = original;
+    setTimeout(() => renderActividades(), 400);
+  } catch(e) {
+    btn.textContent = '❌';
+  }
+}
+
 async function setPrioridad(op, prioridad, btn) {
   const original = btn.textContent;
   const wrap = btn.closest('.prio-btns');
@@ -1912,6 +1929,12 @@ function renderActividades() {
       ${r.descripcion ? `<div class="act-section"><div class="act-section-lbl">DESCRIPCIÓN</div><div class="act-section-txt">${r.descripcion}</div></div>` : ''}
       ${r.riesgos ? `<div class="act-section act-riesgo"><div class="act-section-lbl">⚠️ RIESGOS</div><div class="act-section-txt">${r.riesgos}</div></div>` : ''}
       ${r.apoyo ? `<div class="act-section"><div class="act-section-lbl">🤝 A QUIÉN PEDIR APOYO</div><div class="act-section-txt">${r.apoyo}</div></div>` : ''}
+      ${esPend ? `<div class="prio-wrap">
+        <span class="prio-lbl">PRIORIDAD (1 = más urgente, 5 = menos)</span>
+        <div class="prio-btns">
+          ${[1,2,3,4,5].map(n => `<button class="prio-btn ${prioridadValor(r.prioridad)===n?'prio-'+n+'-act':''}" onclick="setPrioridadAct('${r.folio}','${n}',this)">${n}</button>`).join('')}
+        </div>
+      </div>` : ''}
       ${productosHTML}
       ${buildTimeBarAct(r)}
       ${completadoHTML}
@@ -3018,15 +3041,17 @@ function computeCargaData() {
     porPersona[asig].pedidos.push(item);
   });
 
-  // OPs, Vales y Pedidos ahora comparten una sola escala de prioridad
-  // (1 = más urgente, 5 = menos), así que se fusionan en una sola lista
-  // ordenada por urgencia en vez de tres bloques separados — el almacenista
+  // OPs, Vales, Pedidos y Actividades ahora comparten una sola escala de
+  // prioridad (1 = más urgente, 5 = menos), así que se fusionan en una sola
+  // lista ordenada por urgencia en vez de bloques separados — el almacenista
   // ve de arriba a abajo qué atender primero sin importar de qué tipo sea.
-  // Cada tipo usa su propia fecha de referencia (fecha de creación para
-  // OPs/Vales, fecha de entrega para Pedidos) como desempate.
+  // Cada tipo usa su propia fecha de referencia como desempate: fecha de
+  // creación para OPs/Vales, fecha de entrega para Pedidos, fecha límite
+  // para Actividades.
   const fechaOrdenItem = item => {
-    const f = item._tipo === 'pedido' ? item.fechaEntrega : item.fecha;
-    return parseFecha(f) || 0;
+    if (item._tipo === 'pedido') return parseFecha(item.fechaEntrega) || 0;
+    if (item._tipo === 'act')    return parseFechaAct(item.fechaLimite) || 0;
+    return parseFecha(item.fecha) || 0;
   };
   const ordenarUnificado = (a, b) => {
     const pA = prioridadValor(a.prioridad);
@@ -3044,8 +3069,8 @@ function computeCargaData() {
       d.ops.forEach(r => r._tipo = 'op');
       d.vales.forEach(r => r._tipo = 'vale');
       d.pedidos.forEach(r => r._tipo = 'pedido');
-      const pendientes = [...d.ops, ...d.vales, ...d.pedidos].sort(ordenarUnificado);
-      d.actividades.sort((a, b) => (parseFechaAct(a.fechaLimite)||0) - (parseFechaAct(b.fechaLimite)||0));
+      d.actividades.forEach(r => r._tipo = 'act');
+      const pendientes = [...d.ops, ...d.vales, ...d.pedidos, ...d.actividades].sort(ordenarUnificado);
       return { ...d, pendientes, total: d.ops.length + d.vales.length + d.actividades.length + d.pedidos.length };
     })
     .sort((a, b) => b.total - a.total);
@@ -3077,7 +3102,7 @@ function buildCargaOpRow(r) {
 function buildCargaActRow(r) {
   return `<div class="carga-op-row" onclick="event.stopPropagation(); irActividadDesdeCarga('${String(r.folio).replace(/'/g,"\\'")}')">
     <div class="carga-op-top">
-      <span class="carga-op-num">${r.folio}</span>
+      <span class="carga-op-num">${getPrioridadBadge(r.prioridad)} ✅ ${r.folio}</span>
       <span class="act-badge pendiente">⏳ Pendiente</span>
     </div>
     <div class="carga-op-prod">${r.descripcion || ''}${r.fechaLimite ? ' · Límite: ' + fmtFecha(r.fechaLimite) : ''}</div>
@@ -3113,6 +3138,7 @@ function buildCargaPedRow(item) {
 function buildCargaItemRow(item) {
   if (item._tipo === 'vale')   return buildCargaValeRow(item);
   if (item._tipo === 'pedido') return buildCargaPedRow(item);
+  if (item._tipo === 'act')    return buildCargaActRow(item);
   return buildCargaOpRow(item);
 }
 
@@ -3150,8 +3176,7 @@ function renderCarga() {
         <div class="carga-nombre">${p.nombre}</div>
         <div><div class="carga-total">${p.total}</div><div class="carga-total-lbl">Carga total</div></div>
       </div>
-      ${buildCargaBloque('⚡', 'Pendientes (OPs, Vales y Pedidos)', p.pendientes, buildCargaItemRow)}
-      ${buildCargaBloque('✅', 'Actividades', p.actividades, buildCargaActRow)}
+      ${buildCargaBloque('⚡', 'Pendientes (OPs, Vales, Pedidos y Actividades)', p.pendientes, buildCargaItemRow)}
     </div>`).join('');
 
   if (!data.sinAsignar && !conCarga.length) {
@@ -5162,6 +5187,7 @@ async function cargarActividades() {
     completadoPor:  h.indexOf('completado'),
     fechaCompletado:h.indexOf('fecha completado'),
     comentario:     h.indexOf('comentario'),
+    prioridad:      h.indexOf('prioridad'),
   };
   actData = rows.slice(1).map(r => ({
     folio:          cl(r[idx.folio]),
@@ -5178,6 +5204,7 @@ async function cargarActividades() {
     completadoPor:  cl(r[idx.completadoPor]),
     fechaCompletado:cl(r[idx.fechaCompletado]),
     comentario:     cl(r[idx.comentario]),
+    prioridad:      idx.prioridad !== -1 ? cl(r[idx.prioridad]) : '',
   })).filter(r => r.folio);
 
   // Poblar desplegable de semanas
