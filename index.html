@@ -2822,7 +2822,8 @@ function imprimirOPUbicacion(op) {
       <td style="text-align:center">${f.lote || 'S/LOTE'}</td>
       <td style="text-align:center;font-weight:bold">${f.cant.toLocaleString()}</td>
       <td style="text-align:center">&nbsp;</td>
-    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#777">Sin materiales registrados</td></tr>`;
+      <td style="text-align:center">&nbsp;</td>
+    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:#777">Sin materiales registrados</td></tr>`;
 
   const ahora = new Date();
   const fechaImpresion = ahora.toLocaleDateString('es-MX') + ' ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -2846,7 +2847,7 @@ function imprimirOPUbicacion(op) {
     <div class="sub">${r.codigo || ''}${r.producto ? ' — ' + r.producto : ''}${r.fecha ? ' &nbsp;·&nbsp; ' + fmtFecha(r.fecha) : ''}</div>
     <div class="meta">Impreso: ${fechaImpresion} &nbsp;·&nbsp; Ordenado por ubicación para facilitar el recorrido</div>
     <table>
-      <tr><th>✔</th><th>📍 Ubicación</th><th>Material</th><th>Lote</th><th>Cant. OP</th><th>Cant. Surtida</th></tr>
+      <tr><th>✔</th><th>📍 Ubicación</th><th>Material</th><th>Lote</th><th>Cant. OP</th><th>Lote Surtido</th><th>Cant. Surtida</th></tr>
       ${filasHtml}
     </table>
     <div class="resumen">
