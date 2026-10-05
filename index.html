@@ -3906,6 +3906,24 @@ function renderPuntos() {
   else selSem.value = 'todas';
   const semFiltro = selSem.value;
 
+  // Una semana puede quedar partida entre dos meses (ej. semana 40 = 28-30
+  // sep + 1-4 oct). Las tarjetas por semana deben mostrar la semana COMPLETA
+  // aunque parte de sus OPs sean del mes vecino — si no, una incidencia en
+  // una OP del 29/sep no aparece en la tarjeta "Semana 40" del mes de octubre.
+  // Se acepta una OP si es de este mes, o si su semana existe en este mes y su
+  // fecha cae a no más de 7 días fuera del mes (evita confundir con la misma
+  // semana de otro año). Los KPI mensuales de arriba siguen usando solo el mes.
+  const MARGEN_SEM = 7 * 24 * 60 * 60 * 1000;
+  const iniMesMs = new Date(anio, mes, 1).getTime() - MARGEN_SEM;
+  const finMesMs = new Date(anio, mes + 1, 0, 23, 59, 59).getTime() + MARGEN_SEM;
+  const enSemanaDelMes = r => {
+    const f = parseFecha(r.fecha);
+    if (!f) return false;
+    if (f.getMonth() === mes && f.getFullYear() === anio) return true;
+    if (!r.semana || !semanasDelMes.includes(r.semana)) return false;
+    return f.getTime() >= iniMesMs && f.getTime() <= finMesMs;
+  };
+
   // Gráfica semanal
   actualizarGrafica();
 
@@ -3933,9 +3951,15 @@ function renderPuntos() {
   const kpiNum = parseFloat(kpi);
   const kpiColor = kpiNum >= 98 ? 'var(--green)' : kpiNum >= 90 ? '#b7770d' : 'var(--red)';
 
-  // Desglose por semana
+  // Desglose por semana — usa la semana completa (ver enSemanaDelMes), no
+  // solo las OPs del mes, para que cuadre con las tarjetas de abajo.
   const semanasMap = {};
-  opsMes.forEach(r => {
+  opsData.filter(r => {
+    if (!enSemanaDelMes(r)) return false;
+    if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return false;
+    const e = (r.estado||'').toLowerCase().trim();
+    return e !== '' && e !== 'pendiente' && e !== 'cancelada';
+  }).forEach(r => {
     const sem = r.semana || 'S/N';
     if (!semanasMap[sem]) semanasMap[sem] = { total: 0, inc: 0 };
     semanasMap[sem].total++;
@@ -3944,8 +3968,7 @@ function renderPuntos() {
 
   // Conteo de TODOS los estados por semana (respeta filtro)
   const todasOpsMes = opsData.filter(r => {
-    const f = parseFecha(r.fecha);
-    if (!f || f.getMonth() !== mes || f.getFullYear() !== anio) return false;
+    if (!enSemanaDelMes(r)) return false;
     if (semFiltro !== 'todas' && (r.semana||'') !== semFiltro) return false;
     return true;
   });
