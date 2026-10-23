@@ -483,6 +483,9 @@
     <button onclick="abrirModalExplosion()" style="width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.05em">
       💥 + REGISTRAR EXPLOSIÓN
     </button>
+    <button onclick="imprimirFormatoSurtidoExplosion()" style="width:100%;margin-top:8px;padding:11px;background:var(--white);color:var(--g9);border:1.5px solid var(--g2);border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.05em">
+      📝 IMPRIMIR FORMATO DE SURTIDO (EN BLANCO)
+    </button>
   </div>
 
   <div class="lista" id="lista-ops"><div class="loading"><div class="spinner"></div>Cargando órdenes...</div></div>
@@ -2103,6 +2106,58 @@ async function confirmarNuevaActividad() {
     btn.textContent = '✅ Crear Actividad';
   }
 }
+// Formato en blanco para cuando surten una explosión: se llena a mano con
+// clave, descripción, lote y cantidad surtida. Hoja carta, 10 renglones
+// altos (17 mm), firmas de Surtió / Verificó / Recibió.
+function imprimirFormatoSurtidoExplosion() {
+  const renglones = Array.from({ length: 10 }, () => `<tr>
+      <td></td><td></td><td></td><td></td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Surtido de Explosión</title>
+  <style>
+    @page { size: letter portrait; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body{font-family:Arial,sans-serif;color:#111;margin:0}
+    h1{font-size:28px;margin:0 0 14px;text-align:center;letter-spacing:1px}
+    .datos{display:flex;gap:20px;font-size:16px;margin-bottom:14px}
+    .datos .campo{flex:1;display:flex;align-items:flex-end;gap:6px;white-space:nowrap}
+    .datos .campo.grande{flex:2}
+    .datos .linea{flex:1;border-bottom:1.5px solid #111;min-height:20px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1.5px solid #111;padding:6px 8px;font-size:16px;text-align:left}
+    th{background:#eee;font-size:15px}
+    tbody tr{height:17mm}
+    .firmas{display:flex;justify-content:space-between;gap:24px;margin-top:28px}
+    .firma{flex:1;text-align:center;font-size:15px}
+    .firma .linea{border-top:1.5px solid #111;margin-top:40px;padding-top:5px}
+  </style></head>
+  <body>
+    <h1>SURTIDO DE EXPLOSIÓN</h1>
+    <div class="datos">
+      <div class="campo"><strong>OP:</strong><span class="linea"></span></div>
+      <div class="campo grande"><strong>Producto:</strong><span class="linea"></span></div>
+      <div class="campo"><strong>Fecha:</strong><span class="linea"></span></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="width:20%">Clave</th><th style="width:38%">Descripción</th><th style="width:20%">Lote</th><th style="width:22%">Cantidad surtida</th>
+      </tr></thead>
+      <tbody>${renglones}</tbody>
+    </table>
+    <div class="firmas">
+      <div class="firma"><div class="linea">Surtió</div></div>
+      <div class="firma"><div class="linea">Verificó</div></div>
+      <div class="firma"><div class="linea">Recibió</div></div>
+    </div>
+    <script>window.onload = () => window.print();<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
 function abrirModalExplosion() {
   expPersona = null; expIncidencia = 0; expFifo = 1; expCodigo = ''; expNombre = '';
   document.getElementById('exp-search').value = '';
