@@ -2590,6 +2590,7 @@ async function cargarPedidos() {
     fotoTarima:      h.indexOf('foto tarima'),
     letra:           h.indexOf('tarima'),          // letra de tarima del plan de embarque (A, B, E/F…)
     transportista:   h.indexOf('transportista'),
+    capacidad:       h.indexOf('capacidad'),
   };
   pedData = rows.slice(1).map(r => ({
     fechaRemision:   cl(r[idx.fechaRemision]),
@@ -2613,6 +2614,7 @@ async function cargarPedidos() {
     fotoTarima:      idx.fotoTarima !== -1 ? cl(r[idx.fotoTarima]) : '',
     letra:           idx.letra !== -1 ? cl(r[idx.letra]) : '',
     transportista:   idx.transportista !== -1 ? cl(r[idx.transportista]) : '',
+    capacidad:       idx.capacidad !== -1 ? cl(r[idx.capacidad]) : '',
   })).filter(r => r.clave);
 }
 
@@ -2827,10 +2829,12 @@ function renderPedidos() {
       let tarimaTxt;
       if (esEmb) tarimaTxt = nTarimas > 0 ? `${cajasTxt ? ' · ' : ''}🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''}` : '';
       else tarimaTxt = nTarimas > 0 ? ` · 🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''} completa${nTarimas > 1 ? 's' : ''}${nSueltas > 0 ? ` + ${nSueltas} suelta${nSueltas > 1 ? 's' : ''}` : ''}` : '';
-      const letraHtml = l.letra ? `<span style="display:inline-block;min-width:22px;text-align:center;background:var(--g9);color:#fff;border-radius:6px;padding:1px 7px;margin-right:8px;font-weight:800">${l.letra}</span>` : '';
+      // Letra de la tarima en un cuadro azul grande: en bodega cada tarima se
+      // marca con conos azules con su letra para ubicarla.
+      const letraHtml = l.letra ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:44px;box-sizing:border-box;padding:0 8px;background:#1565c0;color:#fff;border-radius:8px;margin-right:10px;font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;line-height:1;vertical-align:middle">${l.letra}</span>` : '';
 
       return `<div class="ped-linea${iLinea % 2 ? ' alt' : ''}">
-        <div class="ped-clave">${letraHtml}${l.clave}</div>
+        <div class="ped-clave" style="display:flex;align-items:center">${letraHtml}<span>${l.clave}</span></div>
         <div class="ped-desc">${l.descripcion}</div>
         <div style="display:flex;gap:10px;margin:8px 0 6px">
           <div style="flex:1.4;background:var(--g1);border-radius:8px;padding:6px 10px">
@@ -2851,6 +2855,12 @@ function renderPedidos() {
     // sumarlas a mano y perder la cuenta.
     const totalCajasFolio = lineas.reduce((sum, l) => sum + (Number(l.cajas) || 0), 0);
     const hayCajasSinConfig = lineas.some(l => l.cajas === '');
+    // Embarque: tarimas del plan vs capacidad del camión (ej. 6 / 6).
+    const totalTarimasEmb = lineas.reduce((s, l) => s + (Number(l.tarimas) || 0), 0);
+    const capEmb = Number(primera.capacidad) || 0;
+    const capacidadHtml = (primera.destino === 'CDMX' && capEmb > 0)
+      ? `<div style="margin:0 14px 8px;display:inline-block;background:#e3f0fc;border:2px solid #1565c0;color:#0d47a1;border-radius:8px;padding:6px 12px;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800">🚛 Capacidad: ${capEmb} tarimas · Cargadas: ${totalTarimasEmb}${totalTarimasEmb > capEmb ? ' ⚠️ excede' : (totalTarimasEmb === capEmb ? ' ✔ lleno' : ` · Disponibles: ${capEmb - totalTarimasEmb}`)}</div>`
+      : '';
 
     const pedCardId = 'ped-card-' + folio.replace(/[^A-Za-z0-9_-]/g, '-');
     return `<div class="ped-card" id="${pedCardId}" style="border-left-color:${urgColor}">
@@ -2874,6 +2884,7 @@ function renderPedidos() {
           ${[1,2,3,4,5].map(n => `<button class="prio-btn ${prioridadValor(primera.prioridad)===n?'prio-'+n+'-act':''}" onclick="setPrioridadPed('${folio}','${n}',this)">${n}</button>`).join('')}
         </div>
       </div>` : ''}
+      ${capacidadHtml}
       <div style="padding:0 14px 8px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--g9)">
         📦 Total: ${totalCajasFolio} caja${totalCajasFolio !== 1 ? 's' : ''} del pedido${hayCajasSinConfig ? ' <span style="font-size:11px;color:#c0392b;font-weight:700">⚠️ hay líneas sin config de empaque</span>' : ''}
       </div>
