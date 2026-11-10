@@ -745,6 +745,7 @@
           <option value="Monterrey">Monterrey</option>
           <option value="Tezontepec">Tezontepec</option>
           <option value="Tonala">Tonalá</option>
+          <option value="HEB">HEB</option>
         </select>
       </div>
     </div>
@@ -2759,7 +2760,7 @@ function renderPedidos() {
   if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">🚚</div>Sin pedidos</div>`; return; }
 
   folioKeys = folioKeys.sort((a, b) => Number(b) - Number(a));
-  const colorDestino = { 'Monterrey': '#2980B9', 'Tezontepec': '#8e44ad', 'Tonala': '#e08e0b' };
+  const colorDestino = { 'Monterrey': '#2980B9', 'Tezontepec': '#8e44ad', 'Tonala': '#e08e0b', 'HEB': '#d4202c' };
 
   cont.innerHTML = folioKeys.map(folio => {
     const lineas = folios[folio];
