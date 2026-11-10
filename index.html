@@ -408,7 +408,7 @@
     <div class="tab active" id="tab-ops" onclick="switchTab('ops')">📦 Órdenes</div>
     <div class="tab" id="tab-act" onclick="switchTab('act')">✅ Actividades</div>
     <div class="tab" id="tab-mtc" onclick="switchTab('mtc')">🚜 Montacargas</div>
-    <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Pedidos</div>
+    <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Embarques</div>
     <div class="tab" id="tab-req" onclick="switchTab('req')">📝 Vales</div>
     <div class="tab" id="tab-carga" onclick="switchTab('carga')">📊 Carga de Trabajo</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
@@ -747,6 +747,7 @@
           <option value="Tezontepec">Tezontepec</option>
           <option value="Tonala">Tonalá</option>
           <option value="HEB">HEB</option>
+          <option value="CDMX">CDMX</option>
         </select>
       </div>
     </div>
@@ -762,10 +763,10 @@
     </div>
   </div>
   <div class="resumen">
-    <div class="res-card total"><div class="res-num" id="ped-r-total">0</div><div class="res-lbl">Pedidos pendientes</div></div>
+    <div class="res-card total"><div class="res-num" id="ped-r-total">0</div><div class="res-lbl">Embarques pendientes</div></div>
     <div class="res-card verde"><div class="res-num" id="ped-r-hoy">0</div><div class="res-lbl">Completados hoy</div></div>
   </div>
-  <div class="lista" id="lista-ped"><div class="loading"><div class="spinner"></div>Cargando pedidos...</div></div>
+  <div class="lista" id="lista-ped"><div class="loading"><div class="spinner"></div>Cargando embarques...</div></div>
 </div>
 
 <!-- ═══════════════ SECCIÓN REQUISICIONES (VALES) ═══════════════ -->
@@ -2587,6 +2588,8 @@ async function cargarPedidos() {
     completadoPor:   h.indexOf('completado por'),
     comentario:      h.indexOf('comentario'),
     fotoTarima:      h.indexOf('foto tarima'),
+    letra:           h.indexOf('tarima'),          // letra de tarima del plan de embarque (A, B, E/F…)
+    transportista:   h.indexOf('transportista'),
   };
   pedData = rows.slice(1).map(r => ({
     fechaRemision:   cl(r[idx.fechaRemision]),
@@ -2608,6 +2611,8 @@ async function cargarPedidos() {
     completadoPor:   idx.completadoPor !== -1 ? cl(r[idx.completadoPor]) : '',
     comentario:      idx.comentario !== -1 ? cl(r[idx.comentario]) : '',
     fotoTarima:      idx.fotoTarima !== -1 ? cl(r[idx.fotoTarima]) : '',
+    letra:           idx.letra !== -1 ? cl(r[idx.letra]) : '',
+    transportista:   idx.transportista !== -1 ? cl(r[idx.transportista]) : '',
   })).filter(r => r.clave);
 }
 
@@ -2790,10 +2795,13 @@ function renderPedidos() {
     return masReciente.toLocaleDateString('es-MX') === hoyStr;
   }).length;
 
-  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">🚚</div>Sin pedidos</div>`; return; }
+  if (!folioKeys.length) { cont.innerHTML = `<div class="empty"><div class="empty-ico">🚚</div>Sin embarques</div>`; return; }
 
-  folioKeys = folioKeys.sort((a, b) => Number(b) - Number(a));
-  const colorDestino = { 'Monterrey': '#2980B9', 'Tezontepec': '#8e44ad', 'Tonala': '#e08e0b', 'HEB': '#d4202c' };
+  // Folios de remisión son numéricos (23937) y los de embarque llevan prefijo
+  // (GL10389): se ordena por el número que contengan, el más reciente primero.
+  const numFolio = f => parseInt(String(f).replace(/\D/g, ''), 10) || 0;
+  folioKeys = folioKeys.sort((a, b) => numFolio(b) - numFolio(a));
+  const colorDestino = { 'Monterrey': '#2980B9', 'Tezontepec': '#8e44ad', 'Tonala': '#e08e0b', 'HEB': '#d4202c', 'CDMX': '#0e7c6b' };
 
   cont.innerHTML = folioKeys.map(folio => {
     const lineas = folios[folio];
@@ -2812,13 +2820,17 @@ function renderPedidos() {
     const lineasHtml = lineas.map((l, iLinea) => {
       const nTarimas = Number(l.tarimas) || 0;
       const nSueltas = Number(l.cajasSueltas) || 0;
+      const esEmb = l.destino === 'CDMX'; // línea de un plan de embarque
       let cajasTxt;
-      if (l.cajas === '') cajasTxt = '⚠️ Sin config de empaque';
+      if (l.cajas === '') cajasTxt = esEmb ? '' : '⚠️ Sin config de empaque';
       else cajasTxt = `📦 ${l.cajas} caja${Number(l.cajas) !== 1 ? 's' : ''}`;
-      const tarimaTxt = nTarimas > 0 ? ` · 🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''} completa${nTarimas > 1 ? 's' : ''}${nSueltas > 0 ? ` + ${nSueltas} suelta${nSueltas > 1 ? 's' : ''}` : ''}` : '';
+      let tarimaTxt;
+      if (esEmb) tarimaTxt = nTarimas > 0 ? `${cajasTxt ? ' · ' : ''}🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''}` : '';
+      else tarimaTxt = nTarimas > 0 ? ` · 🟫 ${nTarimas} tarima${nTarimas > 1 ? 's' : ''} completa${nTarimas > 1 ? 's' : ''}${nSueltas > 0 ? ` + ${nSueltas} suelta${nSueltas > 1 ? 's' : ''}` : ''}` : '';
+      const letraHtml = l.letra ? `<span style="display:inline-block;min-width:22px;text-align:center;background:var(--g9);color:#fff;border-radius:6px;padding:1px 7px;margin-right:8px;font-weight:800">${l.letra}</span>` : '';
 
       return `<div class="ped-linea${iLinea % 2 ? ' alt' : ''}">
-        <div class="ped-clave">${l.clave}</div>
+        <div class="ped-clave">${letraHtml}${l.clave}</div>
         <div class="ped-desc">${l.descripcion}</div>
         <div style="display:flex;gap:10px;margin:8px 0 6px">
           <div style="flex:1.4;background:var(--g1);border-radius:8px;padding:6px 10px">
@@ -2845,8 +2857,8 @@ function renderPedidos() {
       <div class="ped-top">
         <div>
           <span class="ped-destino-badge" style="background:${colorDestino[primera.destino] || '#7f8c8d'}">🚚 ${primera.destino}</span>
-          <div class="ped-folio-big">Folio Remisión ${folio}</div>
-          <div class="ped-destino-sub">${primera.fechaEntrega ? 'Entrega ' + primera.fechaEntrega : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
+          <div class="ped-folio-big">${primera.destino === 'CDMX' ? 'Embarque' : 'Folio Remisión'} ${folio}</div>
+          <div class="ped-destino-sub">${primera.destino === 'CDMX' ? 'Salida ' : 'Entrega '}${primera.fechaEntrega || ''}${primera.transportista ? ' · 🚛 ' + primera.transportista : ''}${urgTxt ? ' · ' + urgTxt : ''}</div>
         </div>
         <span class="op-badge" style="background:${completado ? '#e8f8f0' : '#fff3f3'};color:${completado ? '#1a8a50' : '#c0392b'}">${completado ? '✅ Completado' : '⏳ Pendiente'}</span>
       </div>
