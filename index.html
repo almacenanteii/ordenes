@@ -300,6 +300,20 @@
   .time-surtida { padding:6px 14px 10px; border-top:1px solid var(--g1); font-size:11px; color:var(--g4); }
   .time-surtida strong { color:var(--green); }
 
+  /* TEMPERATURA */
+  .temp-card{background:var(--white);border-radius:14px;margin:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .temp-tit{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--g9);margin-bottom:8px}
+  .temp-card label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--g4);margin:10px 0 4px;text-transform:uppercase}
+  .temp-card input,.temp-card select{width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:15px;box-sizing:border-box;outline:none;background:#fff}
+  .temp-row{display:flex;gap:10px}
+  .temp-row>div{flex:1}
+  .temp-big{font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;line-height:1}
+  .temp-btn{width:100%;margin-top:14px;padding:13px;border:none;border-radius:10px;background:#1a8a50;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;cursor:pointer}
+  .temp-btn:disabled{opacity:.5}
+  .temp-btn2{flex:1;padding:11px;border:none;border-radius:10px;background:var(--g1);color:var(--g9);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+  .temp-chip{flex:1;border-radius:10px;padding:8px;text-align:center;font-size:12px}
+  .temp-fila{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--g1);font-size:13px}
+
   /* PEDIDOS CARD */
   .ped-card { background:var(--white); border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); border-left:4px solid var(--g2); margin-bottom:10px; }
   .ped-top { display:flex; justify-content:space-between; align-items:flex-start; padding:12px 14px 8px; }
@@ -411,6 +425,7 @@
     <div class="tab" id="tab-ped" onclick="switchTab('ped')">🚚 Embarques</div>
     <div class="tab" id="tab-req" onclick="switchTab('req')">📝 Vales</div>
     <div class="tab" id="tab-carga" onclick="switchTab('carga')">📊 Carga de Trabajo</div>
+    <div class="tab" id="tab-temp" onclick="switchTab('temp')">🌡️ Temperatura</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -767,6 +782,57 @@
     <div class="res-card verde"><div class="res-num" id="ped-r-hoy">0</div><div class="res-lbl">Completados hoy</div></div>
   </div>
   <div class="lista" id="lista-ped"><div class="loading"><div class="spinner"></div>Cargando embarques...</div></div>
+</div>
+
+<!-- ═══════════════ SECCIÓN TEMPERATURA ═══════════════ -->
+<div class="section" id="section-temp">
+  <div class="temp-card" id="temp-ultima"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+
+  <div class="temp-card">
+    <div class="temp-tit">🌡️ Registrar lectura</div>
+    <div id="temp-def" style="font-size:12px;color:var(--g6)"></div>
+    <div class="temp-row">
+      <div><label>Temperatura (°C)</label><input type="number" id="temp-t" inputmode="decimal" step="0.1" placeholder="24.3" oninput="tempValidarLive()"></div>
+      <div><label>Humedad (%)</label><input type="number" id="temp-h" inputmode="decimal" step="1" placeholder="41" oninput="tempValidarLive()"></div>
+    </div>
+    <div id="temp-alerta" style="margin-top:6px;font-size:12px;font-weight:700"></div>
+    <label>Realizado por</label>
+    <select id="temp-persona"></select>
+    <label>Foto del registro (opcional)</label>
+    <input type="file" id="temp-foto" accept="image/*">
+    <details style="margin-top:10px">
+      <summary style="font-size:12px;color:var(--g6);cursor:pointer">Ajustar lectura, fecha u hora (si lo registras tarde)</summary>
+      <label>Lectura</label>
+      <select id="temp-lectura">
+        <option value="1">1ª lectura · 06:00</option>
+        <option value="2">2ª lectura · 12:00</option>
+        <option value="3">3ª lectura · 17:00</option>
+      </select>
+      <div class="temp-row">
+        <div><label>Fecha</label><input type="date" id="temp-fecha" onchange="tempAutoLectura()"></div>
+        <div><label>Hora</label><input type="time" id="temp-hora" onchange="tempAutoLectura()"></div>
+      </div>
+    </details>
+    <button class="temp-btn" id="temp-btn" onclick="registrarTemperatura()">🌡️ Registrar</button>
+    <div id="temp-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
+  </div>
+
+  <div class="temp-card">
+    <div class="temp-tit">📄 Reporte por fechas</div>
+    <div class="temp-row">
+      <div><label>Desde</label><input type="date" id="temp-desde"></div>
+      <div><label>Hasta</label><input type="date" id="temp-hasta"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="temp-btn2" onclick="tempDescargarCSV()">⬇️ Descargar (Excel/CSV)</button>
+      <button class="temp-btn2" onclick="tempImprimirBitacora()">🖨️ Imprimir bitácora</button>
+    </div>
+  </div>
+
+  <div class="temp-card">
+    <div class="temp-tit">Últimas lecturas</div>
+    <div id="temp-lista"></div>
+  </div>
 </div>
 
 <!-- ═══════════════ SECCIÓN REQUISICIONES (VALES) ═══════════════ -->
@@ -1350,10 +1416,11 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','mtc','ped','req','carga','pts'].forEach(t => {
+  ['ops','act','mtc','ped','req','carga','temp','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
+  if (tab === 'temp') { tempPrepararForm(); renderTemperatura(); }
   if (tab === 'pts') renderPuntos();
   if (tab === 'carga') renderCarga();
   if (tab === 'mtc') renderMontacargas();
@@ -3067,7 +3134,11 @@ function almClaveRuta(u) {
 
 // Mapa del almacén (SVG, blanco y negro) con el recorrido y las paradas.
 // paradas = [{ n, locs: [{ rack, pos }] }]
-function almSvgMapa(paradas) {
+// opts (opcional): { sinRuta: true } no dibuja las flechas del recorrido;
+// { sensor: { rack, pos, id, temp, hum, hora, fuera, sinDatos } } dibuja el
+// sensor de temperatura (cuadro rojo) con su última lectura.
+function almSvgMapa(paradas, opts) {
+  opts = opts || {};
   const usados = new Set();
   paradas.forEach(p => p.locs.forEach(l => usados.add(l.rack)));
   let s = `<svg viewBox="0 0 400 462" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:Arial,sans-serif">
@@ -3099,11 +3170,11 @@ function almSvgMapa(paradas) {
     s += `<text x="${lx}" y="${ly}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="#000">R${k}</text>`;
   });
   // Recorrido sugerido (flechas punteadas)
-  s += `<polyline points="97,244 26,244 26,36 378,36 378,100 26,100 26,244 49,244 49,439 140,439 140,244 228,244 228,439"
+  if (!opts.sinRuta) s += `<polyline points="97,244 26,244 26,36 378,36 378,100 26,100 26,244 49,244 49,439 140,439 140,244 228,244 228,439"
           fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="5,3" marker-mid="url(#flecha)" marker-end="url(#flecha)"/>`;
   // Pasillo de abajo: también se puede regresar de oeste a este por aquí (de
   // los racks 9-10 hacia los 5-8). Solo es dibujo; no cambia el orden de las paradas.
-  s += `<polyline points="228,439 140,439" fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="5,3"/>
+  if (!opts.sinRuta) s += `<polyline points="228,439 140,439" fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="5,3"/>
         <path d="M190,435 L180,439 L190,443 z" fill="#000"/>`;
   // Paradas numeradas
   const ocupado = {};
@@ -3119,6 +3190,22 @@ function almSvgMapa(paradas) {
     s += `<circle cx="${cx}" cy="${cy}" r="6.5" fill="#000" stroke="#fff" stroke-width="1"/>
           <text x="${cx}" y="${cy}" font-size="${p.n > 9 ? 7 : 8.5}" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="central">${p.n}</text>`;
   }));
+  if (opts.sensor) {
+    const sn = opts.sensor, g = ALM_GEOM[sn.rack], pt = almPunto({ rack: sn.rack, pos: sn.pos });
+    const sx = g.x0 - 4, sy = pt.cy;                 // el sensor está al lado izquierdo del rack
+    const col = sn.sinDatos ? '#888' : (sn.fuera ? '#c0392b' : '#1a8a50');
+    s += `<line x1="${sx + 4}" y1="${sy}" x2="287" y2="${sy}" stroke="#e00" stroke-width="1.2"/>
+      <rect x="${sx - 4}" y="${sy - 4}" width="8" height="8" fill="#fff" stroke="#e00" stroke-width="2"/>
+      <rect x="287" y="${sy - 36}" width="108" height="72" rx="6" fill="#fff" stroke="${col}" stroke-width="2.5"/>
+      <text x="341" y="${sy - 24}" font-size="9" font-weight="bold" text-anchor="middle" fill="#333">${sn.id}</text>`;
+    if (sn.sinDatos) {
+      s += `<text x="341" y="${sy}" font-size="10" text-anchor="middle" fill="#777">Sin lecturas</text>`;
+    } else {
+      s += `<text x="341" y="${sy - 6}" font-size="19" font-weight="bold" text-anchor="middle" fill="${col}">${sn.temp} °C</text>
+        <text x="341" y="${sy + 10}" font-size="12" font-weight="bold" text-anchor="middle" fill="${col}">${sn.hum} % HR</text>
+        <text x="341" y="${sy + 26}" font-size="8" text-anchor="middle" fill="#555">${sn.hora}</text>`;
+    }
+  }
   return s + '</svg>';
 }
 
@@ -5627,7 +5714,7 @@ async function recargar() {
 
 async function load() {
   try {
-    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas(), cargarDestinos(), cargarRequisiciones(), cargarUbicaciones()]);
+    const resultados = await Promise.allSettled([cargarOPs(), cargarActividades(), cargarInventario(), cargarMontacargas(), cargarPedidos(), cargarInventarioPT(), cargarPersonas(), cargarDestinos(), cargarRequisiciones(), cargarUbicaciones(), cargarTemperatura()]);
     resultados.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Falló carga #' + i + ':', r.reason);
     });
@@ -5640,6 +5727,7 @@ async function load() {
     renderMontacargas();
     renderPedidos();
     renderRequisiciones();
+    if (tabActual === 'temp') renderTemperatura();
     const now = new Date();
     document.getElementById('upd-txt').innerHTML = `Datos al <strong>${now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</strong> · ${now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
   } catch(e) {
@@ -5669,6 +5757,237 @@ document.getElementById('modal-req-bg').addEventListener('click', function(e) { 
 document.getElementById('modal-cerrarreq-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('cerrarreq'); });
 document.getElementById('modal-editreq-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('editreq'); });
 document.getElementById('modal-compped-bg').addEventListener('click', function(e) { if (e.target === this) cerrarModal('compped'); });
+
+// ── TEMPERATURA Y HUMEDAD ──────────────────────────────────────────
+// Bitácora F-PR-019-3. Lecturas a las 06:00, 12:00 y 17:00 del sensor TH-09
+// (rack 10, posición 04). Se guardan en la hoja "Temperatura" (sai_temperatura.gs).
+// Pega aquí el link CSV de "Publicar en la web" de la pestaña "Temperatura"
+// (se crea al correr crearHojaTemperatura en Apps Script). Mientras diga
+// PENDIENTE la pestaña funciona pero solo muestra lo registrado en esta sesión.
+const CSV_TEMP = 'PENDIENTE';
+const TEMP_SENSOR = { id: 'TH-09', rack: 10, pos: 4 };
+const TEMP_RANGO = { tMin: 18, tMax: 35, hMax: 65 };   // referencia: 18-35 °C, humedad menor a 65 %
+const TEMP_LECTURAS = { 1: 'Primera lectura', 2: 'Segunda lectura', 3: 'Tercer lectura' };
+const TEMP_HORAS = { 1: '06:00', 2: '12:00', 3: '17:00' };
+let tempData = [];    // leídas de la hoja
+let tempLocal = [];   // registradas en esta sesión (la hoja publicada tarda en reflejarlas)
+
+async function cargarTemperatura() {
+  if (!CSV_TEMP || CSV_TEMP.indexOf('PENDIENTE') !== -1) { tempData = []; return; }
+  const res = await fetchConTimeout(CSV_TEMP + '&t=' + Date.now());
+  const rows = parseCSV(await res.text());
+  if (!rows.length) { tempData = []; return; }
+  const h = rows[0].map(x => cl(x).toLowerCase());
+  const ix = n => h.indexOf(n);
+  tempData = rows.slice(1).map(r => ({
+    fecha: cl(r[ix('fecha')]), hora: cl(r[ix('hora')]), lectura: parseInt(cl(r[ix('lectura')])) || 0,
+    temp: tempNum(r[ix('temperatura')]), hum: tempNum(r[ix('humedad')]),
+    por: cl(r[ix('realizado por')]), rev: ix('revisado por') !== -1 ? cl(r[ix('revisado por')]) : '',
+    foto: ix('foto') !== -1 ? cl(r[ix('foto')]) : ''
+  })).filter(e => e.fecha && !isNaN(e.temp) && !isNaN(e.hum));
+}
+function tempNum(v) { return parseFloat(String(v === undefined ? '' : v).replace(',', '.')); }
+
+// Lecturas de la hoja + las de esta sesión (si es la misma fecha y lectura, gana la más reciente).
+function tempTodas() {
+  const mapa = {};
+  tempData.forEach(e => { mapa[e.fecha + '|' + e.lectura] = e; });
+  tempLocal.forEach(e => { mapa[e.fecha + '|' + e.lectura] = e; });
+  return Object.values(mapa);
+}
+function tempFuera(t, h) { return t < TEMP_RANGO.tMin || t > TEMP_RANGO.tMax || h >= TEMP_RANGO.hMax; }
+function tempFechaStr(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+function tempHoraStr(d) { return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function tempISO(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function tempLecturaDeHora(hh) { return hh < 9 ? 1 : (hh < 15 ? 2 : 3); }
+function tempOrden(e) {
+  const f = parseFecha(e.fecha); if (!f) return 0;
+  const m = String(e.hora || '').match(/(\d{1,2}):(\d{2})/);
+  return f.getTime() + (m ? (parseInt(m[1]) * 60 + parseInt(m[2])) * 60000 : 0);
+}
+
+// Deja el formulario con los datos por defecto: fecha y hora de ahora, lectura
+// que corresponde a esa hora y la última persona que registró en este teléfono.
+function tempPrepararForm() {
+  const ahora = new Date();
+  document.getElementById('temp-fecha').value = tempISO(ahora);
+  document.getElementById('temp-hora').value = tempHoraStr(ahora);
+  tempAutoLectura();
+  const sel = document.getElementById('temp-persona');
+  const guardada = localStorage.getItem('sai_temp_persona') || sel.value || '';
+  sel.innerHTML = personaOptionsHTML(guardada, [{ value: '', label: '— ¿Quién registra? —' }]);
+  const hoy = new Date(); const dd = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  if (!document.getElementById('temp-desde').value) document.getElementById('temp-desde').value = tempISO(dd);
+  if (!document.getElementById('temp-hasta').value) document.getElementById('temp-hasta').value = tempISO(hoy);
+}
+function tempAutoLectura() {
+  const hm = (document.getElementById('temp-hora').value || '').match(/^(\d{1,2}):/);
+  const hh = hm ? parseInt(hm[1]) : new Date().getHours();
+  document.getElementById('temp-lectura').value = String(tempLecturaDeHora(hh));
+  tempActualizarDef();
+}
+function tempActualizarDef() {
+  const f = document.getElementById('temp-fecha').value, hr = document.getElementById('temp-hora').value;
+  const lec = parseInt(document.getElementById('temp-lectura').value) || 1;
+  const fechaTxt = f ? f.split('-').reverse().join('/') : '';
+  document.getElementById('temp-def').innerHTML = `📅 ${fechaTxt} · 🕐 ${hr} · <strong>${TEMP_LECTURAS[lec]}</strong> · Sensor ${TEMP_SENSOR.id} (Rack ${TEMP_SENSOR.rack}, pos. ${String(TEMP_SENSOR.pos).padStart(2, '0')})<br>Solo captura temperatura y humedad; lo demás ya va por defecto.`;
+}
+document.addEventListener('change', e => { if (e.target && e.target.id === 'temp-lectura') tempActualizarDef(); });
+
+function tempValidarLive() {
+  const t = tempNum(document.getElementById('temp-t').value), h = tempNum(document.getElementById('temp-h').value);
+  const el = document.getElementById('temp-alerta');
+  const msgs = [];
+  if (!isNaN(t) && (t < TEMP_RANGO.tMin || t > TEMP_RANGO.tMax)) msgs.push(`Temperatura fuera de rango (${TEMP_RANGO.tMin}–${TEMP_RANGO.tMax} °C)`);
+  if (!isNaN(h) && h >= TEMP_RANGO.hMax) msgs.push(`Humedad fuera de rango (menor a ${TEMP_RANGO.hMax} %)`);
+  el.innerHTML = msgs.length ? `<span style="color:#c0392b">⚠️ ${msgs.join(' · ')}</span>` : '';
+}
+
+async function registrarTemperatura() {
+  const msg = document.getElementById('temp-msg');
+  const mostrar = (txt, ok) => {
+    msg.style.cssText = `display:block;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center;background:${ok ? '#e8f5e9' : '#fdecea'};color:${ok ? '#1a8a50' : '#c0392b'}`;
+    msg.textContent = txt;
+  };
+  const t = tempNum(document.getElementById('temp-t').value), h = tempNum(document.getElementById('temp-h').value);
+  const persona = document.getElementById('temp-persona').value;
+  if (isNaN(t) || t < -10 || t > 60) return mostrar('Revisa la temperatura', false);
+  if (isNaN(h) || h < 0 || h > 100) return mostrar('Revisa la humedad', false);
+  if (!persona) return mostrar('Elige quién registra', false);
+  const fechaISO = document.getElementById('temp-fecha').value, hora = document.getElementById('temp-hora').value;
+  if (!fechaISO || !hora) return mostrar('Falta la fecha u hora', false);
+  const fecha = fechaISO.split('-').reverse().join('/');
+  const lectura = parseInt(document.getElementById('temp-lectura').value) || 1;
+
+  const btn = document.getElementById('temp-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    let fotoB64 = '';
+    const file = document.getElementById('temp-foto').files[0];
+    if (file) { try { fotoB64 = await comprimirFotoBase64(file); } catch (e) { fotoB64 = ''; } }
+    await sai_fetch({ tipo: 'temperatura', fecha, hora, lectura, temperatura: t, humedad: h, realizadoPor: persona, sensor: TEMP_SENSOR.id, fotoB64, fotoMime: 'image/jpeg' });
+    localStorage.setItem('sai_temp_persona', persona);
+    tempLocal.push({ fecha, hora, lectura, temp: t, hum: h, por: persona, rev: '', foto: '' });
+    document.getElementById('temp-t').value = ''; document.getElementById('temp-h').value = ''; document.getElementById('temp-foto').value = '';
+    document.getElementById('temp-alerta').innerHTML = '';
+    mostrar(tempFuera(t, h) ? '✅ Registrado — ⚠️ fuera de rango, se avisó por Telegram' : '✅ Lectura registrada', true);
+    tempPrepararForm();
+    renderTemperatura();
+  } catch (e) {
+    mostrar('❌ Error de conexión, intenta de nuevo', false);
+  }
+  btn.disabled = false; btn.textContent = '🌡️ Registrar';
+}
+
+function renderTemperatura() {
+  const cont = document.getElementById('temp-ultima');
+  if (!cont) return;
+  const todas = tempTodas().sort((a, b) => tempOrden(a) - tempOrden(b));
+  const ultima = todas[todas.length - 1];
+  const hoyStr = tempFechaStr(new Date());
+
+  const chips = [1, 2, 3].map(n => {
+    const e = todas.find(x => x.fecha === hoyStr && x.lectura === n);
+    if (!e) return `<div class="temp-chip" style="background:#fff3f3;color:#c0392b"><strong>${TEMP_HORAS[n]}</strong><br>⏳ Pendiente</div>`;
+    const f = tempFuera(e.temp, e.hum);
+    return `<div class="temp-chip" style="background:${f ? '#fdecea' : '#e8f8f0'};color:${f ? '#c0392b' : '#1a8a50'}"><strong>${TEMP_HORAS[n]}</strong><br>${f ? '⚠️' : '✅'} ${e.temp}° · ${e.hum}%</div>`;
+  }).join('');
+
+  let cuerpo;
+  if (ultima) {
+    const fuera = tempFuera(ultima.temp, ultima.hum);
+    const col = fuera ? '#c0392b' : '#1a8a50';
+    cuerpo = `<div style="display:flex;gap:18px;align-items:flex-end;margin:6px 0 4px">
+        <div><div class="temp-big" style="color:${col}">${ultima.temp}°C</div><div style="font-size:11px;color:var(--g4)">TEMPERATURA</div></div>
+        <div><div class="temp-big" style="color:${col}">${ultima.hum}%</div><div style="font-size:11px;color:var(--g4)">HUMEDAD</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--g6)">${fmtFecha(ultima.fecha)} · ${ultima.hora} · ${TEMP_LECTURAS[ultima.lectura] || ''}${ultima.por ? ' · 👤 ' + ultima.por : ''}</div>
+      ${fuera ? `<div style="margin-top:4px;font-size:12px;font-weight:700;color:#c0392b">⚠️ Fuera de rango (${TEMP_RANGO.tMin}–${TEMP_RANGO.tMax} °C, humedad menor a ${TEMP_RANGO.hMax} %)</div>` : ''}
+      ${ultima.foto ? `<div style="margin-top:4px"><a href="${ultima.foto}" target="_blank" style="color:var(--orange);font-size:12px">📷 Ver foto del registro</a></div>` : ''}`;
+  } else {
+    cuerpo = `<div style="color:var(--g4);font-size:13px;padding:8px 0">Aún no hay lecturas registradas${CSV_TEMP.indexOf('PENDIENTE') !== -1 ? ' (falta conectar la hoja Temperatura)' : ''}.</div>`;
+  }
+  const sensor = ultima
+    ? { ...TEMP_SENSOR, temp: ultima.temp, hum: ultima.hum, hora: fmtFecha(ultima.fecha).slice(0, 6) + ' · ' + ultima.hora, fuera: tempFuera(ultima.temp, ultima.hum) }
+    : { ...TEMP_SENSOR, sinDatos: true };
+  cont.innerHTML = `<div class="temp-tit">Última lectura · ${TEMP_SENSOR.id}</div>
+    ${cuerpo}
+    <div style="display:flex;gap:8px;margin:12px 0 4px">${chips}</div>
+    <div style="max-width:430px;margin:10px auto 0">${almSvgMapa([], { sinRuta: true, sensor })}</div>
+    <div style="font-size:11px;color:var(--g4);text-align:center">Cuadro rojo = ubicación del sensor ${TEMP_SENSOR.id} (Rack ${TEMP_SENSOR.rack}, posición ${String(TEMP_SENSOR.pos).padStart(2, '0')})</div>`;
+
+  const lista = todas.slice(-12).reverse().map(e => {
+    const f = tempFuera(e.temp, e.hum);
+    return `<div class="temp-fila"><div>${fmtFecha(e.fecha)} · ${e.hora}<div style="font-size:11px;color:var(--g4)">${TEMP_LECTURAS[e.lectura] || ''}${e.por ? ' · ' + e.por : ''}</div></div>
+      <div style="font-weight:800;color:${f ? '#c0392b' : 'var(--g9)'}">${f ? '⚠️ ' : ''}${e.temp} °C · ${e.hum} %${e.foto ? ` <a href="${e.foto}" target="_blank" style="text-decoration:none">📷</a>` : ''}</div></div>`;
+  }).join('');
+  document.getElementById('temp-lista').innerHTML = lista || '<div style="color:var(--g4);font-size:13px">Sin lecturas</div>';
+}
+
+// Lecturas dentro del rango de fechas elegido en el reporte, en orden.
+function tempDatosRango() {
+  const d = document.getElementById('temp-desde').value, h = document.getElementById('temp-hasta').value;
+  if (!d || !h) { alert('Elige las fechas "Desde" y "Hasta"'); return null; }
+  const ini = new Date(d + 'T00:00:00').getTime(), fin = new Date(h + 'T23:59:59').getTime();
+  const lista = tempTodas().filter(e => { const f = parseFecha(e.fecha); return f && f.getTime() >= ini && f.getTime() <= fin; })
+    .sort((a, b) => (parseFecha(a.fecha) - parseFecha(b.fecha)) || (a.lectura - b.lectura));
+  if (!lista.length) { alert('No hay lecturas en ese rango de fechas'); return null; }
+  return { lista, desde: d, hasta: h };
+}
+
+function tempDescargarCSV() {
+  const r = tempDatosRango(); if (!r) return;
+  const esc = v => '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"';
+  const filas = [['Fecha', 'Lectura', 'Hora', 'Temperatura (°C)', 'Humedad relativa (%)', 'Estado', 'Realizado por', 'Revisado por', 'Sensor', 'Foto']];
+  r.lista.forEach(e => filas.push([e.fecha, TEMP_LECTURAS[e.lectura] || e.lectura, e.hora, e.temp, e.hum, tempFuera(e.temp, e.hum) ? 'FUERA DE RANGO' : 'OK', e.por, e.rev, TEMP_SENSOR.id, e.foto]));
+  const csv = '﻿' + filas.map(f => f.map(esc).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `temperatura_${TEMP_SENSOR.id}_${r.desde}_a_${r.hasta}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// Bitácora impresa con el mismo formato de la hoja F-PR-019-3 (6 fechas por hoja).
+// Los valores fuera de rango salen con asterisco y en negritas (se imprime en B/N).
+function tempImprimirBitacora() {
+  const r = tempDatosRango(); if (!r) return;
+  const porFecha = {};
+  r.lista.forEach(e => { (porFecha[e.fecha] = porFecha[e.fecha] || {})[e.lectura] = e; });
+  const fechas = Object.keys(porFecha);
+  const hojas = [];
+  for (let i = 0; i < fechas.length; i += 6) hojas.push(fechas.slice(i, i + 6));
+
+  const paginas = hojas.map((grupo, ih) => {
+    const filas = grupo.map(f => [1, 2, 3].map(n => {
+      const e = porFecha[f][n];
+      const fu = e && tempFuera(e.temp, e.hum);
+      return `<tr>${n === 1 ? `<td rowspan="3" class="fecha">${f}</td>` : ''}
+        <td class="lec">${TEMP_LECTURAS[n]}</td>
+        <td class="c">${e ? e.hora : ''}</td>
+        <td class="c${fu ? ' fu' : ''}">${e ? e.temp + ' °C' + (fu && (e.temp < TEMP_RANGO.tMin || e.temp > TEMP_RANGO.tMax) ? ' *' : '') : ''}</td>
+        <td class="c${fu ? ' fu' : ''}">${e ? e.hum + ' %' + (fu && e.hum >= TEMP_RANGO.hMax ? ' *' : '') : ''}</td>
+        <td>${e ? e.por : ''}</td><td>${e ? e.rev : ''}</td></tr>`;
+    }).join('')).join('');
+    return `<div class="pag"${ih < hojas.length - 1 ? ' style="page-break-after:always"' : ''}>
+      <h2>BITACORA PARA EL REGISTRO DE TEMPERATURA Y HUMEDAD RELATIVA</h2>
+      <div class="ref"><div><b>Valores de referencia:</b><br>Temperatura: ${TEMP_RANGO.tMin}–${TEMP_RANGO.tMax} °C<br>% Humedad relativa: menor a ${TEMP_RANGO.hMax} %</div>
+        <div style="text-align:right">Sensor: <b>${TEMP_SENSOR.id}</b> (Rack ${TEMP_SENSOR.rack}, pos. ${String(TEMP_SENSOR.pos).padStart(2, '0')})<br>Periodo: ${r.desde.split('-').reverse().join('/')} al ${r.hasta.split('-').reverse().join('/')}<br>Folio No.: ________</div></div>
+      <table><tr><th>Fecha</th><th></th><th>Hora</th><th>Temperatura (°C)</th><th>Humedad relativa (%)</th><th>Realizado por:</th><th>Revisado por:</th></tr>${filas}</table>
+      <div class="obs">Observaciones: ______________________________________________________________<br>* Valor fuera de rango</div>
+      <div class="cod">F-PR-019-3 · Hoja ${ih + 1} de ${hojas.length}</div></div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bitácora de temperatura</title><style>
+    @page{size:landscape;margin:12mm} body{font-family:Arial,sans-serif;color:#111;margin:0}
+    h2{text-align:center;font-size:17px;margin:4px 0 10px}
+    .ref{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
+    table{width:100%;border-collapse:collapse} th,td{border:1px solid #000;padding:5px 7px;font-size:13px}
+    th{background:#eee} .c{text-align:center} .lec{font-size:12px} .fecha{font-weight:bold;text-align:center;font-size:14px;width:90px}
+    .fu{font-weight:bold;text-decoration:underline} .obs{margin-top:12px;font-size:12px;line-height:1.8} .cod{text-align:right;font-size:11px;margin-top:6px}
+  </style></head><body>${paginas}<script>window.onload=()=>window.print();<\/script></body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html); w.document.close();
+}
 
 // ── CANDADO DE ACCESO ──────────────────────────────────────────────
 // Cambia esta clave cuando alguien deje de ser supervisor/usuario autorizado.
