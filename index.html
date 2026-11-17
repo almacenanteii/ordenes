@@ -3101,6 +3101,10 @@ function almSvgMapa(paradas) {
   // Recorrido sugerido (flechas punteadas)
   s += `<polyline points="97,244 26,244 26,36 378,36 378,100 26,100 26,244 49,244 49,439 140,439 140,244 228,244 228,439"
           fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="5,3" marker-mid="url(#flecha)" marker-end="url(#flecha)"/>`;
+  // Pasillo de abajo: también se puede regresar de oeste a este por aquí (de
+  // los racks 9-10 hacia los 5-8). Solo es dibujo; no cambia el orden de las paradas.
+  s += `<polyline points="228,439 140,439" fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="5,3"/>
+        <path d="M190,435 L180,439 L190,443 z" fill="#000"/>`;
   // Paradas numeradas
   const ocupado = {};
   paradas.forEach(p => p.locs.forEach(l => {
