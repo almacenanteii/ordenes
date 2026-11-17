@@ -5872,7 +5872,7 @@ async function registrarTemperatura() {
     tempLocal.push({ fecha, hora, lectura, temp: t, hum: h, por: persona, rev: '', foto: '' });
     document.getElementById('temp-t').value = ''; document.getElementById('temp-h').value = ''; document.getElementById('temp-foto').value = '';
     document.getElementById('temp-alerta').innerHTML = '';
-    mostrar(tempFuera(t, h) ? '✅ Registrado — ⚠️ fuera de rango, se avisó por Telegram' : '✅ Lectura registrada', true);
+    mostrar(tempFuera(t, h) ? '✅ Registrado — ⚠️ fuera de rango, se avisó por Telegram' : '✅ Lectura registrada y avisada por Telegram', true);
     tempPrepararForm();
     renderTemperatura();
   } catch (e) {
