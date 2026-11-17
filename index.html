@@ -542,7 +542,7 @@
       style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none;resize:none"></textarea>
 
     <label class="modal-label" style="margin-top:8px">Foto de la hoja (opcional)</label>
-    <input type="file" id="exp-foto" accept="image/*" capture="environment"
+    <input type="file" id="exp-foto" accept="image/*"
       style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
 
     <div id="exp-modal-msg" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:13px;text-align:center"></div>
@@ -719,7 +719,7 @@
       style="width:100%;padding:10px 12px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box;outline:none">
 
     <label class="modal-label" style="margin-top:8px">Foto de la hoja de servicio</label>
-    <input type="file" id="mtc-foto" accept="image/*" capture="environment"
+    <input type="file" id="mtc-foto" accept="image/*"
       style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
 
     <label class="modal-label" style="margin-top:8px">Observaciones (opcional)</label>
@@ -934,7 +934,7 @@
     <div class="modal-options" id="compped-personas-container"></div>
 
     <label class="modal-label" style="margin-top:10px">Foto de la tarima (opcional)</label>
-    <input type="file" id="compped-foto" accept="image/*" capture="environment"
+    <input type="file" id="compped-foto" accept="image/*"
       style="width:100%;padding:8px;border:1.5px solid var(--g2);border-radius:10px;font-size:13px;box-sizing:border-box">
 
     <label class="modal-label" style="margin-top:10px">Comentario (opcional)</label>
@@ -2995,6 +2995,113 @@ async function confirmarCompletarPedido() {
   }
 }
 
+// ── LAYOUT Y RUTA DE SURTIDO ──────────────────────────────────
+// Código de ubicación: RR + NIVEL + POSICIÓN. Ej. "05C05" = rack 05, nivel C,
+// posición 05; "08AA02" = rack 08, nivel AA (el de abajo), posición 02.
+// Niveles de abajo hacia arriba: AA, A, B, C, D, E.
+//
+// Geometría del mapa (SVG 400x462, dibujado a partir del layout del almacén):
+// x0,y0,x1,y1 = rectángulo del rack, n = número de posiciones (aprox., solo
+// para ubicar el punto en el dibujo), h = rack horizontal.
+const ALM_GEOM = {
+  1:  { x0: 13,  y0: 5,   x1: 386, y1: 22,  n: 13, h: true },
+  2:  { x0: 54,  y0: 55,  x1: 354, y1: 67,  n: 9,  h: true },
+  3:  { x0: 54,  y0: 73,  x1: 354, y1: 86,  n: 9,  h: true },
+  4:  { x0: 54,  y0: 114, x1: 380, y1: 127, n: 9,  h: true },
+  5:  { x0: 12,  y0: 253, x1: 30,  y1: 422, n: 6,  h: false },
+  6:  { x0: 69,  y0: 253, x1: 88,  y1: 422, n: 6,  h: false },
+  7:  { x0: 101, y0: 253, x1: 120, y1: 422, n: 6,  h: false },
+  8:  { x0: 158, y0: 253, x1: 177, y1: 422, n: 6,  h: false },
+  9:  { x0: 190, y0: 253, x1: 209, y1: 422, n: 6,  h: false },
+  10: { x0: 247, y0: 253, x1: 265, y1: 422, n: 6,  h: false }
+};
+// Pasillos en el orden en que se recorren (sale del área de SURTIDO, rodea el
+// bloque de los racks 2-3 y regresa por el pasillo oeste a los racks 5-10).
+// dir = sentido en que se camina: O-E oeste→este, E-O, N-S norte→sur, S-N.
+// Cada pasillo atiende los racks de sus dos lados.
+const ALM_RUTA = [
+  { id: 'Pasillo racks 1-2',  racks: [1, 2],  dir: 'O-E' },
+  { id: 'Pasillo racks 3-4',  racks: [3, 4],  dir: 'E-O' },
+  { id: 'Pasillo racks 5-6',  racks: [5, 6],  dir: 'N-S' },
+  { id: 'Pasillo racks 7-8',  racks: [7, 8],  dir: 'S-N' },
+  { id: 'Pasillo racks 9-10', racks: [9, 10], dir: 'N-S' }
+];
+// En qué extremo del rack está la posición 01 (O = oeste, E = este,
+// N = norte, S = sur). Si en el almacén es al revés, solo se cambia aquí.
+const ALM_POS01 = { h: 'O', v: 'N' };
+
+function almParseUbic(txt) {
+  const m = String(txt || '').trim().toUpperCase().match(/^(\d{1,2})\s*([A-Z]{1,2})\s*(\d{1,3})$/);
+  if (!m) return null;
+  return { rack: parseInt(m[1], 10), nivel: m[2], pos: parseInt(m[3], 10) };
+}
+function almNivelOrden(n) { return n === 'AA' ? 0 : (n.length === 1 ? n.charCodeAt(0) - 64 : 30); }
+// Número que dice en qué orden se pasa por esa ubicación (menor = primero).
+function almClaveRuta(u) {
+  for (let i = 0; i < ALM_RUTA.length; i++) {
+    const p = ALM_RUTA[i];
+    if (!p.racks.includes(u.rack)) continue;
+    const g = ALM_GEOM[u.rack];
+    const pos01 = g.h ? ALM_POS01.h : ALM_POS01.v;
+    const k = (pos01 === p.dir[0]) ? u.pos : 1000 - u.pos;
+    return i * 1e6 + k * 100 + almNivelOrden(u.nivel);
+  }
+  return 8e6; // código con formato raro o rack que no está en el layout
+}
+
+// Mapa del almacén (SVG, blanco y negro) con el recorrido y las paradas.
+// paradas = [{ n, locs: [{ rack, pos }] }]
+function almSvgMapa(paradas) {
+  const usados = new Set();
+  paradas.forEach(p => p.locs.forEach(l => usados.add(l.rack)));
+  let s = `<svg viewBox="0 0 400 462" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:Arial,sans-serif">
+    <defs>
+      <pattern id="hach" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#000" stroke-width="1.2"/></pattern>
+      <marker id="flecha" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#000"/></marker>
+    </defs>
+    <polygon points="0,0 400,0 400,229 280,229 280,460 0,460" fill="#fff" stroke="#000" stroke-width="3"/>`;
+  // Áreas de surtido / entrega
+  [[65, 239, 64, 10], [151, 238, 63, 12], [126, 255, 9, 31]].forEach(z => {
+    s += `<rect x="${z[0]}" y="${z[1]}" width="${z[2]}" height="${z[3]}" fill="url(#hach)" stroke="#000" stroke-width="1.5"/>`;
+  });
+  s += `<text x="97" y="233" font-size="8" font-weight="bold" text-anchor="middle">ENTREGA</text>
+        <text x="182" y="233" font-size="8" font-weight="bold" text-anchor="middle">ENTREGA</text>`;
+  // Racks
+  Object.keys(ALM_GEOM).forEach(k => {
+    const g = ALM_GEOM[k], usado = usados.has(parseInt(k, 10));
+    s += `<rect x="${g.x0}" y="${g.y0}" width="${g.x1 - g.x0}" height="${g.y1 - g.y0}" fill="${usado ? '#cfcfcf' : '#fff'}" stroke="#000" stroke-width="${usado ? 2.5 : 1}"/>`;
+    for (let i = 1; i < g.n; i++) {
+      if (g.h) { const x = g.x0 + i * (g.x1 - g.x0) / g.n; s += `<line x1="${x}" y1="${g.y0}" x2="${x}" y2="${g.y1}" stroke="#777" stroke-width=".6"/>`; }
+      else     { const y = g.y0 + i * (g.y1 - g.y0) / g.n; s += `<line x1="${g.x0}" y1="${y}" x2="${g.x1}" y2="${y}" stroke="#777" stroke-width=".6"/>`; }
+    }
+    const cx = (g.x0 + g.x1) / 2, cy = (g.y0 + g.y1) / 2;
+    // número del rack con "halo" blanco (dos textos encimados) para que se lea sobre el gris
+    s += `<text x="${cx}" y="${cy}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="#fff" stroke="#fff" stroke-width="3">${k}</text>
+          <text x="${cx}" y="${cy}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="#000">${k}</text>`;
+  });
+  // Recorrido sugerido (flechas punteadas)
+  s += `<polyline points="97,244 26,244 26,36 378,36 378,100 26,100 26,244 49,244 49,439 140,439 140,244 228,244 228,439"
+          fill="none" stroke="#000" stroke-width="1.6" stroke-dasharray="5,3" marker-mid="url(#flecha)" marker-end="url(#flecha)"/>`;
+  // Paradas numeradas
+  const ocupado = {};
+  paradas.forEach(p => p.locs.forEach(l => {
+    const g = ALM_GEOM[l.rack]; if (!g) return;
+    const pos = Math.min(Math.max(l.pos, 1), g.n);
+    const pos01 = g.h ? ALM_POS01.h : ALM_POS01.v;
+    const frac = (pos - 0.5) / g.n;
+    let cx, cy;
+    if (g.h) { cx = (pos01 === 'O') ? g.x0 + frac * (g.x1 - g.x0) : g.x1 - frac * (g.x1 - g.x0); cy = (g.y0 + g.y1) / 2; }
+    else     { cy = (pos01 === 'N') ? g.y0 + frac * (g.y1 - g.y0) : g.y1 - frac * (g.y1 - g.y0); cx = (g.x0 + g.x1) / 2; }
+    const key = l.rack + '|' + pos;
+    const veces = ocupado[key] = (ocupado[key] || 0) + 1;
+    const off = (veces - 1) * 13;
+    if (g.h) cx += off; else cy += off;
+    s += `<circle cx="${cx}" cy="${cy}" r="6.5" fill="#000" stroke="#fff" stroke-width="1"/>
+          <text x="${cx}" y="${cy}" font-size="${p.n > 9 ? 7 : 8.5}" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="central">${p.n}</text>`;
+  }));
+  return s + '</svg>';
+}
+
 // Hoja de la OP para surtir en piso, con la ubicación física de cada
 // material (misma fuente que el chip 📍 de "Ver materiales": hoja
 // Ubicaciones, por Clave+Lote y si no por Clave sola).
@@ -3012,15 +3119,30 @@ function imprimirOPUbicacion(op) {
     const ubicaciones = (loteU && ubicPorClaveLote[cod + '|' + loteU]) || ubicPorClave[cod] || [];
     const sinUbic = !ubicaciones.length;
     const ubicTxt = sinUbic ? 'SIN UBICACIÓN' : ubicaciones.join(', ');
-    return { cod, cant, lote, ubicTxt, sinUbic, ubicOrden: sinUbic ? 'ZZZZ' : ubicTxt };
+    const locs = ubicaciones.map(almParseUbic).filter(Boolean);
+    // Orden de ruta: el de la primera ubicación por la que se pasa. Sin
+    // ubicación va al final; con código de formato raro, justo antes.
+    const claveRuta = sinUbic ? 9e6 : (locs.length ? Math.min(...locs.map(almClaveRuta)) : 8e6);
+    return { cod, cant, lote, ubicTxt, sinUbic, locs, claveRuta };
   });
-  // Orden por ubicación para que el almacenista recorra el almacén en un solo sentido
-  filas.sort((a, b) => a.ubicOrden.localeCompare(b.ubicOrden));
+  // Orden de ruta de surtido (ver ALM_RUTA) para recorrer el almacén sin regresarse
+  filas.sort((a, b) => (a.claveRuta - b.claveRuta) || a.cod.localeCompare(b.cod));
+
+  // Número de parada (solo renglones con ubicación) y puntos del mapa
+  let nParada = 0;
+  const paradas = [];
+  filas.forEach(f => {
+    if (f.sinUbic) { f.parada = ''; return; }
+    f.parada = ++nParada;
+    if (f.locs.length) paradas.push({ n: f.parada, locs: f.locs });
+  });
+  const racksUsados = [...new Set(paradas.flatMap(p => p.locs.map(l => l.rack)))].sort((a, b) => a - b);
 
   const totalRenglones = filas.length;
   const faltantes = filas.filter(f => f.sinUbic).length;
 
   const filasHtml = filas.length ? filas.map(f => `<tr${f.sinUbic ? ' style="border:2px solid #000"' : ''}>
+      <td style="text-align:center;font-size:20px;font-weight:bold">${f.parada}</td>
       <td style="text-align:center">☐</td>
       <td style="font-size:20px;font-weight:bold">${f.sinUbic ? '⚠️ SIN UBICACIÓN' : f.ubicTxt}</td>
       <td>${f.cod}</td>
@@ -3028,7 +3150,7 @@ function imprimirOPUbicacion(op) {
       <td style="text-align:center;font-weight:bold">${f.cant.toLocaleString()}</td>
       <td style="text-align:center">&nbsp;</td>
       <td style="text-align:center">&nbsp;</td>
-    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:#777">Sin materiales registrados</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="8" style="text-align:center;color:#777">Sin materiales registrados</td></tr>`;
 
   const ahora = new Date();
   const fechaImpresion = ahora.toLocaleDateString('es-MX') + ' ' + ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -3040,9 +3162,15 @@ function imprimirOPUbicacion(op) {
     h1{font-size:44px;margin:0 0 6px;letter-spacing:1px}
     .sub{font-size:15px;color:#555;margin-bottom:4px}
     .meta{font-size:13px;color:#777;margin-bottom:20px}
+    .wrap{display:flex;gap:16px;align-items:flex-start}
+    .tabla{flex:1;min-width:0}
+    .mapa{width:300px;flex:none;border:2px solid #000;padding:6px;box-sizing:border-box}
+    .mapa .tit{font-size:12px;font-weight:bold;text-align:center;margin-bottom:4px}
+    .mapa .leyenda{font-size:10px;color:#222;margin-top:4px;line-height:1.35}
     table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{border:1px solid #333;padding:10px;font-size:15px;text-align:left}
+    th,td{border:1px solid #333;padding:6px;font-size:13px;text-align:left}
     th{background:#eee}
+    tr{page-break-inside:avoid}
     .resumen{margin-top:14px;font-size:14px;display:flex;gap:30px}
     .resumen b{font-size:16px}
     .alerta{font-weight:bold}
@@ -3050,13 +3178,23 @@ function imprimirOPUbicacion(op) {
   <body>
     <h1>OP ${r.op}</h1>
     <div class="sub">${r.codigo || ''}${r.producto ? ' — ' + r.producto : ''}${r.fecha ? ' &nbsp;·&nbsp; ' + fmtFecha(r.fecha) : ''}</div>
-    <div class="meta">Impreso: ${fechaImpresion} &nbsp;·&nbsp; Ordenado por ubicación para facilitar el recorrido</div>
-    <table>
-      <tr><th>✔</th><th>📍 Ubicación</th><th>Material</th><th>Lote</th><th>Cant. OP</th><th>Lote Surtido</th><th>Cant. Surtida</th></tr>
-      ${filasHtml}
-    </table>
+    <div class="meta">Impreso: ${fechaImpresion} &nbsp;·&nbsp; Ordenado por ruta de surtido (sigue los números del mapa)</div>
+    <div class="wrap">
+      <div class="tabla">
+        <table>
+          <tr><th>#</th><th>✔</th><th>📍 Ubicación</th><th>Material</th><th>Lote</th><th>Cant. OP</th><th>Lote Surtido</th><th>Cant. Surtida</th></tr>
+          ${filasHtml}
+        </table>
+      </div>
+      <div class="mapa">
+        <div class="tit">MAPA DE SURTIDO</div>
+        ${almSvgMapa(paradas)}
+        <div class="leyenda">● # = parada (mismo # de la tabla)<br>- - ► recorrido sugerido<br>▨ ENTREGA: dejar aquí el material surtido<br>Racks con material: ${racksUsados.length ? racksUsados.join(', ') : '—'}</div>
+      </div>
+    </div>
     <div class="resumen">
       <div>Renglones: <b>${totalRenglones}</b></div>
+      <div>Paradas: <b>${nParada}</b></div>
       ${faltantes ? `<div class="alerta">⚠️ Sin ubicación: <b>${faltantes}</b></div>` : ''}
     </div>
     <script>window.onload = () => window.print();<\/script>
