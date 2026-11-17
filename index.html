@@ -3129,7 +3129,9 @@ function imprimirOPUbicacion(op) {
   const r = opsData.find(x => x.op === op);
   if (!r) return;
 
-  const items = (r.materiales || '').split(',').map(s => s.trim()).filter(s => s);
+  // Los códigos GNL-… (ej. GNL-1253) no se surten en este almacén: no se
+  // imprimen en la hoja de surtido.
+  const items = (r.materiales || '').split(',').map(s => s.trim()).filter(s => s && !/^GNL[-\s]?/i.test(s));
   const filas = items.map(item => {
     const p = item.split(':');
     const cod  = (p[0]||'').trim().toUpperCase();
