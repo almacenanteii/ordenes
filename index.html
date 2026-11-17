@@ -3004,16 +3004,18 @@ async function confirmarCompletarPedido() {
 // x0,y0,x1,y1 = rectángulo del rack, n = número de posiciones (aprox., solo
 // para ubicar el punto en el dibujo), h = rack horizontal.
 const ALM_GEOM = {
-  1:  { x0: 13,  y0: 5,   x1: 386, y1: 22,  n: 13, h: true },
-  2:  { x0: 54,  y0: 55,  x1: 354, y1: 67,  n: 9,  h: true },
-  3:  { x0: 54,  y0: 73,  x1: 354, y1: 86,  n: 9,  h: true },
-  4:  { x0: 54,  y0: 114, x1: 380, y1: 127, n: 9,  h: true },
-  5:  { x0: 12,  y0: 253, x1: 30,  y1: 422, n: 6,  h: false },
-  6:  { x0: 69,  y0: 253, x1: 88,  y1: 422, n: 6,  h: false },
-  7:  { x0: 101, y0: 253, x1: 120, y1: 422, n: 6,  h: false },
-  8:  { x0: 158, y0: 253, x1: 177, y1: 422, n: 6,  h: false },
-  9:  { x0: 190, y0: 253, x1: 209, y1: 422, n: 6,  h: false },
-  10: { x0: 247, y0: 253, x1: 265, y1: 422, n: 6,  h: false }
+  // b0..b1 = tramo del rack donde están las casillas numeradas 01..n (en los
+  // racks 2, 3 y 4 el inicio lo ocupa la etiqueta del rack).
+  1:  { x0: 13,  y0: 5,   x1: 386, y1: 22,  n: 13, h: true,  b0: 30,  b1: 373 },
+  2:  { x0: 54,  y0: 55,  x1: 354, y1: 67,  n: 10, h: true,  b0: 112, b1: 340 },
+  3:  { x0: 54,  y0: 73,  x1: 354, y1: 86,  n: 10, h: true,  b0: 112, b1: 340 },
+  4:  { x0: 54,  y0: 114, x1: 380, y1: 127, n: 8,  h: true,  b0: 112, b1: 367 },
+  5:  { x0: 12,  y0: 253, x1: 30,  y1: 422, n: 12, h: false, b0: 268, b1: 409 },
+  6:  { x0: 69,  y0: 253, x1: 88,  y1: 422, n: 12, h: false, b0: 268, b1: 409 },
+  7:  { x0: 101, y0: 253, x1: 120, y1: 422, n: 12, h: false, b0: 268, b1: 409 },
+  8:  { x0: 158, y0: 253, x1: 177, y1: 422, n: 11, h: false, b0: 275, b1: 409 },
+  9:  { x0: 190, y0: 253, x1: 209, y1: 422, n: 12, h: false, b0: 268, b1: 409 },
+  10: { x0: 247, y0: 253, x1: 265, y1: 422, n: 12, h: false, b0: 268, b1: 409 }
 };
 // Pasillos en el orden en que se recorren (sale del área de SURTIDO, rodea el
 // bloque de los racks 2-3 y regresa por el pasillo oeste a los racks 5-10).
@@ -3027,8 +3029,10 @@ const ALM_RUTA = [
   { id: 'Pasillo racks 9-10', racks: [9, 10], dir: 'N-S' }
 ];
 // En qué extremo del rack está la posición 01 (O = oeste, E = este,
-// N = norte, S = sur). Si en el almacén es al revés, solo se cambia aquí.
-const ALM_POS01 = { h: 'O', v: 'N' };
+// N = norte, S = sur). Según el layout: en los racks horizontales (1 a 4) la
+// 01 está al oeste (izquierda) y en los verticales (5 a 10) está abajo, al
+// sur (la 12 queda arriba, hacia el área de entrega).
+const ALM_POS01 = { h: 'O', v: 'S' };
 
 function almParseUbic(txt) {
   const m = String(txt || '').trim().toUpperCase().match(/^(\d{1,2})\s*([A-Z]{1,2})\s*(\d{1,3})$/);
@@ -3071,10 +3075,13 @@ function almSvgMapa(paradas) {
     const g = ALM_GEOM[k], usado = usados.has(parseInt(k, 10));
     s += `<rect x="${g.x0}" y="${g.y0}" width="${g.x1 - g.x0}" height="${g.y1 - g.y0}" fill="${usado ? '#cfcfcf' : '#fff'}" stroke="#000" stroke-width="${usado ? 2.5 : 1}"/>`;
     for (let i = 1; i < g.n; i++) {
-      if (g.h) { const x = g.x0 + i * (g.x1 - g.x0) / g.n; s += `<line x1="${x}" y1="${g.y0}" x2="${x}" y2="${g.y1}" stroke="#777" stroke-width=".6"/>`; }
-      else     { const y = g.y0 + i * (g.y1 - g.y0) / g.n; s += `<line x1="${g.x0}" y1="${y}" x2="${g.x1}" y2="${y}" stroke="#777" stroke-width=".6"/>`; }
+      if (g.h) { const x = g.b0 + i * (g.b1 - g.b0) / g.n; s += `<line x1="${x}" y1="${g.y0}" x2="${x}" y2="${g.y1}" stroke="#777" stroke-width=".6"/>`; }
+      else     { const y = g.b0 + i * (g.b1 - g.b0) / g.n; s += `<line x1="${g.x0}" y1="${y}" x2="${g.x1}" y2="${y}" stroke="#777" stroke-width=".6"/>`; }
     }
-    const cx = (g.x0 + g.x1) / 2, cy = (g.y0 + g.y1) / 2;
+    // El número del rack va en el inicio del rack 2/3/4 (donde está su etiqueta)
+    // y al centro en los demás.
+    const cx = (g.h && g.b0 - g.x0 > 30) ? (g.x0 + g.b0) / 2 : (g.x0 + g.x1) / 2;
+    const cy = (g.y0 + g.y1) / 2;
     // número del rack con "halo" blanco (dos textos encimados) para que se lea sobre el gris
     s += `<text x="${cx}" y="${cy}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="#fff" stroke="#fff" stroke-width="3">${k}</text>
           <text x="${cx}" y="${cy}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="#000">${k}</text>`;
@@ -3090,8 +3097,8 @@ function almSvgMapa(paradas) {
     const pos01 = g.h ? ALM_POS01.h : ALM_POS01.v;
     const frac = (pos - 0.5) / g.n;
     let cx, cy;
-    if (g.h) { cx = (pos01 === 'O') ? g.x0 + frac * (g.x1 - g.x0) : g.x1 - frac * (g.x1 - g.x0); cy = (g.y0 + g.y1) / 2; }
-    else     { cy = (pos01 === 'N') ? g.y0 + frac * (g.y1 - g.y0) : g.y1 - frac * (g.y1 - g.y0); cx = (g.x0 + g.x1) / 2; }
+    if (g.h) { cx = (pos01 === 'O') ? g.b0 + frac * (g.b1 - g.b0) : g.b1 - frac * (g.b1 - g.b0); cy = (g.y0 + g.y1) / 2; }
+    else     { cy = (pos01 === 'N') ? g.b0 + frac * (g.b1 - g.b0) : g.b1 - frac * (g.b1 - g.b0); cx = (g.x0 + g.x1) / 2; }
     const key = l.rack + '|' + pos;
     const veces = ocupado[key] = (ocupado[key] || 0) + 1;
     const off = (veces - 1) * 13;
