@@ -5738,10 +5738,10 @@ async function load() {
   }
 }
 
-async function sai_fetch(payload) {
+async function sai_fetch(payload, url) {
   const params = new URLSearchParams();
   params.append('data', JSON.stringify(payload));
-  const res = await fetch(SCRIPT_URL, {
+  const res = await fetch(url || SCRIPT_URL, {
     method: 'POST',
     body: params,
     mode: 'no-cors'
@@ -5764,7 +5764,9 @@ document.getElementById('modal-compped-bg').addEventListener('click', function(e
 // Pega aquí el link CSV de "Publicar en la web" de la pestaña "Temperatura"
 // (se crea al correr crearHojaTemperatura en Apps Script). Mientras diga
 // PENDIENTE la pestaña funciona pero solo muestra lo registrado en esta sesión.
-const CSV_TEMP = 'PENDIENTE';
+const CSV_TEMP = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRVxK0x8kXSP4QmReaMT52vBR71mHfpsmH8aShvklRSa13FU5evETPDJ7Pi4VtFHAxFLN6Ip_rBCEJ/pub?gid=1207851854&single=true&output=csv';
+// Web app aparte "sai temperatura" (proyecto propio de Apps Script).
+const TEMP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMHRGJpltx3AKelFu2knr_YqjdnErHYb004EJNG6Q3DWxhnAQyvy7LKNURx4S_D4c/exec';
 const TEMP_SENSOR = { id: 'TH-09', rack: 10, pos: 4 };
 const TEMP_RANGO = { tMin: 18, tMax: 35, hMax: 65 };   // referencia: 18-35 °C, humedad menor a 65 %
 const TEMP_LECTURAS = { 1: 'Primera lectura', 2: 'Segunda lectura', 3: 'Tercer lectura' };
@@ -5865,7 +5867,7 @@ async function registrarTemperatura() {
     let fotoB64 = '';
     const file = document.getElementById('temp-foto').files[0];
     if (file) { try { fotoB64 = await comprimirFotoBase64(file); } catch (e) { fotoB64 = ''; } }
-    await sai_fetch({ tipo: 'temperatura', fecha, hora, lectura, temperatura: t, humedad: h, realizadoPor: persona, sensor: TEMP_SENSOR.id, fotoB64, fotoMime: 'image/jpeg' });
+    await sai_fetch({ tipo: 'temperatura', fecha, hora, lectura, temperatura: t, humedad: h, realizadoPor: persona, sensor: TEMP_SENSOR.id, fotoB64, fotoMime: 'image/jpeg' }, TEMP_SCRIPT_URL);
     localStorage.setItem('sai_temp_persona', persona);
     tempLocal.push({ fecha, hora, lectura, temp: t, hum: h, por: persona, rev: '', foto: '' });
     document.getElementById('temp-t').value = ''; document.getElementById('temp-h').value = ''; document.getElementById('temp-foto').value = '';
