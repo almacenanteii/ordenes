@@ -5893,11 +5893,15 @@ async function tempLeerFoto() {
 
 function tempValidarLive() {
   const t = tempNum(document.getElementById('temp-t').value), h = tempNum(document.getElementById('temp-h').value);
-  const el = document.getElementById('temp-alerta');
+  const el = document.getElementById('temp-alerta'), btn = document.getElementById('temp-btn');
   const msgs = [];
   if (!isNaN(t) && (t < TEMP_RANGO.tMin || t > TEMP_RANGO.tMax)) msgs.push(`Temperatura fuera de rango (${TEMP_RANGO.tMin}–${TEMP_RANGO.tMax} °C)`);
-  if (!isNaN(h) && h >= TEMP_RANGO.hMax) msgs.push(`Humedad fuera de rango (menor a ${TEMP_RANGO.hMax} %)`);
-  el.innerHTML = msgs.length ? `<span style="color:#c0392b">⚠️ ${msgs.join(' · ')}</span>` : '';
+  // Humedad: debe ser MENOR a 65 %. Si no, no se deja registrar.
+  const humBloquea = !isNaN(h) && h >= TEMP_RANGO.hMax;
+  el.innerHTML = humBloquea
+    ? `<span style="color:#c0392b;font-size:13px">🚫 No se puede registrar: la humedad debe ser menor a ${TEMP_RANGO.hMax} %. Avisa a tu supervisor.</span>`
+    : (msgs.length ? `<span style="color:#c0392b">⚠️ ${msgs.join(' · ')}</span>` : '');
+  if (btn) btn.disabled = humBloquea;
 }
 
 async function registrarTemperatura() {
@@ -5910,6 +5914,12 @@ async function registrarTemperatura() {
   const persona = document.getElementById('temp-persona').value;
   if (isNaN(t) || t < -10 || t > 60) return mostrar('Revisa la temperatura', false);
   if (isNaN(h) || h < 0 || h > 100) return mostrar('Revisa la humedad', false);
+  if (h >= TEMP_RANGO.hMax) {
+    // No se guarda. Se avisa en pantalla y por Telegram (sin guardar nada en la hoja).
+    mostrar(`🚫 No se puede registrar: la humedad (${h} %) debe ser menor a ${TEMP_RANGO.hMax} %. Se avisó al grupo.`, false);
+    sai_fetch({ tipo: 'alertaHumedad', temperatura: t, humedad: h, realizadoPor: persona }, TEMP_SCRIPT_URL).catch(() => {});
+    return;
+  }
   if (!persona) return mostrar('Elige quién registra', false);
   const fechaISO = document.getElementById('temp-fecha').value, hora = document.getElementById('temp-hora').value;
   if (!fechaISO || !hora) return mostrar('Falta la fecha u hora', false);
