@@ -798,8 +798,9 @@
     <div id="temp-alerta" style="margin-top:6px;font-size:12px;font-weight:700"></div>
     <label>Realizado por</label>
     <select id="temp-persona"></select>
-    <label>Foto del registro (opcional)</label>
-    <input type="file" id="temp-foto" accept="image/*">
+    <label>Foto del termómetro (se lee sola)</label>
+    <input type="file" id="temp-foto" accept="image/*" onchange="tempLeerFoto()">
+    <div id="temp-ia" style="margin-top:6px;font-size:12px"></div>
     <details style="margin-top:10px">
       <summary style="font-size:12px;color:var(--g6);cursor:pointer">Ajustar lectura, fecha u hora (si lo registras tarde)</summary>
       <label>Lectura</label>
@@ -5836,6 +5837,46 @@ function tempActualizarDef() {
 }
 document.addEventListener('change', e => { if (e.target && e.target.id === 'temp-lectura') tempActualizarDef(); });
 
+// ── Lectura de la foto con IA ──────────────────────────────────────
+// Al elegir la foto del termohigrómetro se manda al script, que la lee con
+// Claude y regresa temperatura y humedad. Se ponen en los campos y el
+// almacenista los CONFIRMA (o corrige) antes de registrar.
+let tempIA = null; // { t, h } lo que leyó la IA, para saber si luego se corrigió
+async function tempLeerFoto() {
+  const st = document.getElementById('temp-ia');
+  const file = document.getElementById('temp-foto').files[0];
+  tempIA = null;
+  if (!file) { st.innerHTML = ''; return; }
+  st.innerHTML = '<span style="color:var(--g6)">🤖 Leyendo la foto...</span>';
+  const MSG = {
+    sin_llave: 'La lectura automática aún no está activada. Captura los valores a mano.',
+    llave_invalida: 'La llave de la IA no es válida. Captura los valores a mano.',
+    sin_saldo_o_limite: 'La IA no tiene saldo o llegó a su límite. Captura los valores a mano.',
+    limite_diario: 'Se llegó al límite de lecturas automáticas de hoy. Captura los valores a mano.'
+  };
+  try {
+    const b64 = await comprimirFotoBase64(file, 1024, 0.7);
+    const params = new URLSearchParams();
+    params.append('data', JSON.stringify({ tipo: 'leerTemperatura', fotoB64: b64, fotoMime: 'image/jpeg' }));
+    const res = await fetch(TEMP_SCRIPT_URL, { method: 'POST', body: params });
+    const r = await res.json();
+    if (!r.ok) throw new Error(MSG[r.msg] || 'No se pudo leer la foto automáticamente. Captura los valores a mano.');
+    const tIn = document.getElementById('temp-t'), hIn = document.getElementById('temp-h');
+    if (r.temperatura !== null) tIn.value = r.temperatura;
+    if (r.humedad !== null) hIn.value = r.humedad;
+    tempValidarLive();
+    if (r.legible) {
+      tempIA = { t: r.temperatura, h: r.humedad };
+      st.innerHTML = `<span style="color:#1a8a50;font-weight:700">🤖 Leído de la foto: ${r.temperatura} °C · ${r.humedad} %</span><br><span style="color:var(--g6)">Confirma que coincida con la pantalla antes de registrar.</span>`;
+    } else {
+      st.innerHTML = `<span style="color:#c0392b;font-weight:700">⚠️ No se leyó con seguridad${r.nota ? ' (' + r.nota + ')' : ''}.</span><br><span style="color:var(--g6)">Revisa o captura los valores a mano.</span>`;
+    }
+  } catch (e) {
+    const txt = (e && e.message && e.message.indexOf('Captura') !== -1) ? e.message : 'No se pudo leer la foto automáticamente. Captura los valores a mano.';
+    st.innerHTML = `<span style="color:#c0392b">⚠️ ${txt}</span>`;
+  }
+}
+
 function tempValidarLive() {
   const t = tempNum(document.getElementById('temp-t').value), h = tempNum(document.getElementById('temp-h').value);
   const el = document.getElementById('temp-alerta');
@@ -5867,11 +5908,14 @@ async function registrarTemperatura() {
     let fotoB64 = '';
     const file = document.getElementById('temp-foto').files[0];
     if (file) { try { fotoB64 = await comprimirFotoBase64(file); } catch (e) { fotoB64 = ''; } }
-    await sai_fetch({ tipo: 'temperatura', fecha, hora, lectura, temperatura: t, humedad: h, realizadoPor: persona, sensor: TEMP_SENSOR.id, fotoB64, fotoMime: 'image/jpeg' }, TEMP_SCRIPT_URL);
+    await sai_fetch({ tipo: 'temperatura', fecha, hora, lectura, temperatura: t, humedad: h, realizadoPor: persona, sensor: TEMP_SENSOR.id, fotoB64, fotoMime: 'image/jpeg',
+      origen: tempIA ? ((tempIA.t === t && tempIA.h === h) ? 'IA' : 'IA (corregido)') : 'Manual' }, TEMP_SCRIPT_URL);
+    tempIA = null;
     localStorage.setItem('sai_temp_persona', persona);
     tempLocal.push({ fecha, hora, lectura, temp: t, hum: h, por: persona, rev: '', foto: '' });
     document.getElementById('temp-t').value = ''; document.getElementById('temp-h').value = ''; document.getElementById('temp-foto').value = '';
     document.getElementById('temp-alerta').innerHTML = '';
+    document.getElementById('temp-ia').innerHTML = '';
     mostrar(tempFuera(t, h) ? '✅ Registrado — ⚠️ fuera de rango, se avisó por Telegram' : '✅ Lectura registrada y avisada por Telegram', true);
     tempPrepararForm();
     renderTemperatura();
