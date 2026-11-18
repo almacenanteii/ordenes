@@ -426,6 +426,7 @@
     <div class="tab" id="tab-req" onclick="switchTab('req')">📝 Vales</div>
     <div class="tab" id="tab-carga" onclick="switchTab('carga')">📊 Carga de Trabajo</div>
     <div class="tab" id="tab-temp" onclick="switchTab('temp')">🌡️ Temperatura</div>
+    <div class="tab" id="tab-rep" onclick="switchTab('rep')">📄 Reportes</div>
     <div class="tab" id="tab-pts" onclick="switchTab('pts')">📈 Avance</div>
   </div>
 </div>
@@ -819,7 +820,15 @@
   </div>
 
   <div class="temp-card">
-    <div class="temp-tit">📄 Reporte por fechas</div>
+    <div class="temp-tit">Últimas lecturas</div>
+    <div id="temp-lista"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ SECCIÓN REPORTES (TEMPERATURA) ═══════════════ -->
+<div class="section" id="section-rep">
+  <div class="temp-card">
+    <div class="temp-tit">📄 Reporte de temperatura y humedad</div>
     <div class="temp-row">
       <div><label>Desde</label><input type="date" id="temp-desde"></div>
       <div><label>Hasta</label><input type="date" id="temp-hasta"></div>
@@ -828,11 +837,6 @@
       <button class="temp-btn2" onclick="tempDescargarCSV()">⬇️ Descargar (Excel/CSV)</button>
       <button class="temp-btn2" onclick="tempImprimirBitacora()">🖨️ Imprimir bitácora</button>
     </div>
-  </div>
-
-  <div class="temp-card">
-    <div class="temp-tit">Últimas lecturas</div>
-    <div id="temp-lista"></div>
   </div>
 </div>
 
@@ -1417,11 +1421,12 @@ function fmtATiempo(v) {
 // ── TABS ─────────────────────────────────────────────────────
 function switchTab(tab) {
   tabActual = tab;
-  ['ops','act','mtc','ped','req','carga','temp','pts'].forEach(t => {
+  ['ops','act','mtc','ped','req','carga','temp','rep','pts'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('active', t === tab);
     document.getElementById('section-'+t).classList.toggle('active', t === tab);
   });
   if (tab === 'temp') { tempPrepararForm(); renderTemperatura(); }
+  if (tab === 'rep') tempPrepararForm(); // pone las fechas por defecto del reporte
   if (tab === 'pts') renderPuntos();
   if (tab === 'carga') renderCarga();
   if (tab === 'mtc') renderMontacargas();
@@ -5773,7 +5778,15 @@ const TEMP_RANGO = { tMin: 18, tMax: 35, hMax: 65 };   // referencia: 18-35 °C,
 const TEMP_LECTURAS = { 1: 'Primera lectura', 2: 'Segunda lectura', 3: 'Tercer lectura' };
 const TEMP_HORAS = { 1: '06:00', 2: '12:00', 3: '17:00' };
 let tempData = [];    // leídas de la hoja
-let tempLocal = [];   // registradas en esta sesión (la hoja publicada tarda en reflejarlas)
+const TEMP_LOCAL_KEY = 'sai_temp_local';
+const TEMP_LOCAL_MS = 30 * 60 * 1000; // la hoja publicada tarda unos minutos en reflejar lo nuevo
+// Lecturas registradas desde este teléfono en los últimos 30 min: se guardan
+// para que, si recargan la página antes de que la hoja se actualice, la última
+// lectura siga apareciendo.
+let tempLocal = (() => {
+  try { return JSON.parse(localStorage.getItem(TEMP_LOCAL_KEY) || '[]').filter(e => Date.now() - e.ts < TEMP_LOCAL_MS); }
+  catch (e) { return []; }
+})();
 
 async function cargarTemperatura() {
   if (!CSV_TEMP || CSV_TEMP.indexOf('PENDIENTE') !== -1) { tempData = []; return; }
@@ -5793,6 +5806,7 @@ function tempNum(v) { return parseFloat(String(v === undefined ? '' : v).replace
 
 // Lecturas de la hoja + las de esta sesión (si es la misma fecha y lectura, gana la más reciente).
 function tempTodas() {
+  tempLocal = tempLocal.filter(e => Date.now() - e.ts < TEMP_LOCAL_MS);
   const mapa = {};
   tempData.forEach(e => { mapa[e.fecha + '|' + e.lectura] = e; });
   tempLocal.forEach(e => { mapa[e.fecha + '|' + e.lectura] = e; });
@@ -5912,11 +5926,12 @@ async function registrarTemperatura() {
       origen: tempIA ? ((tempIA.t === t && tempIA.h === h) ? 'IA' : 'IA (corregido)') : 'Manual' }, TEMP_SCRIPT_URL);
     tempIA = null;
     localStorage.setItem('sai_temp_persona', persona);
-    tempLocal.push({ fecha, hora, lectura, temp: t, hum: h, por: persona, rev: '', foto: '' });
+    tempLocal.push({ fecha, hora, lectura, temp: t, hum: h, por: persona, rev: '', foto: '', ts: Date.now() });
+    try { localStorage.setItem(TEMP_LOCAL_KEY, JSON.stringify(tempLocal)); } catch (e) {}
     document.getElementById('temp-t').value = ''; document.getElementById('temp-h').value = ''; document.getElementById('temp-foto').value = '';
     document.getElementById('temp-alerta').innerHTML = '';
     document.getElementById('temp-ia').innerHTML = '';
-    mostrar(tempFuera(t, h) ? '✅ Registrado — ⚠️ fuera de rango, se avisó por Telegram' : '✅ Lectura registrada y avisada por Telegram', true);
+    mostrar(tempFuera(t, h) ? '✅ Registrado — ⚠️ fuera de rango' : '✅ Lectura registrada', true);
     tempPrepararForm();
     renderTemperatura();
   } catch (e) {
